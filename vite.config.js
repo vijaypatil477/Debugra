@@ -4,15 +4,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    chunkSizeWarningLimit: 600,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
-          monaco: ['@monaco-editor/react'],
-        },
-      },
-    },
+    chunkSizeWarningLimit: 1000,
   },
   server: {
     proxy: {
