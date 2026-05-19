@@ -14,9 +14,17 @@ import AuthModal from '../Auth/AuthModal';
 import ChatPanel from '../Chat/ChatPanel';
 import HistoryPanel from './HistoryPanel';
 import AIResponsePanel from './AIResponsePanel';
+import ApiKeyModal from './ApiKeyModal';
 import CollaborationControls from './CollaborationControls';
 import EditorStatusBar from './EditorStatusBar';
 import MobileBottomNav from './MobileBottomNav';
+import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
+
+function getApiKeyStatus() {
+  if (getSessionApiKey()) return 'unlocked';
+  if (isSecureApiKeyStored()) return 'locked';
+  return 'empty';
+}
 
 export default function EditorPage({ user }) {
   const navigate = useNavigate();
@@ -27,6 +35,8 @@ export default function EditorPage({ user }) {
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [apiKeyStatus, setApiKeyStatus] = useState(getApiKeyStatus);
   const [mobileTab, setMobileTab] = useState(MOBILE_TABS.CODE);
   const [showJoin, setShowJoin] = useState(false);
   const [joinId, setJoinId] = useState('');
@@ -193,6 +203,13 @@ export default function EditorPage({ user }) {
         </div>
         <div className="toolbar-right d-flex align-items-center gap-2">
           <div className="d-none d-md-flex align-items-center gap-2">
+            <button
+              className={`ai-btn api-key-toggle ${apiKeyStatus}`}
+              onClick={() => setShowApiKey(true)}
+              title="Groq API key settings"
+            >
+              Key
+            </button>
             <button className="ai-btn" onClick={ai.generateTests} disabled={ai.isAILoading || room.isReadOnly}>Tests</button>
             <button className="ai-btn" onClick={ai.visualize} disabled={ai.isAILoading}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
@@ -416,6 +433,12 @@ export default function EditorPage({ user }) {
 
       {/* Auth Modal */}
       {showAuth && <AuthModal mode={authMode} onClose={() => setShowAuth(false)} />}
+      {showApiKey && (
+        <ApiKeyModal
+          onClose={() => setShowApiKey(false)}
+          onStatusChange={() => setApiKeyStatus(getApiKeyStatus())}
+        />
+      )}
     </div>
   );
 }

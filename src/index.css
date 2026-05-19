@@ -183,6 +183,16 @@ body {
 .ai-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 .ai-btn.fix { background: transparent; color: #ffffff; border: 1px solid #ffffff; }
 .ai-btn.fix:hover { background: #ffffff; color: #000000; }
+.ai-btn.api-key-toggle.locked {
+  background: #facc15;
+  border-color: #facc15;
+  color: #1f2937;
+}
+.ai-btn.api-key-toggle.unlocked {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #052e16;
+}
 .ai-btn svg { flex-shrink: 0; opacity: 0.9; }
 .ai-btn:hover svg { opacity: 1; }
 
@@ -362,6 +372,78 @@ body {
 .modal-box {
   background: var(--bg-1); border: 1px solid var(--border); border-radius: 8px;
   padding: 24px; width: 380px; max-width: 90vw;
+}
+.api-key-modal {
+  width: 440px;
+}
+.modal-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.modal-title-left {
+  color: var(--text-0);
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+.modal-muted {
+  color: var(--text-2);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  margin: 0;
+}
+.modal-close-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-2);
+  color: var(--text-1);
+  cursor: pointer;
+}
+.api-key-warning {
+  color: #facc15;
+  background: rgba(250, 204, 21, 0.08);
+  border: 1px solid rgba(250, 204, 21, 0.25);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.75rem;
+  margin-bottom: 12px;
+}
+.api-key-label {
+  color: var(--text-1);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin: 12px 0 6px;
+}
+.api-key-input {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-0);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  outline: none;
+  padding: 9px 10px;
+}
+.api-key-input:focus {
+  border-color: var(--accent);
+}
+.api-key-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+.clear-btn.danger:hover {
+  color: #ffffff;
+  background: rgba(244, 71, 71, 0.2);
 }
 
 /* ============ CHAT ============ */

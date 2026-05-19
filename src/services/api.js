@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getSessionApiKey } from './secureApiKeyStore';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -9,9 +10,15 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor — attach any future auth tokens here
+// Request interceptor — attach a session-only user Groq key when unlocked
 api.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    const apiKey = getSessionApiKey();
+    if (apiKey && config.url?.startsWith('/api/ai/')) {
+      config.headers['X-Groq-Api-Key'] = apiKey;
+    }
+    return config;
+  },
   (error) => Promise.reject(error)
 );
 
