@@ -54,7 +54,33 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
       createdAt: serverTimestamp(),
     });
   };
+  const handleDownloadReport = () => {
+    if (!messages || messages.length === 0) {
+      alert("No logs available to download!");
+      return;
+    }
 
+    let markdownContent = "# AI Explanation & Debug Report\n\n";
+    
+    messages.forEach((msg) => {
+      const sender = msg.uid === user?.uid ? "You" : "AI Assistant";
+      markdownContent += `### **${sender}**:\n${msg.text}\n\n---\n\n`;
+    });
+
+    const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8;' });
+    
+    const downloadUrl = URL.createObjectURL(blob);
+    
+    const hiddenAnchor = document.createElement('a');
+    hiddenAnchor.href = downloadUrl;
+    hiddenAnchor.download = `debug-report-${roomId || 'session'}.md`;
+    
+    document.body.appendChild(hiddenAnchor);
+    hiddenAnchor.click();
+    document.body.removeChild(hiddenAnchor);
+    
+    URL.revokeObjectURL(downloadUrl);
+  };
   if (!roomId) return null;
 
   const groupedMessages = [];
@@ -120,6 +146,33 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
                 <div style={{ fontSize: '0.6rem', color: '#64748b' }}>{roomId}</div>
               </div>
             </div>
+            {/* Download Report Button */}
+        <button 
+          onClick={handleDownloadReport}
+          title="Download Report as Markdown"
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '4px',
+            borderRadius: '4px',
+            color: '#94a3b8',
+            transition: 'color 0.2s',
+            marginRight: 'auto',
+            marginLeft: '8px'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = '#e2e8f0'}
+          onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+        </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{
                 display: 'flex', alignItems: 'center', gap: '4px',
