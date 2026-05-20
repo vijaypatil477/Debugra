@@ -19,6 +19,7 @@ export function useEditor({ user, onNeedAuth }) {
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
   const [stdinValue, setStdinValue] = useState('');
   const [stdinOpen, setStdinOpen] = useState(false);
+  const [isConsoleCollapsed, setIsConsoleCollapsed] = useState(false);
 
   const needsInput = useMemo(() => {
     const pattern = INPUT_PATTERNS[language];
@@ -79,6 +80,10 @@ export function useEditor({ user, onNeedAuth }) {
     if (newLang && LANGUAGES[newLang]) setLanguage(newLang);
   }, []);
 
+  const toggleConsoleCollapse = useCallback(() => {
+    setIsConsoleCollapsed(prev => !prev);
+  }, []);
+
   return {
     code, setCode,
     language, setLanguage,
@@ -87,11 +92,13 @@ export function useEditor({ user, onNeedAuth }) {
     stdinValue, setStdinValue,
     stdinOpen, setStdinOpen,
     needsInput,
+    isConsoleCollapsed,
     changeLanguage,
     increaseFontSize,
     decreaseFontSize,
     downloadCode,
     saveToCloud,
     loadCode,
+    toggleConsoleCollapse,
   };
 }
