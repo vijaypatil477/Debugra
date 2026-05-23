@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import MobileSidebarDrawer from "./MobileSidebarDrawer";
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
@@ -35,6 +36,7 @@ export default function EditorPage({ user }) {
   const [outputWidth, setOutputWidth] = useState(420);
   const [showSettings, setShowSettings] = useState(false);
   const resizingRef = useRef(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false); 
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
@@ -475,6 +477,39 @@ export default function EditorPage({ user }) {
 
       {/* Auth Modal */}
       {showAuth && <AuthModal mode={authMode} onClose={() => setShowAuth(false)} />}
+        {/* Mobile Hamburger Button */}
+        {isMobile && (
+          <button
+            onClick={() => setIsMobileDrawerOpen(true)}
+            aria-label="Open sidebar menu"
+            style={{
+              position: 'fixed',
+              top: '12px',
+              left: '12px',
+              zIndex: 998,
+              background: '#2d2d3f',
+              border: '1px solid #555',
+              borderRadius: '6px',
+              color: '#fff',
+              fontSize: '1.3rem',
+              padding: '4px 10px',
+              cursor: 'pointer',
+            }}
+          >
+            ☰
+          </button>
+        )}
+
+        {/* Mobile Sidebar Drawer */}
+        <MobileSidebarDrawer
+          isOpen={isMobileDrawerOpen}
+          onClose={() => setIsMobileDrawerOpen(false)}
+        >
+          <HistoryPanel
+            user={user}
+            onLoadCode={(c, l) => { editor.loadCode(c, l); setIsMobileDrawerOpen(false); }}
+          />
+        </MobileSidebarDrawer>
     </div>
   );
 }
