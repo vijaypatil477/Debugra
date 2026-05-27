@@ -11,6 +11,7 @@ import HistoryPanel from './HistoryPanel';
 export default function MobileDrawer({
   isMobile,
   isOpen,
+  onOpen,
   onClose,
   user,
   editor,
