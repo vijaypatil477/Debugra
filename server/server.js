@@ -11,6 +11,7 @@ const memoryRoutes = require('./routes/memory');
 const memoryTracker = require('./middleware/memoryTracker');
 const memoryProfiler = require('./services/memoryProfiler');
 const errorHandler = require('./middleware/errorHandler');
+const webhookRoutes = require('./routes/webhooks');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -210,6 +211,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/execute', executeRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/admin/memory-profile', memoryRoutes);
+app.use('/api/webhooks', webhookRoutes);
 
 // ──────────────────────────────────────────────
 // Error Handler

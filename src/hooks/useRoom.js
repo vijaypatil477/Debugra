@@ -127,6 +127,19 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       rememberRoomAccess(id);
       toast.success(`Room created! ID: ${id}`);
       navigator.clipboard.writeText(id);
+
+      // Trigger Webhook via Backend API
+      fetch(import.meta.env.VITE_API_URL + '/api/webhooks/room-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: 'room_created',
+          roomId: id,
+          userName: displayName,
+          passwordProtected: Boolean(passwordHash)
+        })
+      }).catch(console.error);
+
       return true;
     },
     [user, code, language]
@@ -175,6 +188,18 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         localStorage.setItem('debugra_roomId', newRoomId);
         rememberRoomAccess(newRoomId);
         toast.success(`Joined room: ${newRoomId}`);
+
+        // Trigger Webhook via Backend API
+        fetch(import.meta.env.VITE_API_URL + '/api/webhooks/room-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'room_joined',
+            roomId: newRoomId,
+            userName: displayName
+          })
+        }).catch(console.error);
+
         return true;
       } catch {
         toast.error('Failed to join room');
