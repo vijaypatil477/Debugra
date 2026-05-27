@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { doc, setDoc, updateDoc, onSnapshot, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { notifyRoomCreated, notifyRoomJoined } from '../services/webhookService';
 import toast from 'react-hot-toast';
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
@@ -106,6 +107,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       const passwordHash = trimmedPassword
         ? await hashRoomPassword(trimmedPassword, passwordSalt)
         : null;
+      const initialActiveUsers = [{ uid: user.uid, displayName }];
 
       await setDoc(doc(db, 'rooms', id), {
         name: `Room ${id}`,
@@ -115,7 +117,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         passwordHash,
         code,
         language,
-        activeUsers: [{ uid: user.uid, displayName }],
+        activeUsers: initialActiveUsers,
         allowedEditors: [user.uid],
         currentEditor: user.uid,
         editRequests: [],
@@ -127,18 +129,12 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       rememberRoomAccess(id);
       toast.success(`Room created! ID: ${id}`);
       navigator.clipboard.writeText(id);
-
-      // Trigger Webhook via Backend API
-      fetch(import.meta.env.VITE_API_URL + '/api/webhooks/room-event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event: 'room_created',
-          roomId: id,
-          userName: displayName,
-          passwordProtected: Boolean(passwordHash)
-        })
-      }).catch(console.error);
+      notifyRoomCreated({
+        roomId: id,
+        displayName,
+        language,
+        activeUserCount: initialActiveUsers.length,
+      });
 
       return true;
     },
@@ -159,6 +155,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         }
         const data = roomSnap.data();
         const currentUsers = data.activeUsers || [];
+        const roomLanguage = data.language;
         const isCreator = data.createdBy === user.uid;
         const isAllowed = data.allowedEditors?.includes(user.uid);
         const needsPassword =
@@ -179,26 +176,25 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         }
 
         const displayName = user.displayName || user.email?.split('@')[0] || 'Guest';
-        if (!currentUsers.some((u) => u.uid === user.uid)) {
+        const isAlreadyActive = currentUsers.some((u) => u.uid === user.uid);
+
+        if (!isAlreadyActive) {
+          const nextActiveUsers = [...currentUsers, { uid: user.uid, displayName }];
           await updateDoc(roomRef, {
-            activeUsers: [...currentUsers, { uid: user.uid, displayName }],
+            activeUsers: nextActiveUsers,
+          });
+
+          notifyRoomJoined({
+            roomId: newRoomId,
+            displayName,
+            language: roomLanguage,
+            activeUserCount: nextActiveUsers.length,
           });
         }
         setRoomId(newRoomId);
         localStorage.setItem('debugra_roomId', newRoomId);
         rememberRoomAccess(newRoomId);
         toast.success(`Joined room: ${newRoomId}`);
-
-        // Trigger Webhook via Backend API
-        fetch(import.meta.env.VITE_API_URL + '/api/webhooks/room-event', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            event: 'room_joined',
-            roomId: newRoomId,
-            userName: displayName
-          })
-        }).catch(console.error);
 
         return true;
       } catch {
