@@ -16,6 +16,7 @@ const webhookRoutes = require('./routes/webhooks');
 const app = express();
 const PORT = process.env.PORT || 3001;
 const isProd = process.env.NODE_ENV === 'production';
+const cspReportUri = (process.env.CSP_REPORT_URI || '').trim();
 const rateLimitEventBufferSize = Number.parseInt(
   process.env.RATE_LIMIT_EVENT_BUFFER_SIZE || '100',
   10
@@ -48,9 +49,7 @@ function recordRateLimitEvent(req) {
     rateLimitEvents.length = rateLimitEventBufferSize;
   }
 
-  logger.warn(
-    `[rate-limit] blocked ${event.method} ${event.path} from ${event.ip}`
-  );
+  logger.warn(`[rate-limit] blocked ${event.method} ${event.path} from ${event.ip}`);
   return event;
 }
 
@@ -83,60 +82,94 @@ const defaultDevOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'https://debugra.tech',
-  'https://www.debugra.tech'
+  'https://www.debugra.tech',
 ];
-const extraOrigins = (
-  process.env.CORS_ORIGINS ||
-  process.env.CLIENT_URL ||
-  ""
-)
+const extraOrigins = (process.env.CORS_ORIGINS || process.env.CLIENT_URL || '')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-const allowedOrigins = [...new Set([...defaultDevOrigins, ...extraOrigins])];
+const allowedOrigins = unique([...defaultDevOrigins, ...extraOrigins]);
+
+function unique(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function buildCspDirectives() {
+  const clientOrigins = unique([...allowedOrigins]);
+
+  const directives = {
+    defaultSrc: ["'self'"],
+    baseUri: ["'self'"],
+    scriptSrc: unique([
+      "'self'",
+      'https://www.gstatic.com',
+      'https://www.googleapis.com',
+      'https://cdn.jsdelivr.net',
+      'https://cdnjs.cloudflare.com',
+    ]),
+    styleSrc: unique(["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com']),
+    imgSrc: ["'self'", 'data:', 'blob:', 'https://*.googleusercontent.com'],
+    connectSrc: unique([
+      "'self'",
+      ...clientOrigins,
+      'https://api.groq.com',
+      'https://*.firebaseio.com',
+      'https://*.googleapis.com',
+      'https://identitytoolkit.googleapis.com',
+      'https://securetoken.googleapis.com',
+      'https://firestore.googleapis.com',
+      'https://wandbox.org',
+    ]),
+    fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+    objectSrc: ["'none'"],
+    mediaSrc: ["'self'"],
+    frameSrc: ["'none'"],
+    frameAncestors: ["'none'"],
+    formAction: ["'self'"],
+  };
+
+  if (isProd) {
+    directives.upgradeInsecureRequests = [];
+  }
+
+  if (cspReportUri) {
+    directives.reportUri = [cspReportUri];
+  }
+
+  return directives;
+}
 
 // ──────────────────────────────────────────────
 // Security Headers (all six required headers)
 // ──────────────────────────────────────────────
-app.use(helmet({
-  // 1. Strict-Transport-Security — force HTTPS for 1 year (prod only)
-  strictTransportSecurity: isProd
-    ? { maxAge: 31536000, includeSubDomains: true, preload: true }
-    : false,
+app.use(
+  helmet({
+    // 1. Strict-Transport-Security — force HTTPS for 1 year (prod only)
+    strictTransportSecurity: isProd
+      ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+      : false,
 
-  // 2. Content-Security-Policy — tight API-only policy
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc:     ["'none'"],
-      scriptSrc:      ["'none'"],
-      styleSrc:       ["'none'"],
-      imgSrc:         ["'none'"],
-      connectSrc:     ["'self'"],
-      fontSrc:        ["'none'"],
-      objectSrc:      ["'none'"],
-      mediaSrc:       ["'none'"],
-      frameSrc:       ["'none'"],
-      frameAncestors: ["'none'"],
-      formAction:     ["'none'"],
-      upgradeInsecureRequests: isProd ? [] : null,
+    // 2. Content-Security-Policy — strict allowlist for the app's known providers
+    contentSecurityPolicy: {
+      directives: buildCspDirectives(),
     },
-  },
 
-  // 3. X-Frame-Options — prevent clickjacking
-  frameguard: { action: 'deny' },
+    // 3. X-Frame-Options — prevent clickjacking
+    frameguard: { action: 'deny' },
 
-  // 4. X-Content-Type-Options — prevent MIME sniffing
-  noSniff: true,
+    // 4. X-Content-Type-Options — prevent MIME sniffing
+    noSniff: true,
 
-  // 5. Referrer-Policy — no referrer leakage from API
-  referrerPolicy: { policy: 'no-referrer' },
+    // 5. Referrer-Policy — no referrer leakage from API
+    referrerPolicy: { policy: 'no-referrer' },
 
-  // Other useful helmet defaults kept on
-  xssFilter: true,
-  hidePoweredBy: true,
-  ieNoOpen: true,
-}));
+    // Other useful helmet defaults kept on
+    xssFilter: true,
+    hidePoweredBy: true,
+    ieNoOpen: true,
+  })
+);
 
 // 6. Permissions-Policy — helmet doesn't set this natively; add manually
 app.use((req, res, next) => {
@@ -147,25 +180,44 @@ app.use((req, res, next) => {
   next();
 });
 
+app.post(
+  '/api/security/csp-report',
+  express.json({
+    type: ['application/csp-report', 'application/reports+json', 'application/json'],
+  }),
+  (req, res) => {
+    const report = req.body?.['csp-report'] || req.body;
+    console.warn('[csp-report]', {
+      blockedUri: report?.['blocked-uri'] || report?.blockedURL,
+      violatedDirective: report?.['violated-directive'] || report?.effectiveDirective,
+      documentUri: report?.['document-uri'] || report?.documentURL,
+    });
+    res.status(204).end();
+  }
+);
+
 // ──────────────────────────────────────────────
 // CORS
 // ──────────────────────────────────────────────
-app.use(cors({
-  origin(origin, callback) {
-    // Allow no-Origin header only in dev (curl / server-to-server testing).
-    // In production every request must come from an explicitly allowed origin.
-    if ((!origin && !isProd) || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    const corsError = new Error('Not allowed by CORS');
-    corsError.status = 403;
-    return callback(corsError);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Groq-Api-Key'],
-  optionsSuccessStatus: 204,
-}));
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow no-Origin header only in dev (curl / server-to-server testing).
+      // In production every request must come from an explicitly allowed origin.
+      if ((!origin && !isProd) || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      const corsError = new Error('Not allowed by CORS');
+      corsError.status = 403;
+      return callback(corsError);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Groq-Api-Key'],
+    optionsSuccessStatus: 204,
+  })
+);
 
 // ──────────────────────────────────────────────
 // Cookie Security
@@ -238,9 +290,12 @@ app.use('/api/webhooks', webhookRoutes);
 // ──────────────────────────────────────────────
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  logger.info(`🚀 Debugra server running on port ${PORT}`);
-  logger.info(`🔒 Security headers: HSTS=${isProd}, CSP=on, Permissions-Policy=on`);
-  memoryProfiler.start();
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    logger.info(`🚀 Debugra server running on port ${PORT}`);
+    logger.info(`🔒 Security headers: HSTS=${isProd}, CSP=on, Permissions-Policy=on`);
+    memoryProfiler.start();
+  });
+}
 
+module.exports = { app, buildCspDirectives };
