@@ -80,7 +80,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
     let markdownContent = '# AI Explanation & Debug Report\n\n';
 
     messages.forEach((msg) => {
-      const sender = msg.uid === user?.uid ? 'You' : 'AI Assistant';
+      const sender = msg.uid === user?.uid ? 'You' : (msg.displayName || 'User');
       markdownContent += `### **${sender}**:\n${msg.text}\n\n---\n\n`;
     });
 
