@@ -15,7 +15,7 @@
     "express": "^4.21.0",
     "express-rate-limit": "^7.5.0",
     "groq-sdk": "^0.9.0",
-    "helmet": "^8.0.0",
+    "helmet": "^8.2.0",
     "node-cache": "^5.1.2"
   }
 }
