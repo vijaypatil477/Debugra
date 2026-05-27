@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 export default function HistoryPanel({ user, onLoadCode, onClose }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -34,16 +36,25 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
     }
   };
 
-  const handleRename = async (id, currentName) => {
-    const newName = window.prompt('Enter new file name:', currentName);
-    if (!newName || newName === currentName) return;
+  const startRename = (id, currentName) => {
+    setEditingId(id);
+    setEditName(currentName);
+  };
+
+  const saveRename = async (id) => {
+    if (!editName || editName.trim() === '') {
+      setEditingId(null);
+      return;
+    }
     try {
-      await updateDoc(doc(db, 'users', user.uid, 'savedCode', id), { name: newName });
-      setHistory((prev) => prev.map((h) => (h.id === id ? { ...h, name: newName } : h)));
+      const trimmedName = editName.trim();
+      await updateDoc(doc(db, 'users', user.uid, 'savedCode', id), { name: trimmedName });
+      setHistory((prev) => prev.map((h) => (h.id === id ? { ...h, name: trimmedName } : h)));
       toast.success('Renamed successfully');
     } catch {
       toast.error('Rename failed');
     }
+    setEditingId(null);
   };
 
   const formatDate = (ts) => {
@@ -169,9 +180,25 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
                   <span className="badge bg-secondary bg-opacity-25 text-info x-small fw-bold">
                     {LANG_ICONS[item.language] || 'CODE'}
                   </span>
-                  <span className="history-item-name text-truncate small text-light fw-medium">
-                    {item.name || 'untitled'}
-                  </span>
+                  {editingId === item.id ? (
+                    <input 
+                      type="text" 
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onBlur={() => saveRename(item.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveRename(item.id);
+                        if (e.key === 'Escape') setEditingId(null);
+                      }}
+                      autoFocus
+                      className="form-control form-control-sm bg-dark text-light border-secondary x-small py-0"
+                      style={{ height: '20px', fontSize: '0.8rem' }}
+                    />
+                  ) : (
+                    <span className="history-item-name text-truncate small text-light fw-medium">
+                      {item.name || 'untitled'}
+                    </span>
+                  )}
                 </div>
                 <span className="history-item-time x-small text-secondary flex-shrink-0">
                   {formatDate(item.createdAt)}
@@ -204,7 +231,7 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
                   Load
                 </button>
                 <button
-                  onClick={() => handleRename(item.id, item.name || 'untitled')}
+                  onClick={() => startRename(item.id, item.name || 'untitled')}
                   className="btn btn-sm btn-outline-warning x-small d-flex align-items-center justify-content-center py-1"
                   title="Rename"
                 >
