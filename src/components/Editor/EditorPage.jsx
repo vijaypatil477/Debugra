@@ -4,7 +4,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX } from 'lucide-react';
+import { Settings } from 'lucide-react';
 
 import {
   useRoom,
@@ -39,6 +39,7 @@ import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
+import MobileDrawer from './MobileDrawer';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
 
@@ -79,6 +80,7 @@ export default function EditorPage({ user }) {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -1507,8 +1509,24 @@ export default function EditorPage({ user }) {
         />
       )}
 
-      {/* Real-time Democratic Vote Popup */}
-      <VotePopup room={room} user={user} />
+{/* Real-time Democratic Vote Popup */}
+<VotePopup room={room} user={user} />
+
+      {/* Mobile Drawer */}
+      <MobileDrawer
+        isMobile={isMobile}
+        isOpen={drawerOpen}
+        onOpen={() => setDrawerOpen(true)}
+        onClose={() => setDrawerOpen(false)}
+        user={user}
+        editor={editor}
+        audioFeedback={audioFeedback}
+        showHistory={showHistory}
+        setShowHistory={setShowHistory}
+        onLoadCode={(code, language) => {
+          editor.loadCode(code, language);
+        }}
+      />
     </div>
   );
 }

@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "D:\\BCA\\4th_sem\\Gssoc\\Debugra\\server\\logs\\.db1e64af804b7d6f7b796eebff96e76c954c478e-audit.json",
+    "files": [
+        {
+            "date": 1779886302092,
+            "name": "D:\\BCA\\4th_sem\\Gssoc\\Debugra\\server\\logs\\error-2026-05-27.log",
+            "hash": "86f2d4d0d4bd6d068943c7ebf5f6a4f58a7d84ff151f499eb8c17c7269593373"
+        }
+    ],
+    "hashType": "sha256"
+}
