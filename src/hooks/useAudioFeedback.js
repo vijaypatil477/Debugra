@@ -162,11 +162,6 @@ export function useAudioFeedback() {
           outcome,
           '— falling back to synthesized tone'
         );
-        console.debug(
-          '[audio] static asset missing for',
-          outcome,
-          '— falling back to synthesized tone'
-        );
         playFallbackTone(outcome);
         return;
       }
