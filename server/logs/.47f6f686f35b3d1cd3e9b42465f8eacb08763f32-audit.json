@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/private/tmp/debugra-pr/server/logs/.47f6f686f35b3d1cd3e9b42465f8eacb08763f32-audit.json",
+    "files": [
+        {
+            "date": 1781663290732,
+            "name": "/private/tmp/debugra-pr/server/logs/application-2026-06-17.log",
+            "hash": "bcf36024dda74d905f7d784ecee4706c148ea2de7c00d2890f679fbd336084fd"
+        }
+    ],
+    "hashType": "sha256"
+}
