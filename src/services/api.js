@@ -76,4 +76,9 @@ export const aiVisualizeExecution = async (code, language, input = '') => {
   return data;
 };
 
+export const aiOptimizeNames = async (code, language) => {
+  const { data } = await api.post('/api/ai/optimize-names', { code, language });
+  return data;
+};
+
 export default api;

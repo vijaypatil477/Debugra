@@ -239,6 +239,7 @@ export default function EditorPage({ user }) {
 
   const handleEditorMount = (editorInstance) => {
     editorRef.current = editorInstance;
+    window.editor = editorInstance; // Expose for Playwright E2E tests
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
@@ -567,6 +568,19 @@ export default function EditorPage({ user }) {
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
               Explain
+            </button>
+            <button className="ai-btn" onClick={ai.optimizeNames} disabled={ai.isAILoading} title="Optimize variable & function names">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M15 4V2m3.5 3.5l1.5-1.5M19 9h2M17.5 13.5l1.5 1.5M3 21l10-10m-3-3l6 6" />
+              </svg>
+              Optimize
             </button>
           </div>
           <button

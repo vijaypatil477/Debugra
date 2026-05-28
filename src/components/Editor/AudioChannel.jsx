@@ -11,7 +11,7 @@ const AudioPeer = ({ stream }) => {
     }
   }, [stream]);
 
-  return <audio ref={audioRef} autoPlay playsInline />;
+  return <audio ref={audioRef} autoPlay />;
 };
 
 export default function AudioChannel({ room, user }) {

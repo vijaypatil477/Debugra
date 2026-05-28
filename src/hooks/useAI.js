@@ -6,6 +6,7 @@ import {
   aiVisualizeExecution,
   aiGenerateTests,
   aiAuditCode,
+  aiOptimizeNames,
 } from '../services/api';
 import { LANGUAGES } from '../utils/languageConfig';
 import { OUTPUT_TABS } from '../config/constants';
@@ -75,6 +76,22 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
     [withAI, code, language]
   );
 
+  const optimizeNames = useCallback(
+    () =>
+      withAI(async () => {
+        const sel = editorRef?.current?.getSelection();
+        const selectedCode =
+          sel && !sel.isEmpty() ? editorRef.current.getModel().getValueInRange(sel) : '';
+
+        if (!selectedCode || !selectedCode.trim()) {
+          throw new Error('Please select a block of code in the editor to optimize naming.');
+        }
+
+        return await aiOptimizeNames(selectedCode, LANGUAGES[language].name);
+      }),
+    [withAI, language, editorRef]
+  );
+
   const clearAI = useCallback(() => setAiResponse(null), []);
 
   return {
@@ -85,6 +102,7 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
     visualize,
     generateTests,
     audit,
+    optimizeNames,
     clearAI,
   };
 }
