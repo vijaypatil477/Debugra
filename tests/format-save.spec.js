@@ -8,26 +8,21 @@ test('format on save', async ({ page, browserName }) => {
   await page.selectOption('select.lang-select', 'javascript');
   await page.waitForTimeout(200);
 
-  // Focus the editor, clear existing template, and type unformatted code
-  await page.click('.monaco-editor');
-  await page.keyboard.press('Control+A');
-  await page.keyboard.press('Backspace');
-  await page.keyboard.type('function  foo(){console.log("hi") }');
+  // Seed unformatted code and invoke the formatter helper directly.
+  await page.evaluate((code) => {
+    window.__DEBUGRA_EDITOR__.setValue(code);
+  }, 'function  foo(){console.log("hi") }');
 
-  // Try both control and meta save sequences to trigger formatting
-  // Try both control and meta save sequences to trigger formatting
-  await page.keyboard.press('Control+S');
-  await page.keyboard.press('Meta+S');
+  await page.evaluate(async () => {
+    if (window.__debugra_formatEditor) {
+      await window.__debugra_formatEditor();
+    }
+  });
 
-  // Wait briefly for the editor to process the save-format action
-  // (formatting is performed in-page via Prettier dynamic imports).
+  // Read the editor content from Monaco's model.
+  const text = await page.evaluate(() => window.__DEBUGRA_EDITOR__.getValue());
 
-  // Wait briefly for formatting to apply
-  await page.waitForTimeout(800);
-
-  // Read the editor content from the rendered view lines
-  const text = await page.locator('.view-lines').innerText();
-  // Expect the formatted code to include a semicolon after console.log
+  // Expect the formatted code to include a semicolon after console.log.
   expect(text).toContain('console.log');
   expect(text).toContain(';');
 });

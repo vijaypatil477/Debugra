@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
   push:
-    branches: [ main, master ]
+    branches: [main, master]
 
 jobs:
   build-and-test:
@@ -28,6 +28,12 @@ jobs:
 
       - name: Verify Frontend Production Build
         run: npm run build
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright Integration Tests
+        run: npx playwright test
 
       - name: Run Lighthouse CI
         run: npx @lhci/cli@0.15.x autorun
