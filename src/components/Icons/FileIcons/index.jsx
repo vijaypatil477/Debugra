@@ -300,6 +300,22 @@ export const CodeIcon = ({ size, label }) => (
   </FileBase>
 );
 
+export const DockerfileIcon = ({ size, label }) => (
+  <FileBase size={size} label={label}>
+    <rect x="3" y="5" width="18" height="14" rx="3" fill="#0f172a" />
+    <path d="M8 9h8" stroke="#94a3b8" strokeWidth="1.7" strokeLinecap="round" />
+    <path d="M8 12h6" stroke="#94a3b8" strokeWidth="1.7" strokeLinecap="round" />
+    <path
+      d="M6.5 16.5c1.5-2.5 3.7-2.5 5.2 0 1.5-2.5 3.7-2.5 5.2 0"
+      fill="none"
+      stroke="#38bdf8"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+    <circle cx="16.8" cy="16" r="1.05" fill="#38bdf8" />
+  </FileBase>
+);
+
 export const FILE_ICON_COMPONENTS = {
   python: PythonIcon,
   javascript: JavaScriptIcon,
@@ -318,5 +334,6 @@ export const FILE_ICON_COMPONENTS = {
   json: JsonIcon,
   markdown: MarkdownIcon,
   env: EnvIcon,
+  dockerfile: DockerfileIcon,
   code: CodeIcon,
 };
