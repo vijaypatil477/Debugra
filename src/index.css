@@ -2740,3 +2740,148 @@ details[open] .debug-stderr-summary::before {
   background-color: rgba(20, 20, 20, 0.3) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   FOCUS MODE — Distraction-free editor overlay
+   ═══════════════════════════════════════════════════════════ */
+
+/* When focus mode is active, hide all surrounding UI */
+body.focus-mode-active .editor-header,
+body.focus-mode-active .editor-toolbar,
+body.focus-mode-active .editor-status-bar,
+body.focus-mode-active .chat-panel,
+body.focus-mode-active .history-panel,
+body.focus-mode-active .ai-response-panel,
+body.focus-mode-active .collaboration-controls,
+body.focus-mode-active .mobile-bottom-nav,
+body.focus-mode-active .output-panel {
+  display: none !important;
+}
+
+/* Expand the editor to fill the entire viewport */
+body.focus-mode-active .editor-main-area,
+body.focus-mode-active .monaco-editor-wrapper {
+  width: 100vw  !important;
+  height: 100vh !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 999 !important;
+  background: #1e2327 !important;
+}
+
+/* Smooth transition when entering/leaving */
+.editor-header,
+.editor-toolbar,
+.editor-status-bar,
+.chat-panel,
+.history-panel {
+  transition: opacity 0.25s ease;
+}
+
+/* ── HUD (Heads-Up Display) ─────────────────────────────── */
+.focus-mode-hud {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+/* ── Timer badge ────────────────────────────────────────── */
+.focus-timer-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.875rem;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background 0.3s ease;
+}
+
+.focus-timer-badge.work {
+  background: rgba(30, 35, 39, 0.92);
+  color: #6f9ceb;
+}
+
+.focus-timer-badge.break {
+  background: rgba(30, 35, 39, 0.92);
+  color: #73c991;
+}
+
+.focus-timer-label {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  letter-spacing: 0.04em;
+}
+
+.focus-timer-time {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+/* Pulse animation when < 60 seconds left */
+.focus-timer-badge.pulse {
+  animation: focus-pulse 1s ease-in-out infinite;
+}
+
+@keyframes focus-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+.focus-timer-toggle {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.focus-timer-toggle:hover { opacity: 1; }
+
+/* ── Controls row ───────────────────────────────────────── */
+.focus-mode-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.focus-control-btn {
+  background: rgba(30, 35, 39, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: color 0.2s, border-color 0.2s;
+  letter-spacing: 0.03em;
+}
+
+.focus-control-btn:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.focus-control-btn.exit {
+  color: #f48771;
+  border-color: rgba(244, 135, 113, 0.3);
+}
+
+.focus-control-btn.exit:hover {
+  background: rgba(244, 135, 113, 0.12);
+  border-color: #f48771;
+}
