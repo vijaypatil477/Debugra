@@ -1296,7 +1296,7 @@ export default function EditorPage({ user }) {
                       className="lang-select"
                       value={editor.fontFamily}
                       onChange={(e) => editor.setFontFamily(e.target.value)}
-                      aria-label="Editor font"
+                      aria-label="Audio settings font"
                       style={{ fontSize: '0.7rem', padding: '2px 6px' }}
                     >
                       {EDITOR_FONTS.map((font) => (
@@ -1381,6 +1381,7 @@ export default function EditorPage({ user }) {
                     Test chime
                   </button>
                 </div>
+              )}
             </div>
           </div>
           <span className="kbd-hint d-none d-lg-inline">Ctrl+Enter</span>

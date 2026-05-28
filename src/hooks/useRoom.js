@@ -180,17 +180,15 @@ export function useRoom({
     return () => clearTimeout(timer);
   }, [code, language, stdinValue, roomId, user, isEditor, roomData]);
 
-  // ─── Sync active file (language) for presence ───────────────────────────────
+  // ─── Auto-join from local storage ───────────────────────────────────────────
   useEffect(() => {
-    if (!roomId || !user || !roomData) return;
-    const currentUsers = roomData.activeUsers || [];
-    const myIndex = currentUsers.findIndex((u) => u.uid === user.uid);
-    if (myIndex !== -1 && currentUsers[myIndex].activeFile !== language) {
-      const newUsers = [...currentUsers];
-      newUsers[myIndex] = { ...newUsers[myIndex], activeFile: language };
-      updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+    const savedRoomId = localStorage.getItem('debugra_roomId');
+    if (user && savedRoomId && !roomId) {
+      joinRoom(savedRoomId).catch(() => {
+        localStorage.removeItem('debugra_roomId');
+      });
     }
-  }, [roomId, user, roomData, language]);
+  }, [user, roomId]); // Join logic uses the function below
 
   // ─── Create room ────────────────────────────────────────────────────────────
   const createRoom = useCallback(
