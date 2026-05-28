@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const NodeCache = require('node-cache');
+const crypto = require('crypto');
 const { executeCode } = require('../services/judge0Service');
 
 // Initialize cache with 5 minutes TTL for code execution
@@ -14,7 +15,16 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'source_code and language_id are required' });
     }
 
-    const cacheKey = `exec_${language_id}_${stdin || ''}_${source_code}`;
+    // Guard against excessively large payloads blocking the event loop or bloating memory (50KB limit)
+    if (source_code.length > 50000) {
+      return res.status(413).json({ error: 'Source code exceeds the maximum allowed size of 50KB' });
+    }
+
+    // Hash the code and input so the cache key is a bounded, predictable length
+    const sourceHash = crypto.createHash('sha256').update(source_code).digest('hex');
+    const stdinHash = crypto.createHash('sha256').update(stdin || '').digest('hex');
+    const cacheKey = `exec_${language_id}_${stdinHash}_${sourceHash}`;
+    
     const cachedResult = executeCache.get(cacheKey);
     
     if (cachedResult) {
