@@ -26,6 +26,7 @@ import {
 } from '../../config/constants';
 
 import AuthModal from '../Auth/AuthModal';
+import AccountSettings from '../Auth/AccountSettings';
 import ChatPanel from '../Chat/ChatPanel';
 import FileIcon from '../Icons/FileIcon';
 import HistoryPanel from './HistoryPanel';
@@ -56,6 +57,7 @@ export default function EditorPage({ user }) {
   const [showHistory, setShowHistory] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
   const [apiKeyStatus, setApiKeyStatus] = useState(getApiKeyStatus);
   const [mobileTab, setMobileTab] = useState(MOBILE_TABS.CODE);
   const [showJoin, setShowJoin] = useState(false);
@@ -435,6 +437,13 @@ export default function EditorPage({ user }) {
                 }}
               >
                 Log Out
+              </button>
+              <button
+                className="topbar-link"
+                onClick={() => setShowAccount(true)}
+                title="Account settings"
+              >
+                Account
               </button>
               <div className="user-avatar">{user.displayName?.[0]?.toUpperCase() || '?'}</div>
               <span
@@ -1230,25 +1239,35 @@ export default function EditorPage({ user }) {
       )}
 
       {/* Auth Modal */}
-      {showAuth && <AuthModal mode={authMode} onClose={() => setShowAuth(false)} />}
+      {showAuth && <AuthModal initialMode={authMode} onClose={() => setShowAuth(false)} />}
       {showApiKey && (
         <ApiKeyModal
           onClose={() => setShowApiKey(false)}
           onStatusChange={() => setApiKeyStatus(getApiKeyStatus())}
         />
       )}
+{showAccount && user && (
+  <AccountSettings
+    onClose={() => setShowAccount(false)}
+    user={user}
+  />
+)}
 
-      {/* Video Call Overlay */}
-      {showVideoCall && room.roomId && (
-        <VideoCall
-          roomId={room.roomId}
-          userName={user?.displayName || user?.email?.split('@')[0] || 'Guest'}
-          onClose={() => setShowVideoCall(false)}
-        />
-      )}
+{/* Video Call Overlay */}
+{showVideoCall && room.roomId && (
+  <VideoCall
+    roomId={room.roomId}
+    userName={
+      user?.displayName ||
+      user?.email?.split('@')[0] ||
+      'Guest'
+    }
+    onClose={() => setShowVideoCall(false)}
+  />
+)}
 
-      {/* Real-time Democratic Vote Popup */}
-      <VotePopup room={room} user={user} />
+{/* Real-time Democratic Vote Popup */}
+<VotePopup room={room} user={user} />
     </div>
   );
 }
