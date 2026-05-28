@@ -49,43 +49,78 @@ api.interceptors.response.use(
 
 // ─── Code Execution ────────────────────────────────────────────────────────────
 export const executeCode = async (sourceCode, languageId, stdin = '') => {
-  const { data } = await api.post('/api/execute', {
-    source_code: sourceCode,
-    language_id: languageId,
-    stdin,
-  });
-  return data;
+  try {
+    const { data } = await api.post('/api/execute', {
+      source_code: sourceCode,
+      language_id: languageId,
+      stdin,
+    });
+    return data;
+  } catch (error) {
+    console.error('Error executing code:', error);
+    throw error;
+  }
 };
 
 // ─── AI Features ──────────────────────────────────────────────────────────────
 export const aiExplainError = async (code, error, language) => {
-  const { data } = await api.post('/api/ai/explain-error', { code, error, language });
-  return data;
+  try {
+    const { data } = await api.post('/api/ai/explain-error', { code, error, language });
+    return data;
+  } catch (err) {
+    console.error('Error in aiExplainError:', err);
+    throw err;
+  }
 };
 
 export const aiFixCode = async (code, error, language) => {
-  const { data } = await api.post('/api/ai/fix-code', { code, error, language });
-  return data;
+  try {
+    const { data } = await api.post('/api/ai/fix-code', { code, error, language });
+    return data;
+  } catch (err) {
+    console.error('Error in aiFixCode:', err);
+    throw err;
+  }
 };
 
 export const aiExplainLogic = async (code, language) => {
-  const { data } = await api.post('/api/ai/explain-logic', { code, language });
-  return data;
+  try {
+    const { data } = await api.post('/api/ai/explain-logic', { code, language });
+    return data;
+  } catch (err) {
+    console.error('Error in aiExplainLogic:', err);
+    throw err;
+  }
 };
 
 export const aiGenerateTests = async (code, language) => {
-  const { data } = await api.post('/api/ai/generate-tests', { code, language });
-  return data;
+  try {
+    const { data } = await api.post('/api/ai/generate-tests', { code, language });
+    return data;
+  } catch (err) {
+    console.error('Error in aiGenerateTests:', err);
+    throw err;
+  }
 };
 
 export const aiAuditCode = async (code, language) => {
-  const { data } = await api.post('/api/ai/audit-code', { code, language });
-  return data;
+  try {
+    const { data } = await api.post('/api/ai/audit-code', { code, language });
+    return data;
+  } catch (err) {
+    console.error('Error in aiAuditCode:', err);
+    throw err;
+  }
 };
 
 export const aiVisualizeExecution = async (code, language, input = '') => {
-  const { data } = await api.post('/api/ai/visualize', { code, language, input });
-  return data;
+  try {
+    const { data } = await api.post('/api/ai/visualize', { code, language, input });
+    return data;
+  } catch (err) {
+    console.error('Error in aiVisualizeExecution:', err);
+    throw err;
+  }
 };
 
 export default api;
