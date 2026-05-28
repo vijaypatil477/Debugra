@@ -2296,3 +2296,129 @@ body {
   background-color: rgba(20, 20, 20, 0.3) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
+
+/* ============ AI COMMIT MESSAGE MODAL ============ */
+.commit-msg-modal {
+  width: 560px;
+  max-width: 95vw;
+  background: rgba(30, 30, 30, 0.85) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+  animation: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.commit-msg-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.commit-msg-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.commit-msg-section {
+  padding: 14px 16px;
+}
+
+.commit-msg-section-header {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+
+.commit-msg-header-text {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.82rem;
+  color: #f1fa8c; /* Yellow-yellowish */
+  word-break: break-all;
+  user-select: all;
+  background: rgba(241, 250, 140, 0.05);
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px dashed rgba(241, 250, 140, 0.15);
+}
+
+.commit-msg-body-text {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.76rem;
+  color: var(--text-1);
+  white-space: pre-wrap;
+  margin: 0;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 8px 10px;
+  border-radius: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+/* Badges */
+.badge-type {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.03em;
+}
+
+.badge-type.type-feat {
+  background: rgba(78, 201, 176, 0.15);
+  color: #4ec9b0;
+  border: 1px solid rgba(78, 201, 176, 0.3);
+}
+
+.badge-type.type-fix {
+  background: rgba(244, 71, 71, 0.15);
+  color: #ff6b6b;
+  border: 1px solid rgba(244, 71, 71, 0.3);
+}
+
+.badge-type.type-refactor {
+  background: rgba(189, 147, 249, 0.15);
+  color: #bd93f9;
+  border: 1px solid rgba(189, 147, 249, 0.3);
+}
+
+.badge-type.type-style {
+  background: rgba(255, 121, 198, 0.15);
+  color: #ff79c6;
+  border: 1px solid rgba(255, 121, 198, 0.3);
+}
+
+.badge-type.type-docs {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.badge-type.type-test {
+  background: rgba(0, 120, 212, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(0, 120, 212, 0.3);
+}
+
+.badge-type.type-chore {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.badge-scope {
+  font-size: 0.62rem;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-1);
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}

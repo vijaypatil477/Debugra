@@ -11,6 +11,7 @@ const {
   visualizeAI,
   explainCodeSnippetAI,
   askFollowUpAI,
+  generateCommitMessageAI,
 } = require('../services/groqService');
 
 // Initialize cache with 1 hour TTL to reduce redundant LLM calls
@@ -99,6 +100,12 @@ router.post('/explain-snippet', handleCachedRequest(async (body, apiKey) => {
 router.post('/ask-followup', handleCachedRequest(async (body, apiKey) => {
   const { code, language, question, previousExplanation } = body;
   return await askFollowUpAI(code, language, question, previousExplanation, apiKey);
+}));
+
+// AI Commit Message Generator — generate conventional commit messages from diff
+router.post('/generate-commit-message', handleCachedRequest(async (body, apiKey) => {
+  const { diff, language } = body;
+  return await generateCommitMessageAI(diff, language, apiKey);
 }));
 
 module.exports = router;
