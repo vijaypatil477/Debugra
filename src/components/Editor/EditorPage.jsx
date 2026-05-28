@@ -743,7 +743,7 @@ export default function EditorPage({ user }) {
           <button
             className="run-btn d-none d-sm-flex align-items-center"
             onClick={execution.run}
-            disabled={execution.isRunning}
+            disabled={execution.isRunning || room.isReadOnly}
           >
             {execution.isRunning ? (
               <>
