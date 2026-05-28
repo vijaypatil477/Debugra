@@ -14,6 +14,7 @@ import {
   useIsMobile,
   useAudioFeedback,
 } from '../../hooks';
+import { getUserColor } from '../../hooks/useRoom';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { LANGUAGES } from '../../utils/languageConfig';
 import { LANG_FILE_NAMES, MOBILE_TABS, OUTPUT_TABS, EDITOR_THEMES } from '../../config/constants';
@@ -42,6 +43,8 @@ function getApiKeyStatus() {
 export default function EditorPage({ user }) {
   const navigate = useNavigate();
   const editorRef = useRef(null);
+  const monacoRef = useRef(null);
+  const collaborativeDecorationsRef = useRef([]);
 
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
@@ -103,6 +106,7 @@ export default function EditorPage({ user }) {
     setCode: editor.setCode,
     setLanguage: editor.setLanguage,
     setStdinValue: editor.setStdinValue,
+    cursorPos: editor.cursorPos,
   });
 
   const execution = useExecution({
@@ -239,8 +243,9 @@ export default function EditorPage({ user }) {
     });
   };
 
-  const handleEditorMount = (editorInstance) => {
+  const handleEditorMount = (editorInstance, monaco) => {
     editorRef.current = editorInstance;
+    monacoRef.current = monaco;
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
@@ -249,6 +254,93 @@ export default function EditorPage({ user }) {
       if (executionRunRef.current) executionRunRef.current();
     });
   };
+
+  // ─── Render other active users' cursors as decorations in Monaco ─────────────────
+  useEffect(() => {
+    if (!editorRef.current || !monacoRef.current || !room.roomId) {
+      if (editorRef.current && collaborativeDecorationsRef.current.length > 0) {
+        collaborativeDecorationsRef.current = editorRef.current.deltaDecorations(
+          collaborativeDecorationsRef.current,
+          []
+        );
+      }
+      return;
+    }
+
+    const otherUsers = room.activeUsers.filter(
+      (u) => u.uid !== user?.uid && u.cursor && u.activeFile === editor.language
+    );
+
+    const newDecorations = otherUsers.map((u) => {
+      const line = u.cursor.line;
+      const col = u.cursor.col;
+      const color = u.color || getUserColor(u.uid);
+      const displayName = u.displayName || 'Guest';
+
+      const styleId = `collaborative-cursor-style-${u.uid}`;
+      let styleEl = document.getElementById(styleId);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+      styleEl.innerHTML = `
+        .collaborative-cursor-${u.uid} {
+          border-left: 2px solid ${color} !important;
+          position: relative;
+          z-index: 10;
+          height: 100%;
+        }
+        .collaborative-cursor-${u.uid}::after {
+          content: "${displayName}";
+          position: absolute;
+          top: -14px;
+          left: 0;
+          background-color: ${color};
+          color: white;
+          font-size: 8px;
+          font-family: 'Inter', sans-serif;
+          font-weight: 600;
+          padding: 1px 4px;
+          border-radius: 2px;
+          white-space: nowrap;
+          pointer-events: none;
+          z-index: 100;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+      `;
+
+      return {
+        range: new monacoRef.current.Range(line, col, line, col),
+        options: {
+          className: `collaborative-cursor-${u.uid}`,
+          beforeContentClassName: `collaborative-cursor-${u.uid}`,
+        },
+      };
+    });
+
+    collaborativeDecorationsRef.current = editorRef.current.deltaDecorations(
+      collaborativeDecorationsRef.current,
+      newDecorations
+    );
+
+    return () => {
+      if (editorRef.current && collaborativeDecorationsRef.current.length > 0) {
+        collaborativeDecorationsRef.current = editorRef.current.deltaDecorations(
+          collaborativeDecorationsRef.current,
+          []
+        );
+      }
+
+      const activeUids = new Set(room.activeUsers.map((u) => u.uid));
+      document.querySelectorAll('style[id^="collaborative-cursor-style-"]').forEach((el) => {
+        const uid = el.id.replace('collaborative-cursor-style-', '');
+        if (!activeUids.has(uid)) {
+          el.remove();
+        }
+      });
+    };
+  }, [room.activeUsers, room.roomId, editor.language, user]);
 
   // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
@@ -323,6 +415,33 @@ export default function EditorPage({ user }) {
         </div>
 
         <div className="topbar-right d-flex align-items-center gap-2">
+          {room.roomId && (
+            <div className="presence-container me-2">
+              {room.activeUsers.slice(0, 5).map((u) => {
+                const initial = u.displayName?.[0]?.toUpperCase() || '?';
+                const color = u.color || getUserColor(u.uid);
+                return (
+                  <div
+                    key={u.uid}
+                    className="presence-bubble"
+                    style={{ backgroundColor: color }}
+                    data-name={u.displayName || 'Guest'}
+                  >
+                    {initial}
+                  </div>
+                );
+              })}
+              {room.activeUsers.length > 5 && (
+                <div
+                  className="presence-bubble"
+                  style={{ backgroundColor: '#4b5563' }}
+                  data-name={`${room.activeUsers.length - 5} more other users`}
+                >
+                  +{room.activeUsers.length - 5}
+                </div>
+              )}
+            </div>
+          )}
           {!room.roomId && (
             <div className="room-controls d-flex align-items-center gap-2">
               <button
