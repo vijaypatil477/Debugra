@@ -7,10 +7,12 @@ import {
   aiGenerateTests,
   aiAuditCode,
   aiExplainError,
+  aiGenerateCommitMessage,
 } from '../services/api';
 import { showRateLimitToast } from '../utils/rateLimitToast';
 import { LANGUAGES } from '../utils/languageConfig';
 import { OUTPUT_TABS } from '../config/constants';
+import { computeSimpleDiff } from '../utils/diffUtils';
 
 /**
  * useAI
@@ -25,6 +27,8 @@ import { OUTPUT_TABS } from '../config/constants';
 export function useAI({ language, code, stderr, setActiveOutputTab, editorRef }) {
   const [aiResponse, setAiResponse] = useState(null);
   const [isAILoading, setIsAILoading] = useState(false);
+  const [commitMessage, setCommitMessage] = useState(null);
+  const [isCommitLoading, setIsCommitLoading] = useState(false);
 
   // ─── Debug Error (inline button on Errors tab) ─────────────────────────────
   const [debugResponse, setDebugResponse] = useState(null);
@@ -85,7 +89,26 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
     [withAI, code, language]
   );
 
+  const generateCommitMessage = useCallback(
+    async (savedCodeSnapshot) => {
+      setIsCommitLoading(true);
+      try {
+        const diffText = computeSimpleDiff(savedCodeSnapshot, code);
+        const result = await aiGenerateCommitMessage(diffText, LANGUAGES[language].name);
+        const data = result.content || result;
+        setCommitMessage(data);
+        return data;
+      } catch (err) {
+        toast.error(err.message || 'Commit message generation failed');
+      } finally {
+        setIsCommitLoading(false);
+      }
+    },
+    [code, language]
+  );
+
   const clearAI = useCallback(() => setAiResponse(null), []);
+  const clearCommitMessage = useCallback(() => setCommitMessage(null), []);
 
   const debugError = useCallback(async () => {
     if (!stderr) return;
@@ -106,15 +129,19 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
   return {
     aiResponse,
     isAILoading,
+    commitMessage,
+    isCommitLoading,
     fix,
     explain,
     visualize,
     generateTests,
     audit,
+    generateCommitMessage,
     clearAI,
     debugResponse,
     isDebugLoading,
     debugError,
     clearDebug,
+    clearCommitMessage,
   };
 }
