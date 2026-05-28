@@ -11,6 +11,9 @@ const {
   visualizeAI,
   explainCodeSnippetAI,
   askFollowUpAI,
+  generateCommitMessageAI,
+  inlineCompleteAI,
+  chatWithAI,
 } = require('../services/groqService');
 
 // Initialize cache with 1 hour TTL to reduce redundant LLM calls
@@ -100,5 +103,35 @@ router.post('/ask-followup', handleCachedRequest(async (body, apiKey) => {
   const { code, language, question, previousExplanation } = body;
   return await askFollowUpAI(code, language, question, previousExplanation, apiKey);
 }));
+
+// AI Commit Message Generator — generate conventional commit messages from diff
+router.post('/generate-commit-message', handleCachedRequest(async (body, apiKey) => {
+  const { diff, language } = body;
+  return await generateCommitMessageAI(diff, language, apiKey);
+}));
+
+// AI Code Completion — low-latency inline code completions (no cache, highly contextual/ephemeral)
+router.post('/inline-complete', async (req, res, next) => {
+  try {
+    const apiKey = getUserGroqApiKey(req);
+    const { prefix, suffix, language } = req.body;
+    const result = await inlineCompleteAI(prefix, suffix, language, apiKey);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// AI Chat Sidebar — stateful conversation endpoint (no cache, conversational/stateful)
+router.post('/chat', async (req, res, next) => {
+  try {
+    const apiKey = getUserGroqApiKey(req);
+    const { messages, activeCode, language } = req.body;
+    const result = await chatWithAI(messages, activeCode, language, apiKey);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
 
 module.exports = router;

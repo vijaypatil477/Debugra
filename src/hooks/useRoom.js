@@ -5,6 +5,17 @@ import toast from 'react-hot-toast';
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
 
+const COLOR_PALETTE = ['#10b981', '#3b82f6', '#ec4899', '#f97316', '#8b5cf6', '#06b6d4', '#eab308'];
+export function getUserColor(uid) {
+  if (!uid) return COLOR_PALETTE[0];
+  let hash = 0;
+  for (let i = 0; i < uid.length; i++) {
+    hash = uid.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % COLOR_PALETTE.length;
+  return COLOR_PALETTE[index];
+}
+
 async function hashRoomPassword(password, salt) {
   const encoded = new TextEncoder().encode(`${salt}:${password}`);
   const digest = await crypto.subtle.digest('SHA-256', encoded);
@@ -39,7 +50,7 @@ function hasRememberedRoomAccess(roomId) {
  * @param {Function} setLanguage - to apply remote language changes
  * @param {Function} setStdinValue - to apply remote stdin changes
  */
-export function useRoom({ user, code, language, stdinValue, setCode, setLanguage, setStdinValue }) {
+export function useRoom({ user, code, language, stdinValue, setCode, setLanguage, setStdinValue, cursorPos }) {
   const [roomId, setRoomId] = useState(null);
   const [roomData, setRoomData] = useState(null);
   const [activeUsers, setActiveUsers] = useState([]);
@@ -84,29 +95,80 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     return () => clearTimeout(timer);
   }, [code, language, stdinValue, roomId, user, isEditor]);
 
-  // ─── Sync active file (language) for presence ───────────────────────────────
+  // ─── Sync active file (language) and cursor position for presence ───────────
   useEffect(() => {
     if (!roomId || !user || !roomData) return;
     const currentUsers = roomData.activeUsers || [];
     const myIndex = currentUsers.findIndex((u) => u.uid === user.uid);
-    if (myIndex !== -1 && currentUsers[myIndex].activeFile !== language) {
-      const newUsers = [...currentUsers];
-      newUsers[myIndex] = { ...newUsers[myIndex], activeFile: language };
-      updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
-    }
-  }, [roomId, user, roomData, language]);
+    if (myIndex === -1) return;
 
-  // ─── Sync active file (language) for presence ───────────────────────────────
-  useEffect(() => {
-    if (!roomId || !user || !roomData) return;
-    const currentUsers = roomData.activeUsers || [];
-    const myIndex = currentUsers.findIndex((u) => u.uid === user.uid);
-    if (myIndex !== -1 && currentUsers[myIndex].activeFile !== language) {
-      const newUsers = [...currentUsers];
-      newUsers[myIndex] = { ...newUsers[myIndex], activeFile: language };
-      updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+    const me = currentUsers[myIndex];
+    const hasCursorChanged = !me.cursor || me.cursor.line !== cursorPos?.line || me.cursor.col !== cursorPos?.col;
+    const hasFileChanged = me.activeFile !== language;
+
+    if (hasCursorChanged || hasFileChanged) {
+      const timer = setTimeout(() => {
+        const roomRef = doc(db, 'rooms', roomId);
+        runTransaction(db, async (transaction) => {
+          const roomDoc = await transaction.get(roomRef);
+          if (!roomDoc.exists()) return;
+          const data = roomDoc.data();
+          const latestUsers = data.activeUsers || [];
+          const idx = latestUsers.findIndex((u) => u.uid === user.uid);
+          if (idx !== -1) {
+            const updatedUsers = [...latestUsers];
+            updatedUsers[idx] = {
+              ...updatedUsers[idx],
+              activeFile: language,
+              cursor: cursorPos || null,
+              color: updatedUsers[idx].color || getUserColor(user.uid),
+            };
+            transaction.update(roomRef, { activeUsers: updatedUsers });
+          }
+        }).catch((err) => {
+          console.error("Cursor sync transaction failed:", err);
+        });
+      }, 300);
+      return () => clearTimeout(timer);
     }
-  }, [roomId, user, roomData, language]);
+  }, [roomId, user, language, cursorPos]);
+
+  // ─── Cleanup presence on unmount & window unload ────────────────────────────
+  useEffect(() => {
+    if (!roomId || !user) return;
+
+    const cleanupUser = async () => {
+      const roomRef = doc(db, 'rooms', roomId);
+      try {
+        await runTransaction(db, async (transaction) => {
+          const roomDoc = await transaction.get(roomRef);
+          if (!roomDoc.exists()) return;
+          const data = roomDoc.data();
+          const currentUsers = data.activeUsers || [];
+          const newUsers = currentUsers.filter((u) => u.uid !== user.uid);
+          transaction.update(roomRef, { activeUsers: newUsers });
+        });
+      } catch (err) {
+        console.error("Cleanup presence transaction failed:", err);
+      }
+    };
+
+    const handleUnload = () => {
+      if (roomData?.activeUsers) {
+        const roomRef = doc(db, 'rooms', roomId);
+        const newUsers = roomData.activeUsers.filter((u) => u.uid !== user.uid);
+        updateDoc(roomRef, { activeUsers: newUsers }).catch(() => {});
+      }
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      cleanupUser();
+    };
+  }, [roomId, user, roomData]);
+
 
   // ─── Auto-join from local storage ───────────────────────────────────────────
   useEffect(() => {
@@ -138,7 +200,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         passwordHash,
         code,
         language,
-        activeUsers: [{ uid: user.uid, displayName }],
+        activeUsers: [{ uid: user.uid, displayName, color: getUserColor(user.uid) }],
         roles: { [user.uid]: 'host' },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -205,7 +267,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
 
         if (!currentUsers.some((u) => u.uid === user.uid)) {
           await updateDoc(roomRef, {
-            activeUsers: [...currentUsers, { uid: user.uid, displayName }],
+            activeUsers: [...currentUsers, { uid: user.uid, displayName, color: getUserColor(user.uid) }],
             roles: newRoles,
           });
         } else if (!data.roles || !data.roles[user.uid]) {

@@ -13,7 +13,9 @@ import {
   useEditor,
   useIsMobile,
   useAudioFeedback,
+  useInlineComplete,
 } from '../../hooks';
+import { getUserColor } from '../../hooks/useRoom';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
 import { LANGUAGES } from '../../utils/languageConfig';
@@ -30,6 +32,7 @@ import AccountSettings from '../Auth/AccountSettings';
 import ChatPanel from '../Chat/ChatPanel';
 import FileIcon from '../Icons/FileIcon';
 import HistoryPanel from './HistoryPanel';
+import AIChatPanel from './AIChatPanel';
 import AIResponsePanel from './AIResponsePanel';
 import ApiKeyModal from './ApiKeyModal';
 import CollaborationControls from './CollaborationControls';
@@ -38,6 +41,7 @@ import EditorStatusBar from './EditorStatusBar';
 import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
+import CommitMessagePanel from './CommitMessagePanel';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 
 function getApiKeyStatus() {
@@ -52,12 +56,16 @@ export default function EditorPage({ user }) {
     new URLSearchParams(window.location.search).get('testRoom') === '1';
   const navigate = useNavigate();
   const editorRef = useRef(null);
+  const monacoRef = useRef(null);
+  const collaborativeDecorationsRef = useRef([]);
 
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
+  const [editorMounted, setEditorMounted] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
@@ -74,6 +82,7 @@ export default function EditorPage({ user }) {
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
+  const [showCommitMsg, setShowCommitMsg] = useState(false);
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -116,6 +125,7 @@ export default function EditorPage({ user }) {
     setCode: editor.setCode,
     setLanguage: editor.setLanguage,
     setStdinValue: editor.setStdinValue,
+    cursorPos: editor.cursorPos,
   });
 
   const execution = useExecution({
@@ -145,6 +155,14 @@ export default function EditorPage({ user }) {
     stderr: execution.stderr,
     setActiveOutputTab: execution.setActiveOutputTab,
     editorRef,
+  });
+
+  // ─── Inline Completion Logic ────────────────────────────────────────────────
+  const inlineAI = useInlineComplete({
+    editorRef,
+    monacoRef,
+    language: editor.language,
+    editorMounted,
   });
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
@@ -256,8 +274,10 @@ export default function EditorPage({ user }) {
     });
   };
 
-  const handleEditorMount = (editorInstance) => {
+  const handleEditorMount = (editorInstance, monaco) => {
     editorRef.current = editorInstance;
+    monacoRef.current = monaco;
+    setEditorMounted(true);
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
@@ -266,6 +286,93 @@ export default function EditorPage({ user }) {
       if (executionRunRef.current) executionRunRef.current();
     });
   };
+
+  // ─── Render other active users' cursors as decorations in Monaco ─────────────────
+  useEffect(() => {
+    if (!editorRef.current || !monacoRef.current || !room.roomId) {
+      if (editorRef.current && collaborativeDecorationsRef.current.length > 0) {
+        collaborativeDecorationsRef.current = editorRef.current.deltaDecorations(
+          collaborativeDecorationsRef.current,
+          []
+        );
+      }
+      return;
+    }
+
+    const otherUsers = room.activeUsers.filter(
+      (u) => u.uid !== user?.uid && u.cursor && u.activeFile === editor.language
+    );
+
+    const newDecorations = otherUsers.map((u) => {
+      const line = u.cursor.line;
+      const col = u.cursor.col;
+      const color = u.color || getUserColor(u.uid);
+      const displayName = u.displayName || 'Guest';
+
+      const styleId = `collaborative-cursor-style-${u.uid}`;
+      let styleEl = document.getElementById(styleId);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+      styleEl.innerHTML = `
+        .collaborative-cursor-${u.uid} {
+          border-left: 2px solid ${color} !important;
+          position: relative;
+          z-index: 10;
+          height: 100%;
+        }
+        .collaborative-cursor-${u.uid}::after {
+          content: "${displayName}";
+          position: absolute;
+          top: -14px;
+          left: 0;
+          background-color: ${color};
+          color: white;
+          font-size: 8px;
+          font-family: 'Inter', sans-serif;
+          font-weight: 600;
+          padding: 1px 4px;
+          border-radius: 2px;
+          white-space: nowrap;
+          pointer-events: none;
+          z-index: 100;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+      `;
+
+      return {
+        range: new monacoRef.current.Range(line, col, line, col),
+        options: {
+          className: `collaborative-cursor-${u.uid}`,
+          beforeContentClassName: `collaborative-cursor-${u.uid}`,
+        },
+      };
+    });
+
+    collaborativeDecorationsRef.current = editorRef.current.deltaDecorations(
+      collaborativeDecorationsRef.current,
+      newDecorations
+    );
+
+    return () => {
+      if (editorRef.current && collaborativeDecorationsRef.current.length > 0) {
+        collaborativeDecorationsRef.current = editorRef.current.deltaDecorations(
+          collaborativeDecorationsRef.current,
+          []
+        );
+      }
+
+      const activeUids = new Set(room.activeUsers.map((u) => u.uid));
+      document.querySelectorAll('style[id^="collaborative-cursor-style-"]').forEach((el) => {
+        const uid = el.id.replace('collaborative-cursor-style-', '');
+        if (!activeUids.has(uid)) {
+          el.remove();
+        }
+      });
+    };
+  }, [room.activeUsers, room.roomId, editor.language, user]);
 
   // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
@@ -361,6 +468,33 @@ export default function EditorPage({ user }) {
         </div>
 
         <div className="topbar-right d-flex align-items-center gap-2">
+          {room.roomId && (
+            <div className="presence-container me-2">
+              {room.activeUsers.slice(0, 5).map((u) => {
+                const initial = u.displayName?.[0]?.toUpperCase() || '?';
+                const color = u.color || getUserColor(u.uid);
+                return (
+                  <div
+                    key={u.uid}
+                    className="presence-bubble"
+                    style={{ backgroundColor: color }}
+                    data-name={u.displayName || 'Guest'}
+                  >
+                    {initial}
+                  </div>
+                );
+              })}
+              {room.activeUsers.length > 5 && (
+                <div
+                  className="presence-bubble"
+                  style={{ backgroundColor: '#4b5563' }}
+                  data-name={`${room.activeUsers.length - 5} more other users`}
+                >
+                  +{room.activeUsers.length - 5}
+                </div>
+              )}
+            </div>
+          )}
           {!(room.roomId || isTestRoom) && (
             <div className="room-controls d-flex align-items-center gap-2">
               <button
@@ -576,6 +710,27 @@ export default function EditorPage({ user }) {
               Key
             </button>
             <button
+              className={`autocomplete-toggle ${inlineAI.isEnabled ? 'active' : ''} ${inlineAI.isLoading ? 'loading' : ''}`}
+              onClick={inlineAI.toggleEnabled}
+              title="Toggle Low-Latency Copilot-style Autocomplete suggestions (Press Tab to accept)"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z" />
+                <path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5.5Z" />
+                <path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1Z" />
+              </svg>
+              <span>{inlineAI.isEnabled ? 'AI Suggest: On' : 'AI Suggest: Off'}</span>
+            </button>
+            <button
               className="ai-btn"
               onClick={ai.generateTests}
               disabled={ai.isAILoading || room.isReadOnly}
@@ -624,6 +779,28 @@ export default function EditorPage({ user }) {
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
               Explain
+            </button>
+            <button
+              className="ai-btn"
+              onClick={() => {
+                setShowCommitMsg(true);
+                ai.generateCommitMessage(editor.savedCodeSnapshot);
+              }}
+              disabled={ai.isCommitLoading}
+              title="Generate clean Conventional Commit messages based on code diff"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+              Commit Msg
             </button>
           </div>
           <button
@@ -687,7 +864,10 @@ export default function EditorPage({ user }) {
               <button
                 className="toolbar-icon-btn"
                 aria-label="Toggle History"
-                onClick={() => setShowHistory(!showHistory)}
+                onClick={() => {
+                  setShowHistory(!showHistory);
+                  setShowAIChat(false);
+                }}
                 title="History"
                 style={
                   showHistory ? { background: 'var(--bg-active)', color: 'var(--accent)' } : {}
@@ -706,6 +886,31 @@ export default function EditorPage({ user }) {
                 </svg>
               </button>
             )}
+            <button
+              className="toolbar-icon-btn"
+              aria-label="Toggle AI Chat"
+              onClick={() => {
+                setShowAIChat(!showAIChat);
+                setShowHistory(false);
+              }}
+              title="AI Chat Assistant"
+              style={
+                showAIChat ? { background: 'rgba(139, 92, 246, 0.12)', color: '#a78bfa', borderColor: 'rgba(139, 92, 246, 0.3)' } : {}
+              }
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z" />
+              </svg>
+            </button>
             <div className="audio-settings-wrap">
               <button
                 className="toolbar-icon-btn"
@@ -1017,6 +1222,19 @@ export default function EditorPage({ user }) {
           />
         )}
 
+        {/* AI Chat Sidebar Panel (desktop) */}
+        {showAIChat && !isMobile && (
+          <AIChatPanel
+            activeCode={editor.code}
+            language={editor.language}
+            onClose={() => setShowAIChat(false)}
+            onApplyFix={(code) => {
+              editor.setCode(code);
+              toast.success('AI code suggestion applied!');
+            }}
+          />
+        )}
+
         {/* OUTPUT PANE */}
         <div
           className="output-pane glass-panel"
@@ -1255,6 +1473,31 @@ export default function EditorPage({ user }) {
         </div>
       )}
 
+      {/* AI Chat Sidebar Panel (mobile full-screen overlay) */}
+      {showAIChat && isMobile && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 50,
+            background: 'var(--bg-0)',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <AIChatPanel
+            activeCode={editor.code}
+            language={editor.language}
+            onClose={() => setShowAIChat(false)}
+            onApplyFix={(code) => {
+              editor.setCode(code);
+              toast.success('AI code suggestion applied!');
+              setShowAIChat(false);
+            }}
+          />
+        </div>
+      )}
+
       {/* Mobile Bottom Nav */}
       {isMobile && (
         <MobileBottomNav
@@ -1285,21 +1528,29 @@ export default function EditorPage({ user }) {
   />
 )}
 
-{/* Video Call Overlay */}
-{showVideoCall && room.roomId && (
-  <VideoCall
-    roomId={room.roomId}
-    userName={
-      user?.displayName ||
-      user?.email?.split('@')[0] ||
-      'Guest'
-    }
-    onClose={() => setShowVideoCall(false)}
-  />
-)}
+      {/* Video Call Overlay */}
+      {showVideoCall && room.roomId && (
+        <VideoCall
+          roomId={room.roomId}
+          userName={user?.displayName || user?.email?.split('@')[0] || 'Guest'}
+          onClose={() => setShowVideoCall(false)}
+        />
+      )}
 
-{/* Real-time Democratic Vote Popup */}
-<VotePopup room={room} user={user} />
+      {/* Real-time Democratic Vote Popup */}
+      <VotePopup room={room} user={user} />
+
+      {showCommitMsg && (
+        <CommitMessagePanel
+          commitMessage={ai.commitMessage}
+          isLoading={ai.isCommitLoading}
+          onRegenerate={() => ai.generateCommitMessage(editor.savedCodeSnapshot)}
+          onClose={() => {
+            setShowCommitMsg(false);
+            ai.clearCommitMessage();
+          }}
+        />
+      )}
     </div>
   );
 }
