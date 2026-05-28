@@ -131,17 +131,71 @@ export default function EditorPage({ user }) {
 
   // ─── Laser Pointer Logic ───────────────────────────────────────────────────
   const laser = useLaserPointer({ roomId: room.roomId, user });
+  const editorContainerRef = useRef(null);
+  const editorContainerRectRef = useRef(null);
+
+  const updateEditorContainerRect = () => {
+    const container = editorContainerRef.current;
+    if (!container) return null;
+    const rect = container.getBoundingClientRect();
+    editorContainerRectRef.current = rect;
+    return rect;
+  };
+
+  useEffect(() => {
+    const container = editorContainerRef.current;
+    if (!container) return undefined;
+
+    updateEditorContainerRect();
+
+    const handleViewportChange = () => {
+      updateEditorContainerRect();
+    };
+
+    let resizeObserver;
+
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        updateEditorContainerRect();
+      });
+      resizeObserver.observe(container);
+    }
+
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
+
+    return () => {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
+    };
+  }, [room.roomId]);
+
+  const handleEditorMouseEnter = (e) => {
+    editorContainerRef.current = e.currentTarget;
+    updateEditorContainerRect();
+  };
 
   const handleEditorMouseMove = (e) => {
     if (!room.roomId) return;
-    const container = e.currentTarget;
-    const rect = container.getBoundingClientRect();
+
+    if (editorContainerRef.current !== e.currentTarget) {
+      editorContainerRef.current = e.currentTarget;
+    }
+
+    const rect = editorContainerRectRef.current || updateEditorContainerRect();
+    if (!rect || !rect.width || !rect.height) return;
+
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     laser.updatePointer(x, y);
   };
 
   const handleEditorMouseLeave = () => {
+    editorContainerRef.current = null;
+    editorContainerRectRef.current = null;
     laser.deactivatePointer();
   };
 
