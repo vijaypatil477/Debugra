@@ -64,12 +64,16 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
     if (!input.trim() || !roomId || !user) return;
     const msg = input.trim();
     setInput('');
-    await addDoc(collection(db, 'rooms', roomId, 'messages'), {
-      text: msg,
-      uid: user.uid,
-      displayName: user.displayName || user.email?.split('@')[0] || 'User',
-      createdAt: serverTimestamp(),
-    });
+    try {
+      await addDoc(collection(db, 'rooms', roomId, 'messages'), {
+        text: msg,
+        uid: user.uid,
+        displayName: user.displayName || user.email?.split('@')[0] || 'User',
+        createdAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    }
   };
   const handleDownloadReport = () => {
     if (!messages || messages.length === 0) {
@@ -113,6 +117,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
         <button
           onClick={onToggle}
           title="Team Chat"
+          aria-label="Toggle Team Chat"
           className="chat-fab"
           style={{
             position: 'fixed',
@@ -229,6 +234,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
             <button
               onClick={handleDownloadReport}
               title="Download Report as Markdown"
+              aria-label="Download Debug Report"
               style={{
                 background: 'none',
                 border: 'none',
@@ -284,6 +290,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
               </span>
               <button
                 onClick={onToggle}
+                aria-label="Close Chat Panel"
                 style={{
                   width: '32px',
                   height: '32px',
@@ -465,6 +472,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
               <button
                 onClick={handleSend}
                 disabled={!input.trim()}
+                aria-label="Send Message"
                 style={{
                   width: '30px',
                   height: '30px',
