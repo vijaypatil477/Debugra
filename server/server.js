@@ -24,6 +24,8 @@ const rateLimitEventBufferSize = Number.parseInt(
   10
 );
 const securityDiagnosticsToken = (process.env.SECURITY_DIAGNOSTICS_TOKEN || '').trim();
+const allowOriginless =
+  process.env.ALLOW_ORIGINLESS_REQUESTS?.toLowerCase() === 'true' || false;
 const rateLimitEvents = [];
 
 function getClientIp(req) {
@@ -213,20 +215,37 @@ app.post(
 );
 
 // ──────────────────────────────────────────────
-// CORS
+// CORS — strict origin validation in all environments.
+// Originless requests are rejected by default; set
+// ALLOW_ORIGINLESS_REQUESTS=true to allow them (dev only).
 // ──────────────────────────────────────────────
 app.use(
   cors({
     origin(origin, callback) {
-      // Allow no-Origin header only in dev (curl / server-to-server testing).
-      // In production every request must come from an explicitly allowed origin.
-      if ((!origin && !isProd) || allowedOrigins.includes(origin)) {
+      // Allow requests from explicitly whitelisted origins.
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      // FIX 5: Log blocked origins to help debug future CORS issues
-      logger.warn(`[CORS] Blocked origin: ${origin}`);
+      // Requests without an Origin header.
+      if (!origin) {
+        if (allowOriginless) {
+          logger.warn(
+            '[CORS] Accepted request without Origin header (ALLOW_ORIGINLESS_REQUESTS=true)'
+          );
+          return callback(null, true);
+        }
+        logger.warn(
+          '[CORS] Blocked request without Origin header. ' +
+            'Set ALLOW_ORIGINLESS_REQUESTS=true to allow originless requests.'
+        );
+        const corsError = new Error('Not allowed by CORS');
+        corsError.status = 403;
+        return callback(corsError);
+      }
 
+      // Block any origin not in the whitelist.
+      logger.warn(`[CORS] Blocked origin: ${origin}`);
       const corsError = new Error('Not allowed by CORS');
       corsError.status = 403;
       return callback(corsError);
