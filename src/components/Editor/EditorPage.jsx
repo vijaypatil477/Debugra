@@ -13,6 +13,7 @@ import {
   useEditor,
   useIsMobile,
   useAudioFeedback,
+  useKeymaps,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
@@ -38,6 +39,7 @@ import EditorStatusBar from './EditorStatusBar';
 import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
+import KeymapsSelector from './KeymapsSelector';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
 
@@ -76,6 +78,7 @@ export default function EditorPage({ user }) {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [showKeymaps, setShowKeymaps] = useState(false);
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -108,6 +111,9 @@ export default function EditorPage({ user }) {
       setShowAuth(true);
     },
   });
+
+  // ─── Keymaps Setup ────────────────────────────────────────────────────────
+  const keymaps = useKeymaps();
 
   // ─── Room/Collaboration Logic ──────────────────────────────────────────────
   const room = useRoom({
@@ -263,11 +269,22 @@ export default function EditorPage({ user }) {
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
-    // Ctrl+Enter → Run
-    editorInstance.addCommand(2048 | 3, () => {
+  };
+
+  // ─── Register Keymaps Actions ──────────────────────────────────────────────
+  useEffect(() => {
+    keymaps.registerAction(keymaps.EDITOR_ACTIONS.RUN_CODE, () => {
       if (executionRunRef.current) executionRunRef.current();
     });
-  };
+  }, [keymaps]);
+
+  // ─── Global Keyboard Listener ─────────────────────────────────────────────
+  useEffect(() => {
+    window.addEventListener('keydown', keymaps.handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener('keydown', keymaps.handleGlobalKeyDown);
+    };
+  }, [keymaps.handleGlobalKeyDown]);
 
   // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
@@ -824,6 +841,19 @@ export default function EditorPage({ user }) {
                   >
                     Test chime
                   </button>
+                  <div className="audio-settings-row" style={{ marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
+                    <div className="audio-settings-label">
+                      <i className="bi bi-keyboard" style={{ fontSize: '14px' }} />
+                      <span>Keyboard Shortcuts</span>
+                    </div>
+                    <button
+                      className="lang-select"
+                      onClick={() => setShowKeymaps(true)}
+                      style={{ cursor: 'pointer', backgroundColor: 'rgba(66, 184, 131, 0.1)', border: '1px solid rgba(66, 184, 131, 0.3)', color: '#42b883', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }}
+                    >
+                      Configure
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1308,12 +1338,54 @@ export default function EditorPage({ user }) {
           onStatusChange={() => setApiKeyStatus(getApiKeyStatus())}
         />
       )}
-{showAccount && user && (
-  <AccountSettings
-    onClose={() => setShowAccount(false)}
-    user={user}
-  />
-)}
+      {showAccount && user && (
+        <AccountSettings
+          onClose={() => setShowAccount(false)}
+          user={user}
+        />
+      )}
+      
+      {/* Keymaps Modal */}
+      {showKeymaps && (
+        <div className="modal-overlay" onClick={() => setShowKeymaps(false)}>
+          <div
+            className="modal-box"
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: '90%',
+              maxWidth: '900px',
+              maxHeight: '70dvh',
+              overflowY: 'auto',
+              padding: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div className="modal-header-row" style={{ padding: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <div>
+                <h2 className="modal-title-left">Keyboard Shortcuts</h2>
+                <p className="modal-muted">Select an IDE profile or customize keybindings</p>
+              </div>
+              <button
+                className="modal-close-btn"
+                onClick={() => setShowKeymaps(false)}
+                aria-label="Close keymaps settings"
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <KeymapsSelector
+                keymaps={keymaps}
+                onSelectProfile={(profileId) => {
+                  toast.success(`Switched to ${keymaps.getProfiles().find(p => p.id === profileId)?.name} keybindings`);
+                }}
+                selectedProfile={keymaps.currentProfile}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Debug Overlay */}
       <DebugOverlay
