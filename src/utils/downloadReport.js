@@ -22,6 +22,7 @@ function getTimestamp() {
  * Used in the download filename.
  */
 function inferReportType(response) {
+  if (response.suggestions) return 'optimize';
   if (response.testCases) return 'tests';
   if (Array.isArray(response.steps)) return 'trace';
   if (response.fixedCode) return 'fix';
@@ -47,6 +48,20 @@ export function buildMarkdown(response, language = '', usage = null) {
   lines.push(`# Debugra AI Report${lang}`);
   lines.push(`> Generated on ${ts}`);
   lines.push('');
+
+  if (Array.isArray(response.suggestions) && response.suggestions.length > 0) {
+    lines.push('## 💡 Naming Optimizer Suggestions');
+    lines.push('');
+    lines.push('| Current Name | Suggested Name | Confidence | Explanation |');
+    lines.push('|--------------|----------------|------------|-------------|');
+    response.suggestions.forEach((sug) => {
+      const confidence = sug.confidence ? `${sug.confidence}%` : 'N/A';
+      const oldName = sug.oldName ? `\`${sug.oldName}\`` : '';
+      const newName = sug.newName ? `\`${sug.newName}\`` : '';
+      lines.push(`| ${oldName} | ${newName} | ${confidence} | ${sug.explanation || ''} |`);
+    });
+    lines.push('');
+  }
 
   if (response.issue) {
     lines.push('## 🐛 Issue');
@@ -186,6 +201,15 @@ export function buildPlainText(response, language = '', usage = null) {
   lines.push(`DEBUGRA AI REPORT${lang}`);
   lines.push(`Generated: ${ts}`);
   lines.push(sep);
+
+  if (Array.isArray(response.suggestions) && response.suggestions.length > 0) {
+    lines.push('NAMING OPTIMIZER SUGGESTIONS');
+    response.suggestions.forEach((sug) => {
+      lines.push(`  ${sug.oldName} → ${sug.newName} (${sug.confidence || 'N/A'}% confidence)`);
+      if (sug.explanation) lines.push(`    Explanation: ${sug.explanation}`);
+    });
+    lines.push('');
+  }
 
   if (response.issue) {
     lines.push('ISSUE');

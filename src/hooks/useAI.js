@@ -6,6 +6,8 @@ import {
   aiVisualizeExecution,
   aiGenerateTests,
   aiAuditCode,
+  aiOptimizeNames,
+  aiGenerateDocstring,
 } from '../services/api';
 import { LANGUAGES } from '../utils/languageConfig';
 import { OUTPUT_TABS } from '../config/constants';
@@ -75,6 +77,75 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
     [withAI, code, language]
   );
 
+  const optimizeNames = useCallback(
+    () =>
+      withAI(async () => {
+        const sel = editorRef?.current?.getSelection();
+        const selectedCode =
+          sel && !sel.isEmpty() ? editorRef.current.getModel().getValueInRange(sel) : '';
+
+        if (!selectedCode || !selectedCode.trim()) {
+          throw new Error('Please select a block of code in the editor to optimize naming.');
+        }
+
+        return await aiOptimizeNames(selectedCode, LANGUAGES[language].name);
+      }),
+    [withAI, language, editorRef]
+  );
+
+  const generateDocstring = useCallback(
+    () =>
+      withAI(async () => {
+        const editor = editorRef?.current;
+        if (!editor) throw new Error('Editor not initialized');
+
+        const sel = editor.getSelection();
+        const selectedCode =
+          sel && !sel.isEmpty() ? editor.getModel().getValueInRange(sel) : '';
+
+        if (!selectedCode || !selectedCode.trim()) {
+          throw new Error('Please select a function or block of code in the editor to generate documentation.');
+        }
+
+        const result = await aiGenerateDocstring(selectedCode, LANGUAGES[language].name);
+        
+        const responseData = result.content || result;
+        const generatedDoc = responseData?.docstring;
+        if (!generatedDoc) {
+          throw new Error('Failed to generate docstring. Try highlighting the function definition.');
+        }
+
+        const model = editor.getModel();
+        const lineText = model.getLineContent(sel.startLineNumber);
+        const matchIndentation = lineText.match(/^\s*/);
+        const indentation = matchIndentation ? matchIndentation[0] : '';
+
+        const docLines = generatedDoc.split('\n');
+        const indentedDoc = docLines
+          .map((line) => indentation + line)
+          .join('\n');
+
+        const range = {
+          startLineNumber: sel.startLineNumber,
+          startColumn: 1,
+          endLineNumber: sel.startLineNumber,
+          endColumn: 1,
+        };
+
+        editor.executeEdits('docstring-generator', [
+          {
+            range,
+            text: indentedDoc + '\n',
+            forceMoveMarkers: true,
+          },
+        ]);
+
+        toast.success('Docstring generated and inserted!');
+        return result;
+      }),
+    [withAI, language, editorRef]
+  );
+
   const clearAI = useCallback(() => setAiResponse(null), []);
 
   return {
@@ -85,6 +156,8 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
     visualize,
     generateTests,
     audit,
+    optimizeNames,
+    generateDocstring,
     clearAI,
   };
 }

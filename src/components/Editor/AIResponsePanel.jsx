@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { downloadAsMarkdown, downloadAsText } from '../../utils/downloadReport';
 import { LANGUAGES } from '../../utils/languageConfig';
 
@@ -171,6 +172,123 @@ export default function AIResponsePanel({ isLoading, response: rawResponse, onAp
         <div className="ai-card error">
           <div className="ai-card-label">Issue</div>
           <div className="ai-card-content">{response.issue}</div>
+        </div>
+      )}
+      {/* Name Optimizer Suggestions */}
+      {Array.isArray(response.suggestions) && (
+        <div style={{ marginBottom: '12px' }}>
+          <div
+            className="ai-card-label"
+            style={{ color: 'var(--accent)', marginBottom: '8px', fontSize: '0.72rem', letterSpacing: '0.05em' }}
+          >
+            💡 Naming Optimizer Suggestions
+          </div>
+          {response.suggestions.length === 0 ? (
+            <div className="ai-card success">
+              <div className="ai-card-content" style={{ fontSize: '0.75rem' }}>
+                All variable and function names in the selected snippet follow excellent, descriptive patterns! No changes recommended.
+              </div>
+            </div>
+          ) : (
+            response.suggestions.map((sug, idx) => {
+              const confidence = typeof sug.confidence === 'number' ? sug.confidence : null;
+              let scoreColor = '#ff6b6b';
+              if (confidence >= 85) scoreColor = '#4ec9b0';
+              else if (confidence >= 70) scoreColor = '#ffd166';
+
+              return (
+                <div
+                  key={idx}
+                  className="ai-card"
+                  style={{
+                    padding: '12px',
+                    marginBottom: '8px',
+                    borderLeft: '3px solid var(--accent)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}
+                >
+                  <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div className="d-flex align-items-center gap-2" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem' }}>
+                      <span
+                        style={{
+                          background: 'rgba(244,71,71,0.12)',
+                          color: '#f44747',
+                          padding: '2px 6px',
+                          borderRadius: '3px',
+                          border: '1px solid rgba(244,71,71,0.2)'
+                        }}
+                      >
+                        {sug.oldName}
+                      </span>
+                      <span style={{ color: 'var(--text-2)', fontSize: '0.8rem' }}>→</span>
+                      <span
+                        style={{
+                          background: 'rgba(78,201,176,0.12)',
+                          color: '#4ec9b0',
+                          padding: '2px 6px',
+                          borderRadius: '3px',
+                          border: '1px solid rgba(78,201,176,0.2)'
+                        }}
+                      >
+                        {sug.newName}
+                      </span>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-2">
+                      {confidence !== null && (
+                        <span
+                          style={{
+                            fontSize: '0.62rem',
+                            padding: '1px 6px',
+                            borderRadius: '999px',
+                            border: `1px solid ${scoreColor}50`,
+                            background: `${scoreColor}12`,
+                            color: scoreColor,
+                            fontWeight: 600
+                          }}
+                        >
+                          {confidence}% Match
+                        </span>
+                      )}
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(sug.newName);
+                          toast.success(`Copied "${sug.newName}" to clipboard!`);
+                        }}
+                        style={{
+                          background: 'var(--bg-3)',
+                          color: 'var(--text-1)',
+                          border: '1px solid var(--border)',
+                          padding: '1px 6px',
+                          borderRadius: '3px',
+                          cursor: 'pointer',
+                          fontSize: '0.62rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                        title="Copy to clipboard"
+                      >
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+
+                  {sug.explanation && (
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-1)', lineHeight: '1.4', marginTop: '2px' }}>
+                      {sug.explanation}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       )}
       {response.explanation && (

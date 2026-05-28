@@ -5,6 +5,7 @@ import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
 import { Settings, Volume2, VolumeX } from 'lucide-react';
+import PromptTemplatesGallery from './PromptTemplatesGallery';
 
 import {
   useRoom,
@@ -13,6 +14,7 @@ import {
   useEditor,
   useIsMobile,
   useAudioFeedback,
+  usePromptTemplates,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { LANGUAGES } from '../../utils/languageConfig';
@@ -59,10 +61,14 @@ export default function EditorPage({ user }) {
   const [minimapSide, setMinimapSide] = useState('right');
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
+
+  // ─── AI Personality Template State ────────────────────────────────────────
+  const promptTemplates = usePromptTemplates();
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
   const handleCopyOutput = async () => {
@@ -239,6 +245,7 @@ export default function EditorPage({ user }) {
 
   const handleEditorMount = (editorInstance) => {
     editorRef.current = editorInstance;
+    window.editor = editorInstance; // Expose for Playwright E2E tests
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
@@ -568,6 +575,36 @@ export default function EditorPage({ user }) {
               </svg>
               Explain
             </button>
+            <button className="ai-btn" onClick={ai.optimizeNames} disabled={ai.isAILoading} title="Optimize variable & function names">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M15 4V2m3.5 3.5l1.5-1.5M19 9h2M17.5 13.5l1.5 1.5M3 21l10-10m-3-3l6 6" />
+              </svg>
+              Optimize
+            </button>
+            <button className="ai-btn" onClick={ai.generateDocstring} disabled={ai.isAILoading} title="Generate inline documentation comments">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              Docstring
+            </button>
           </div>
           <button
             className="ai-btn fix"
@@ -725,6 +762,46 @@ export default function EditorPage({ user }) {
                   >
                     Test chime
                   </button>
+
+                  {/* ── AI Personality ──────────────────────────────── */}
+                  <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+                    <div
+                      style={{
+                        fontSize: '0.6rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        color: 'var(--text-2)',
+                        marginBottom: '7px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <span>🤖</span> AI Personality
+                    </div>
+
+                    {/* Active template banner — click to open gallery */}
+                    <button
+                      className="ptg-active-banner"
+                      onClick={() => { setShowGallery(true); setShowSettings(false); }}
+                      aria-label="Open AI personality template gallery"
+                      title="Change AI personality template"
+                    >
+                      <span className="ptg-active-icon" aria-hidden="true">
+                        {promptTemplates.isCustom ? '✍️' : (promptTemplates.selectedTemplate?.icon ?? '🤖')}
+                      </span>
+                      <div className="ptg-active-info">
+                        <div className="ptg-active-label">Active Template</div>
+                        <div className="ptg-active-name">
+                          {promptTemplates.isCustom
+                            ? 'Custom Prompt'
+                            : (promptTemplates.selectedTemplate?.title ?? 'Code Reviewer')}
+                        </div>
+                      </div>
+                      <span className="ptg-active-arrow" aria-hidden="true">›</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1168,6 +1245,23 @@ export default function EditorPage({ user }) {
           onStatusChange={() => setApiKeyStatus(getApiKeyStatus())}
         />
       )}
+
+      {/* AI Personality Template Gallery */}
+      <PromptTemplatesGallery
+        isOpen={showGallery}
+        onClose={() => setShowGallery(false)}
+        selectedTemplateId={promptTemplates.selectedTemplateId}
+        onSelectTemplate={(id) => {
+          promptTemplates.selectTemplate(id);
+          toast.success(
+            id === 'custom'
+              ? '✍️ Switched to Custom prompt'
+              : `🤖 Template: ${promptTemplates.templates.find((t) => t.id === id)?.title ?? id}`
+          );
+        }}
+        customPrompt={promptTemplates.customPrompt}
+        onCustomPromptChange={promptTemplates.setCustomPrompt}
+      />
 
       {/* Video Call Overlay */}
       {showVideoCall && room.roomId && (
