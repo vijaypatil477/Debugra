@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -8,6 +8,7 @@ import {
   INPUT_PATTERNS,
   DEFAULT_LANGUAGE,
   DEFAULT_FONT_SIZE,
+  DEFAULT_EDITOR_FONT,
   DEFAULT_THEME,
 } from '../config/constants';
 
@@ -22,19 +23,31 @@ export function useEditor({ user, onNeedAuth }) {
   const [code, setCode] = useState(LANGUAGES[DEFAULT_LANGUAGE].template);
   const [language, setLanguage] = useState(DEFAULT_LANGUAGE);
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+  const [fontFamily, setFontFamily] = useState(
+    () => localStorage.getItem('debugra-editor-font') ?? DEFAULT_EDITOR_FONT
+  );
   const [theme, setTheme] = useState(() => localStorage.getItem('debugra-theme') ?? DEFAULT_THEME);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
   const [stdinValue, setStdinValue] = useState('');
   const [stdinOpen, setStdinOpen] = useState(false);
 
-  const needsInput = useMemo(() => {
-    const pattern = INPUT_PATTERNS[language];
-    return pattern ? pattern.test(code) : false;
+  const [needsInput, setNeedsInput] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const pattern = INPUT_PATTERNS[language];
+      setNeedsInput(pattern ? pattern.test(code) : false);
+    }, 500);
+    return () => clearTimeout(timer);
   }, [code, language]);
 
   useEffect(() => {
     localStorage.setItem('debugra-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('debugra-editor-font', fontFamily);
+  }, [fontFamily]);
 
   // Auto-open stdin panel when input-reading functions are detected
   useEffect(() => {
@@ -97,6 +110,8 @@ export function useEditor({ user, onNeedAuth }) {
     setLanguage,
     fontSize,
     setFontSize,
+    fontFamily,
+    setFontFamily,
     theme,
     setTheme,
     cursorPos,

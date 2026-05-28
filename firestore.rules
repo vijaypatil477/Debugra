@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rooms/{roomId} {
+      // Anyone can read a room
+      allow read: if true;
+      
+      // Creating a room requires auth and setting yourself as host
+      allow create: if request.auth != null 
+                    && request.resource.data.roles[request.auth.uid] == 'host';
+      
+      // Updating requires auth. 
+      // If you are already host or editor, you can update anything.
+      // If you are viewer (or joining for the first time), you cannot modify 'code' or 'language'.
+      allow update: if request.auth != null 
+                    && (
+                      resource.data.roles[request.auth.uid] == 'host' || 
+                      resource.data.roles[request.auth.uid] == 'editor' || 
+                      !request.resource.data.diff(resource.data).affectedKeys().hasAny(['code', 'language'])
+                    );
+                    
+      // Only host can delete
+      allow delete: if request.auth != null 
+                    && resource.data.roles[request.auth.uid] == 'host';
+    }
+  }
+}

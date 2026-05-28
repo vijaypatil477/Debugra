@@ -26,6 +26,18 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 429) {
+      const retryAfter = parseInt(
+        error.response.headers['retry-after'] || error.response.data?.retryAfter || '60',
+        10
+      );
+      const err = new Error(
+        error.response.data?.error || 'Too many requests. Please wait before trying again.'
+      );
+      err.status = 429;
+      err.retryAfter = retryAfter;
+      return Promise.reject(err);
+    }
     const message =
       error.response?.data?.error ||
       error.response?.data?.message ||
@@ -63,6 +75,11 @@ export const aiExplainLogic = async (code, language) => {
 
 export const aiGenerateTests = async (code, language) => {
   const { data } = await api.post('/api/ai/generate-tests', { code, language });
+  return data;
+};
+
+export const aiAuditCode = async (code, language) => {
+  const { data } = await api.post('/api/ai/audit-code', { code, language });
   return data;
 };
 

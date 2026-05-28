@@ -5,7 +5,8 @@ import { auth } from './services/firebase';
 import { Toaster } from 'react-hot-toast';
 import LandingPage from './components/Landing/LandingPage';
 import EditorPage from './components/Editor/EditorPage';
-import OfflineBanner from "./components/Editor/OfflineBanner";
+import VideoCall from './components/Editor/VideoCall';
+import OfflineBanner from './components/Editor/OfflineBanner';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -14,9 +15,21 @@ export default function App() {
     return onAuthStateChanged(auth, (u) => setUser(u));
   }, []);
 
+  // Test helper: allow forcing a fake user via URL query param `?testUser=1`
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (!user && params.get('testUser') === '1') {
+        setUser({ uid: 'test-user', displayName: 'Playwright Tester', email: 'pw@test' });
+      }
+    } catch (e) {
+      // ignore in non-browser environments
+    }
+  }, [user]);
+
   return (
     <BrowserRouter>
-    <OfflineBanner />
+      <OfflineBanner />
       <Toaster
         position="top-right"
         toastOptions={{
@@ -30,6 +43,13 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/editor" element={<EditorPage user={user} />} />
+        {/* Test route to render VideoCall directly for e2e tests */}
+        <Route
+          path="/voice-test"
+          element={<VideoCall roomId={'__playwright_test'} userName={'Playwright'} audioOnly />}
+        />
+        {/* Local-only test route that does not use Firestore/room presence */}
+        <Route path="/voice-test-local" element={<VideoCall userName={'Playwright'} audioOnly />} />
       </Routes>
     </BrowserRouter>
   );

@@ -7,6 +7,7 @@ const {
   fixCodeAI,
   explainLogicAI,
   generateTestsAI,
+  auditCodeAI,
   visualizeAI,
   explainCodeSnippetAI,
   askFollowUpAI,
@@ -74,6 +75,12 @@ router.post('/explain-logic', handleCachedRequest(async (body, apiKey) => {
 router.post('/generate-tests', handleCachedRequest(async (body, apiKey) => {
   const { code, language } = body;
   return await generateTestsAI(code, language, apiKey);
+}));
+
+// Security and refactoring audit
+router.post('/audit-code', handleCachedRequest(async (body, apiKey) => {
+  const { code, language } = body;
+  return await auditCodeAI(code, language, apiKey);
 }));
 
 // Execution visualization
