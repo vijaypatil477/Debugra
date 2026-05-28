@@ -6,6 +6,7 @@ import {
   aiVisualizeExecution,
   aiGenerateTests,
   aiAuditCode,
+  aiExplainError,
 } from '../services/api';
 import { showRateLimitToast } from '../utils/rateLimitToast';
 import { LANGUAGES } from '../utils/languageConfig';
@@ -24,6 +25,10 @@ import { OUTPUT_TABS } from '../config/constants';
 export function useAI({ language, code, stderr, setActiveOutputTab, editorRef }) {
   const [aiResponse, setAiResponse] = useState(null);
   const [isAILoading, setIsAILoading] = useState(false);
+
+  // ─── Debug Error (inline button on Errors tab) ─────────────────────────────
+  const [debugResponse, setDebugResponse] = useState(null);
+  const [isDebugLoading, setIsDebugLoading] = useState(false);
 
   const withAI = useCallback(
     async (action) => {
@@ -82,6 +87,22 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
 
   const clearAI = useCallback(() => setAiResponse(null), []);
 
+  const debugError = useCallback(async () => {
+    if (!stderr) return;
+    setIsDebugLoading(true);
+    setDebugResponse(null);
+    try {
+      const result = await aiExplainError(code, stderr, LANGUAGES[language].name);
+      setDebugResponse(result);
+    } catch (err) {
+      toast.error(err.message || 'AI debug request failed');
+    } finally {
+      setIsDebugLoading(false);
+    }
+  }, [code, stderr, language]);
+
+  const clearDebug = useCallback(() => setDebugResponse(null), []);
+
   return {
     aiResponse,
     isAILoading,
@@ -91,5 +112,9 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
     generateTests,
     audit,
     clearAI,
+    debugResponse,
+    isDebugLoading,
+    debugError,
+    clearDebug,
   };
 }

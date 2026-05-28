@@ -39,6 +39,7 @@ import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
+import DebugOverlay from './DebugOverlay';
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -74,6 +75,7 @@ export default function EditorPage({ user }) {
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
+  const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -1064,18 +1066,46 @@ export default function EditorPage({ user }) {
               )}
              </div>
             {execution.stderr && (
-              <button
-                className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDERR ? 'active' : ''}`}
-                onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDERR)}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
               >
-                <span
-                  style={{
-                    color: execution.activeOutputTab === OUTPUT_TABS.STDERR ? '#f44747' : undefined,
-                  }}
+                <button
+                  className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDERR ? 'active' : ''}`}
+                  onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDERR)}
                 >
-                  ✦ Errors
-                </span>
-              </button>
+                  <span
+                    style={{
+                      color: execution.activeOutputTab === OUTPUT_TABS.STDERR ? '#f44747' : undefined,
+                    }}
+                  >
+                    ✦ Errors
+                  </span>
+                </button>
+                {/* ── Debug with AI inline button ── */}
+                <button
+                  id="debug-with-ai-btn"
+                  className="debug-ai-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    execution.setActiveOutputTab(OUTPUT_TABS.STDERR);
+                    ai.debugError();
+                    setShowDebugOverlay(true);
+                  }}
+                  title="Explain this error in plain English"
+                  aria-label="Debug with AI"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  Debug with AI
+                </button>
+              </div>
             )}
             {(ai.aiResponse || ai.isAILoading) && (
               <button
@@ -1284,6 +1314,21 @@ export default function EditorPage({ user }) {
     user={user}
   />
 )}
+
+      {/* Debug Overlay */}
+      <DebugOverlay
+        isOpen={showDebugOverlay}
+        isLoading={ai.isDebugLoading}
+        response={ai.debugResponse}
+        stderr={execution.stderr}
+        onClose={() => {
+          setShowDebugOverlay(false);
+          ai.clearDebug();
+        }}
+        onApplyFix={() => {
+          ai.fix();
+        }}
+      />
 
 {/* Video Call Overlay */}
 {showVideoCall && room.roomId && (
