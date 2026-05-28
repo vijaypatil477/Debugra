@@ -11,6 +11,7 @@ const {
   visualizeAI,
   explainCodeSnippetAI,
   askFollowUpAI,
+  chatWithAI,
 } = require('../services/groqService');
 
 // Initialize cache with 1 hour TTL to reduce redundant LLM calls
@@ -100,5 +101,17 @@ router.post('/ask-followup', handleCachedRequest(async (body, apiKey) => {
   const { code, language, question, previousExplanation } = body;
   return await askFollowUpAI(code, language, question, previousExplanation, apiKey);
 }));
+
+// AI Chat Sidebar — stateful conversation endpoint (no cache, highly conversational/stateful)
+router.post('/chat', async (req, res, next) => {
+  try {
+    const apiKey = getUserGroqApiKey(req);
+    const { messages, activeCode, language } = req.body;
+    const result = await chatWithAI(messages, activeCode, language, apiKey);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
 
 module.exports = router;

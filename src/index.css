@@ -2254,3 +2254,71 @@ body {
     min-height: 0;
   }
 }
+
+/* AI Chat Sidebar Panel Styles */
+.ai-chat-sidebar-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-1) !important;
+  border-left: 1px solid var(--border);
+  transition: width 0.2s ease;
+}
+
+.ai-chat-sidebar-panel pre {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* Beautiful code blocks in chat */
+.ai-chat-code-block {
+  margin: 10px 0;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #1e1e1e !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.ai-chat-code-block pre {
+  margin: 0;
+  padding: 12px;
+  max-height: 250px;
+  overflow-x: auto;
+  overflow-y: auto;
+  font-size: 0.72rem;
+  background: #1e1e1e !important;
+}
+
+/* Input checkbox accent styling */
+input.accent-purple {
+  accent-color: #8b5cf6;
+  cursor: pointer;
+}
+
+/* Message styling overrides for custom look */
+.ai-chat-sidebar-panel .btn-outline-secondary {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ai-chat-sidebar-panel .btn-outline-secondary:hover {
+  background: rgba(139, 92, 246, 0.1) !important;
+  border-color: rgba(139, 92, 246, 0.3) !important;
+  color: #a78bfa !important;
+}
+
+/* Scrollbar styling for conversational list */
+.ai-chat-sidebar-panel div::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.ai-chat-sidebar-panel div::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.ai-chat-sidebar-panel div::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+

@@ -76,4 +76,9 @@ export const aiVisualizeExecution = async (code, language, input = '') => {
   return data;
 };
 
+export const aiChat = async (messages, activeCode, language) => {
+  const { data } = await api.post('/api/ai/chat', { messages, activeCode, language });
+  return data;
+};
+
 export default api;
