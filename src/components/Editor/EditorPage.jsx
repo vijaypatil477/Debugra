@@ -440,6 +440,66 @@ export default function EditorPage({ user }) {
         // swallow
       }
     });
+    // Expose a test helper to invoke the in-app formatter (resolves bundler imports)
+    try {
+      // eslint-disable-next-line no-undef
+      window.__debugra_formatEditor = async () => {
+        const inst = editorRef.current;
+        const mon = monacoRef.current;
+        if (!inst || !mon) return { ok: false, error: 'editor or monaco missing' };
+        const model = inst.getModel();
+        if (!model) return { ok: false, error: 'no model' };
+        try {
+          const prettierModule = await import('prettier/standalone');
+          const prettier =
+            prettierModule && prettierModule.default ? prettierModule.default : prettierModule;
+          const parserBabelModule = await import('prettier/parser-babel');
+          const parserBabel =
+            parserBabelModule && parserBabelModule.default
+              ? parserBabelModule.default
+              : parserBabelModule;
+          const parserTSModule = await import('prettier/parser-typescript');
+          const parserTS =
+            parserTSModule && parserTSModule.default ? parserTSModule.default : parserTSModule;
+
+          const langKey = editor.language || 'javascript';
+          let plugins = [parserBabel];
+          let parserName = 'babel';
+          if (langKey === 'typescript') {
+            plugins = [parserTS];
+            parserName = 'typescript';
+          }
+
+          const original = model.getValue();
+          const formatted = prettier.format(original, {
+            parser: parserName,
+            plugins,
+            semi: true,
+            singleQuote: true,
+            tabWidth: editor.tabSize || 2,
+          });
+
+          model.pushEditOperations(
+            [],
+            [
+              {
+                range: model.getFullModelRange(),
+                text: formatted,
+              },
+            ],
+            () => null
+          );
+
+          editor.setCode(formatted);
+          return { ok: true, formatted };
+        } catch (err) {
+          console.error('format helper error', err);
+          return { ok: false, error: err && err.message ? err.message : String(err) };
+        }
+      };
+    } catch (err) {
+      // ignore
+    }
   };
 
   // ─── Output Pane Resize ───────────────────────────────────────────────────
@@ -1396,18 +1456,14 @@ export default function EditorPage({ user }) {
         }}
       />
 
-{/* Video Call Overlay */}
-{showVideoCall && room.roomId && (
-  <VideoCall
-    roomId={room.roomId}
-    userName={
-      user?.displayName ||
-      user?.email?.split('@')[0] ||
-      'Guest'
-    }
-    onClose={() => setShowVideoCall(false)}
-  />
-)}
+      {/* Video Call Overlay */}
+      {showVideoCall && room.roomId && (
+        <VideoCall
+          roomId={room.roomId}
+          userName={user?.displayName || user?.email?.split('@')[0] || 'Guest'}
+          onClose={() => setShowVideoCall(false)}
+        />
+      )}
 
       {/* Real-time Democratic Vote Popup */}
       <VotePopup room={room} user={user} />
