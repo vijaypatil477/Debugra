@@ -5,6 +5,7 @@ import { auth } from './services/firebase';
 import { Toaster } from 'react-hot-toast';
 import LandingPage from './components/Landing/LandingPage';
 import EditorPage from './components/Editor/EditorPage';
+import OfflineBanner from "./components/Editor/OfflineBanner";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -15,6 +16,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+    <OfflineBanner />
       <Toaster
         position="top-right"
         toastOptions={{

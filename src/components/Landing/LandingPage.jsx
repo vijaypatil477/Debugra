@@ -438,7 +438,7 @@ export default function LandingPage() {
               >
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
-              Open Editor — it&apos;s free
+              Open Editor — it&apos;s free 
             </button>
             <button onClick={() => setShowLogin(true)} className="landing-btn-ghost landing-btn-lg">
               Sign in to save code

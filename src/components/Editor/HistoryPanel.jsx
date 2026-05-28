@@ -36,24 +36,30 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
     }
   };
 
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
+
   const startRename = (id, currentName) => {
     setEditingId(id);
-    setEditName(currentName);
+    setEditName(currentName || 'untitled');
   };
 
-  const saveRename = async (id) => {
-    if (!editName || editName.trim() === '') {
+  const handleRenameSubmit = async (id, currentName) => {
+    if (!editName || editName === currentName) {
       setEditingId(null);
       return;
     }
     try {
-      const trimmedName = editName.trim();
-      await updateDoc(doc(db, 'users', user.uid, 'savedCode', id), { name: trimmedName });
-      setHistory((prev) => prev.map((h) => (h.id === id ? { ...h, name: trimmedName } : h)));
+      await updateDoc(doc(db, 'users', user.uid, 'savedCode', id), { name: editName });
+      setHistory((prev) => prev.map((h) => (h.id === id ? { ...h, name: editName } : h)));
       toast.success('Renamed successfully');
     } catch {
       toast.error('Rename failed');
     }
+    setEditingId(null);
+  };
+
+  const handleRenameCancel = () => {
     setEditingId(null);
   };
 
@@ -181,18 +187,17 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
                     {LANG_ICONS[item.language] || 'CODE'}
                   </span>
                   {editingId === item.id ? (
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
+                      className="form-control form-control-sm bg-dark text-light border-secondary"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      onBlur={() => saveRename(item.id)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') saveRename(item.id);
-                        if (e.key === 'Escape') setEditingId(null);
+                        if (e.key === 'Enter') handleRenameSubmit(item.id, item.name);
+                        if (e.key === 'Escape') handleRenameCancel();
                       }}
+                      onBlur={() => handleRenameSubmit(item.id, item.name)}
                       autoFocus
-                      className="form-control form-control-sm bg-dark text-light border-secondary x-small py-0"
-                      style={{ height: '20px', fontSize: '0.8rem' }}
                     />
                   ) : (
                     <span className="history-item-name text-truncate small text-light fw-medium">

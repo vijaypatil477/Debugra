@@ -24,13 +24,16 @@ jobs:
             server/package-lock.json
 
       - name: Install Frontend Dependencies
-        run: npm install --no-audit --no-fund
+        run: npm install
 
       - name: Verify Frontend Production Build
         run: npm run build
 
+      - name: Run Lighthouse CI
+        run: npx @lhci/cli@0.15.x autorun
+
       - name: Install Backend Dependencies
-        run: npm install --prefix server --no-audit --no-fund
+        run: npm install --prefix server
 
       - name: Verify Backend Syntax
         run: |

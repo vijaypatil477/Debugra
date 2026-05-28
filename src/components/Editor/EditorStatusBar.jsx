@@ -1,3 +1,5 @@
+import { LANG_FILE_NAMES } from '../../config/constants';
+
 /**
  * EditorStatusBar
  * Renders the VS Code-style bottom status bar showing:
@@ -186,6 +188,11 @@ export default function EditorStatusBar({ execStatus, langName, cursorPos, room,
                       }}
                     />
                     {u.displayName} {u.uid === user?.uid ? '(You)' : ''}
+                    {u.activeFile && (
+                      <span style={{ color: 'var(--text-2)', fontSize: '0.65rem', marginLeft: 'auto' }}>
+                        [{LANG_FILE_NAMES[u.activeFile] || u.activeFile}]
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>

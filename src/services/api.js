@@ -66,6 +66,11 @@ export const aiGenerateTests = async (code, language) => {
   return data;
 };
 
+export const aiAuditCode = async (code, language) => {
+  const { data } = await api.post('/api/ai/audit-code', { code, language });
+  return data;
+};
+
 export const aiVisualizeExecution = async (code, language, input = '') => {
   const { data } = await api.post('/api/ai/visualize', { code, language, input });
   return data;

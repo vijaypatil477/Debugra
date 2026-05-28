@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
@@ -15,8 +15,15 @@ import {
   useAudioFeedback,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
+import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
 import { LANGUAGES } from '../../utils/languageConfig';
-import { LANG_FILE_NAMES, MOBILE_TABS, OUTPUT_TABS, EDITOR_THEMES } from '../../config/constants';
+import {
+  LANG_FILE_NAMES,
+  MOBILE_TABS,
+  OUTPUT_TABS,
+  EDITOR_THEMES,
+  EDITOR_FONTS,
+} from '../../config/constants';
 
 import AuthModal from '../Auth/AuthModal';
 import ChatPanel from '../Chat/ChatPanel';
@@ -25,8 +32,11 @@ import HistoryPanel from './HistoryPanel';
 import AIResponsePanel from './AIResponsePanel';
 import ApiKeyModal from './ApiKeyModal';
 import CollaborationControls from './CollaborationControls';
+import AudioChannel from './AudioChannel';
 import EditorStatusBar from './EditorStatusBar';
 import MobileBottomNav from './MobileBottomNav';
+import VideoCall from './VideoCall';
+import VotePopup from './VotePopup';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 
 function getApiKeyStatus() {
@@ -40,6 +50,7 @@ export default function EditorPage({ user }) {
   const editorRef = useRef(null);
 
   // ─── UI State ──────────────────────────────────────────────────────────────
+  const [copied, setCopied] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
@@ -54,12 +65,33 @@ export default function EditorPage({ user }) {
   const [outputWidth, setOutputWidth] = useState(420);
   const [minimapSide, setMinimapSide] = useState('right');
   const [showSettings, setShowSettings] = useState(false);
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
+  const handleCopyOutput = async () => {
+  if (!execution.stdout) return;
+
+      try {
+        await navigator.clipboard.writeText(execution.stdout);
+
+        setCopied(true);
+
+        toast.success('Output copied!');
+
+        setTimeout(() => {
+          setCopied(false);
+        }, 2000);
+
+      } catch (err) {
+        toast.error('Failed to copy output');
+      }
+    };
+
   const editor = useEditor({
     user,
     onNeedAuth: () => {
@@ -79,7 +111,6 @@ export default function EditorPage({ user }) {
     setStdinValue: editor.setStdinValue,
   });
 
-  // ─── Code Execution Logic ──────────────────────────────────────────────────
   const execution = useExecution({
     language: editor.language,
     code: editor.code,
@@ -87,14 +118,24 @@ export default function EditorPage({ user }) {
     isMobile,
     setMobileTab,
     audioFeedback,
+    user,
+    room,
   });
+
+  const executionRunRef = useRef(execution.run);
+  useEffect(() => {
+    executionRunRef.current = execution.run;
+  }, [execution.run]);
+
+  useEffect(() => {
+    ensureEditorFontLoaded(editor.fontFamily);
+  }, [editor.fontFamily]);
 
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
     language: editor.language,
     code: editor.code,
     stderr: execution.stderr,
-    setCode: editor.setCode,
     setActiveOutputTab: execution.setActiveOutputTab,
     editorRef,
   });
@@ -105,6 +146,39 @@ export default function EditorPage({ user }) {
       registerSnippets(monaco);
       window.__MONACO_SNIPPETS_REGISTERED__ = true;
     }
+
+    monaco.editor.defineTheme('debugra-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '6a9955', fontStyle: 'italic' },
+        { token: 'keyword', foreground: '569cd6' },
+        { token: 'string', foreground: 'ce9178' },
+        { token: 'number', foreground: 'b5cea8' },
+        { token: 'type', foreground: '4ec9b0' },
+        { token: 'function', foreground: 'dcdcaa' },
+        { token: 'operator', foreground: 'd4d4d4' },
+      ],
+      colors: {
+        'editor.background': '#1e1e1e',
+        'editor.foreground': '#d4d4d4',
+        'editor.lineHighlightBackground': '#2a2d2e',
+        'editor.selectionBackground': '#264f78',
+        'editorCursor.foreground': '#d4d4d4',
+        'editorLineNumber.foreground': '#858585',
+        'editorLineNumber.activeForeground': '#c6c6c6',
+        'editorIndentGuide.background1': '#3b3b3b',
+        'editorIndentGuide.activeBackground1': '#4ec9b0',
+        'editorBracketHighlight.foreground1': '#4ec9b0',
+        'editorBracketHighlight.foreground2': '#dcdcaa',
+        'editorBracketHighlight.foreground3': '#ce9178',
+        'editorBracketHighlight.foreground4': '#569cd6',
+        'editorBracketHighlight.foreground5': '#c586c0',
+        'editorBracketHighlight.foreground6': '#b5cea8',
+        'editorBracketMatch.background': '#4ec9b033',
+        'editorBracketMatch.border': '#4ec9b0',
+      },
+    });
 
     monaco.editor.defineTheme('dracula', {
       base: 'vs-dark',
@@ -127,6 +201,15 @@ export default function EditorPage({ user }) {
         'editorCursor.foreground': '#f8f8f2',
         'editorLineNumber.foreground': '#6272a4',
         'editorLineNumber.activeForeground': '#f8f8f2',
+        'editorIndentGuide.background1': '#44475a80',
+        'editorIndentGuide.activeBackground1': '#8be9fd',
+        'editorBracketHighlight.foreground1': '#8be9fd',
+        'editorBracketHighlight.foreground2': '#50fa7b',
+        'editorBracketHighlight.foreground3': '#f1fa8c',
+        'editorBracketHighlight.foreground4': '#ff79c6',
+        'editorBracketHighlight.foreground5': '#bd93f9',
+        'editorBracketHighlight.foreground6': '#ffb86c',
+        'editorBracketMatch.background': '#bd93f933',
         'editorBracketMatch.border': '#bd93f9',
       },
     });
@@ -152,6 +235,15 @@ export default function EditorPage({ user }) {
         'editorCursor.foreground': '#f8f8f2',
         'editorLineNumber.foreground': '#75715e',
         'editorLineNumber.activeForeground': '#f8f8f2',
+        'editorIndentGuide.background1': '#49483e',
+        'editorIndentGuide.activeBackground1': '#66d9ef',
+        'editorBracketHighlight.foreground1': '#66d9ef',
+        'editorBracketHighlight.foreground2': '#a6e22e',
+        'editorBracketHighlight.foreground3': '#e6db74',
+        'editorBracketHighlight.foreground4': '#f92672',
+        'editorBracketHighlight.foreground5': '#ae81ff',
+        'editorBracketHighlight.foreground6': '#fd971f',
+        'editorBracketMatch.background': '#a6e22e33',
         'editorBracketMatch.border': '#a6e22e',
       },
     });
@@ -163,7 +255,9 @@ export default function EditorPage({ user }) {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
     // Ctrl+Enter → Run
-    editorInstance.addCommand(2048 | 3, () => execution.run());
+    editorInstance.addCommand(2048 | 3, () => {
+      if (executionRunRef.current) executionRunRef.current();
+    });
   };
 
   // ─── Output Pane Resize ───────────────────────────────────────────────────
@@ -189,7 +283,7 @@ export default function EditorPage({ user }) {
   const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
 
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', '--blur-intensity': `${blurIntensity}px` }}>
       {/* ===== TOP BAR ===== */}
       <div className="topbar px-2 px-md-3">
         <div className="topbar-left d-flex align-items-center">
@@ -218,6 +312,25 @@ export default function EditorPage({ user }) {
               >
                 <span className="d-none d-sm-inline">Copy ID</span>
                 <span className="d-inline d-sm-none">ID</span>
+              </button>
+              <button
+                className="topbar-link ms-2"
+                onClick={() => setShowVideoCall(!showVideoCall)}
+                style={{
+                  background: showVideoCall
+                    ? 'rgba(239, 68, 68, 0.15)'
+                    : 'rgba(139, 92, 246, 0.15)',
+                  color: showVideoCall ? '#ff6b6b' : '#a78bfa',
+                  border: showVideoCall
+                    ? '1px solid rgba(239, 68, 68, 0.3)'
+                    : '1px solid rgba(139, 92, 246, 0.3)',
+                  padding: '3px 10px',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  transition: 'all 0.2s',
+                }}
+              >
+                📹 {showVideoCall ? 'Leave Call' : 'Join Call'}
               </button>
             </>
           )}
@@ -428,6 +541,20 @@ export default function EditorPage({ user }) {
             >
               Tests
             </button>
+            <button className="ai-btn" onClick={ai.audit} disabled={ai.isAILoading}>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="M9 12l2 2 4-5" />
+              </svg>
+              Audit
+            </button>
             <button className="ai-btn" onClick={ai.visualize} disabled={ai.isAILoading}>
               <svg
                 width="12"
@@ -552,7 +679,7 @@ export default function EditorPage({ user }) {
                 <Settings size={14} />
               </button>
               {showSettings && (
-                <div className="audio-settings-popover" role="dialog" aria-label="Settings">
+                <div className="audio-settings-popover custom-layout-popover" role="dialog" aria-label="Settings">
                   <div className="audio-settings-head">
                     <span>Settings</span>
                     <button
@@ -562,6 +689,25 @@ export default function EditorPage({ user }) {
                     >
                       <i className="bi bi-x" />
                     </button>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-type" style={{ fontSize: '14px' }} />
+                      <span>Editor font</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.fontFamily}
+                      onChange={(e) => editor.setFontFamily(e.target.value)}
+                      aria-label="Editor font"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {EDITOR_FONTS.map((font) => (
+                        <option key={font.id} value={font.id}>
+                          {font.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="audio-settings-row">
                     <div className="audio-settings-label">
@@ -581,6 +727,27 @@ export default function EditorPage({ user }) {
                         </option>
                       ))}
                     </select>
+                  </div>
+                  {/* ===== WALLPAPER BLUR SETTING ROW ===== */}
+                  <div className="audio-settings-row" style={{ marginTop: '12px' }}>
+                    <div className="audio-settings-label">
+                      <i className="bi bi-sliders" style={{ fontSize: '14px' }} />
+                      <span>Wallpaper Blur</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        step="1"
+                        value={blurIntensity}
+                        onChange={(e) => setBlurIntensity(Number(e.target.value))}
+                        style={{ flex: 1, accentColor: '#00bcd4' }} 
+                      />
+                      <span style={{ fontSize: '12px', minWidth: '30px', textAlign: 'right' }}>
+                        {blurIntensity}px
+                      </span>
+                    </div>
                   </div>
                   <div className="audio-settings-row">
                     <div className="audio-settings-label">
@@ -654,7 +821,7 @@ export default function EditorPage({ user }) {
       <div className="main-split">
         {/* EDITOR PANE */}
         <div
-          className="editor-pane"
+          className="editor-pane glass-panel"
           style={isMobile && mobileTab !== MOBILE_TABS.CODE ? { display: 'none' } : {}}
         >
           <div className="editor-tab-bar">
@@ -670,7 +837,12 @@ export default function EditorPage({ user }) {
                 ×
               </button>
             </div>
-            {room.roomId && <CollaborationControls room={room} user={user} />}
+            {room.roomId && (
+              <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
+                <AudioChannel room={room} user={user} />
+                <CollaborationControls room={room} user={user} />
+              </div>
+            )}
           </div>
 
           {/* Monaco Editor */}
@@ -707,7 +879,7 @@ export default function EditorPage({ user }) {
               options={{
                 readOnly: room.isReadOnly,
                 fontSize: editor.fontSize,
-                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                fontFamily: getEditorFontFamily(editor.fontFamily),
                 minimap: {
                   enabled: true,
                   side: minimapSide,
@@ -724,8 +896,16 @@ export default function EditorPage({ user }) {
                 smoothScrolling: true,
                 cursorBlinking: room.isReadOnly ? 'solid' : 'smooth',
                 cursorSmoothCaretAnimation: 'on',
+                matchBrackets: 'always',
+                renderIndentGuides: true,
                 bracketPairColorization: { enabled: true },
-                guides: { bracketPairs: true },
+                guides: {
+                  indentation: true,
+                  highlightActiveIndentation: 'always',
+                  bracketPairs: true,
+                  bracketPairsHorizontal: true,
+                  highlightActiveBracketPair: true,
+                },
                 suggestOnTriggerCharacters: true,
                 quickSuggestions: true,
                 formatOnPaste: true,
@@ -798,7 +978,7 @@ export default function EditorPage({ user }) {
 
         {/* OUTPUT PANE */}
         <div
-          className="output-pane"
+          className="output-pane glass-panel"
           style={
             isMobile
               ? mobileTab === MOBILE_TABS.OUTPUT
@@ -808,12 +988,40 @@ export default function EditorPage({ user }) {
           }
         >
           <div className="output-tabs">
-            <button
-              className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''}`}
-              onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDOUT)}
+            {/* copy */}
+             <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
             >
-              Output
-            </button>
+              <button
+                className={`output-tab ${
+                  execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''
+                }`}
+                onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDOUT)}
+              >
+                Output
+              </button>
+
+              {execution.stdout && (
+                <button
+                  onClick={handleCopyOutput}
+                  title="Copy Output"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#aaa',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  {copied ? '✓' : '📋'}
+                </button>
+              )}
+             </div>
             {execution.stderr && (
               <button
                 className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDERR ? 'active' : ''}`}
@@ -848,8 +1056,40 @@ export default function EditorPage({ user }) {
             <div
               className={`output-panel ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''}`}
               id="output-stdout"
+              style={{ position: 'relative' }}
             >
-              {execution.stdout || (
+              {execution.stdout ? (
+                <>
+                  <button
+                    className="toolbar-icon-btn"
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      background: 'var(--bg-1)',
+                      zIndex: 10,
+                    }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(execution.stdout);
+                      toast.success('Output copied!');
+                    }}
+                    title="Copy output"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                  </button>
+                  {execution.stdout}
+                </>
+              ) : (
                 <span className="output-placeholder">Run your code to see output here.</span>
               )}
             </div>
@@ -869,6 +1109,7 @@ export default function EditorPage({ user }) {
               <AIResponsePanel
                 isLoading={ai.isAILoading}
                 response={ai.aiResponse}
+                language={editor.language}
                 onApplyFix={(code) => {
                   editor.setCode(code);
                   toast.success('Solution applied!');
@@ -996,6 +1237,18 @@ export default function EditorPage({ user }) {
           onStatusChange={() => setApiKeyStatus(getApiKeyStatus())}
         />
       )}
+
+      {/* Video Call Overlay */}
+      {showVideoCall && room.roomId && (
+        <VideoCall
+          roomId={room.roomId}
+          userName={user?.displayName || user?.email?.split('@')[0] || 'Guest'}
+          onClose={() => setShowVideoCall(false)}
+        />
+      )}
+
+      {/* Real-time Democratic Vote Popup */}
+      <VotePopup room={room} user={user} />
     </div>
   );
 }

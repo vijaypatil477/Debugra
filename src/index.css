@@ -35,6 +35,34 @@
   --info: #0078d4;
 }
 
+/* Console Output Copy Button Styles */
+.console-container {
+  position: relative; /* Crucial for absolute positioning of the child button */
+}
+
+.copy-output-btn {
+  position: absolute;
+  top: 8px; /* Adjust based on your header/tabs height */
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: #6a6a6a; /* Muted color from your design system */
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  z-index: 10;
+}
+
+.copy-output-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0; /* Brighter color on hover */
+}
+
+
 /* ============ RESET ============ */
 *,
 *::before,
@@ -51,7 +79,7 @@ body,
 }
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background: var(--bg-0);
+  background: linear-gradient(135deg, #0f0c20 0%, #15102a 50%, #06040a 100%);
   color: var(--text-0);
   -webkit-font-smoothing: antialiased;
 }
@@ -795,7 +823,127 @@ body {
   color: var(--accent);
 }
 
+/* ============ AI DOWNLOAD BUTTON ============ */
+.ai-download-wrap {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.ai-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 0.68rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.ai-download-btn:hover {
+  color: var(--text-0);
+  background: var(--bg-2);
+  border-color: rgba(78, 201, 176, 0.4);
+  box-shadow: 0 0 0 2px rgba(78, 201, 176, 0.08);
+}
+
+.ai-download-btn:active {
+  transform: scale(0.97);
+}
+
+.ai-download-btn svg {
+  flex-shrink: 0;
+}
+
+@keyframes ai-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ai-download-dropdown {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: 60;
+  min-width: 200px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.25);
+  padding: 4px;
+  animation: ai-dropdown-in 0.15s ease-out forwards;
+  transform-origin: top right;
+}
+
+.ai-download-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-1);
+  font-size: 0.72rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.ai-download-option:hover {
+  background: var(--bg-2);
+  color: var(--text-0);
+}
+
+.ai-download-option svg {
+  flex-shrink: 0;
+  color: var(--text-2);
+}
+
+.ai-download-option:hover svg {
+  color: var(--green);
+}
+
+.ai-download-option span:first-of-type {
+  flex: 1;
+}
+
+.ai-download-ext {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-2);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
 /* ============ EXECUTION INFO ============ */
+
 .exec-info {
   padding: 8px 16px;
   border-top: 1px solid var(--border);
@@ -2105,4 +2253,46 @@ body {
     flex: 1;
     min-height: 0;
   }
+}
+/* ===== GLASSMORPHISM BACKDROP EFFECT ===== */
+.glass-panel {
+  /* Semi-transparent overlay color tint */
+  background-color: rgba(30, 30, 30, 0.75) !important; 
+  
+  /* Link browser engine filtering directly to your dynamic custom property hook */
+  backdrop-filter: blur(var(--blur-intensity, 10px)) !important;
+  -webkit-backdrop-filter: blur(var(--blur-intensity, 10px)) !important; /* Safari compatibility */
+  
+  /* Smooth transition rendering animations when sliding */
+  transition: backdrop-filter 0.1s ease-out, -webkit-backdrop-filter 0.1s ease-out;
+}
+/* Expand the settings popover bounding box to display the new options */
+.custom-layout-popover {
+  min-height: 240px !important;
+  height: auto !important;
+  max-height: 400px !important;
+  overflow-y: visible !important;
+}
+/* ===== GLASSMORPHISM OVERRIDES FOR CORE WORKSPACE PANELS ===== */
+
+/* 1. Target the left-side editor panel and right-side output panel wrappers */
+.editor-pane.glass-panel,
+.output-pane.glass-panel {
+  background-color: rgba(30, 30, 30, 0.45) !important; /* Semi-transparent base tint */
+  backdrop-filter: blur(var(--blur-intensity)) !important;
+  -webkit-backdrop-filter: blur(var(--blur-intensity)) !important; /* Safari support */
+  transition: backdrop-filter 0.1s ease-out;
+}
+
+/* 2. Target internal console and execution panel backgrounds */
+.editor-pane.glass-panel .output-content,
+.output-pane.glass-panel .output-panel,
+.output-pane.glass-panel .output-content {
+  background-color: transparent !important;
+}
+
+/* 3. Soften the top tab headers for the glassy look */
+.editor-tab-bar, .output-tabs {
+  background-color: rgba(20, 20, 20, 0.3) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }

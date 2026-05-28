@@ -1,0 +1,419 @@
+.vc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: vcFadeIn 0.2s ease-out;
+}
+@keyframes vcFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.vc-container {
+  background: linear-gradient(145deg, #0f0f1a 0%, #1a1a2e 100%);
+  border: 1px solid rgba(139,92,246,0.25);
+  border-radius: 18px;
+  width: 90vw;
+  max-width: 960px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 30px rgba(139,92,246,0.1);
+}
+
+.vc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.vc-room-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vc-room-icon { font-size: 1.2rem; }
+
+.vc-room-name {
+  color: #e0e0ff;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.vc-status {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+.vc-status--ready { color: #22c55e; background: rgba(34,197,94,0.1); }
+.vc-status--connecting { color: #eab308; background: rgba(234,179,8,0.1); }
+.vc-status--error { color: #ef4444; background: rgba(239,68,68,0.1); }
+
+.vc-close-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0 6px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+.vc-close-btn:hover { color: #ff6b6b; background: rgba(255,107,107,0.1); }
+
+.vc-error {
+  margin: 10px 18px;
+  padding: 10px 14px;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 10px;
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.vc-error button {
+  background: rgba(239,68,68,0.2);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: #ff6b6b;
+  padding: 4px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.vc-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+  padding: 14px;
+  overflow-y: auto;
+  min-height: 300px;
+}
+
+.vc-tile {
+  position: relative;
+  background: #0a0a14;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 16/10;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.vc-tile--local {
+  border-color: rgba(139,92,246,0.3);
+}
+
+.vc-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: object-fit 0.2s ease;
+}
+.vc-video--screen {
+  object-fit: contain;
+  background: #020205;
+}
+
+.vc-video-off {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a14;
+  color: rgba(255,255,255,0.4);
+  font-size: 1.1rem;
+}
+
+.vc-tile-label {
+  position: absolute;
+  bottom: 8px;
+  left: 10px;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.vc-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.vc-ctrl-btn {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.vc-ctrl-btn:hover {
+  background: rgba(255,255,255,0.12);
+  transform: scale(1.08);
+}
+.vc-ctrl-btn--active {
+  background: rgba(239,68,68,0.2);
+  border-color: rgba(239,68,68,0.4);
+}
+.vc-ctrl-btn--hangup {
+  background: #ef4444;
+  border-color: #ef4444;
+  transform: rotate(135deg);
+}
+.vc-ctrl-btn--hangup:hover {
+  background: #dc2626;
+  transform: rotate(135deg) scale(1.08);
+}
+
+@media (max-width: 600px) {
+  .vc-container { width: 98vw; max-height: 95vh; border-radius: 12px; }
+  .vc-grid { grid-template-columns: 1fr; padding: 8px; }
+  .vc-ctrl-btn { width: 42px; height: 42px; font-size: 1rem; }
+}
+
+/* ── Whiteboard panel split view & drawing styles ── */
+.vc-body-layout {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+.vc-body-layout--split {
+  flex-direction: row;
+  gap: 14px;
+  padding: 14px;
+}
+
+.vc-grid--sidebar {
+  width: 260px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  grid-template-columns: 1fr;
+  padding: 0;
+  overflow-y: auto;
+  max-height: 100%;
+  min-height: 0;
+}
+
+.vc-whiteboard-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 10, 20, 0.4);
+  border-radius: 14px;
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  padding: 12px;
+  min-width: 0;
+  min-height: 0;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+}
+
+.vc-whiteboard-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vc-tool-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vc-tool-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+.vc-color-palette {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vc-color-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vc-color-btn:hover {
+  transform: scale(1.15);
+}
+
+.vc-color-btn--active {
+  border-color: #fff;
+  transform: scale(1.15);
+  box-shadow: 0 0 8px currentColor;
+}
+
+.vc-eraser-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.9rem;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.vc-eraser-btn:hover {
+  background: rgba(255,255,255,0.08);
+  transform: scale(1.08);
+}
+
+.vc-eraser-btn--active {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+}
+
+.vc-size-palette {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.vc-size-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vc-size-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+.vc-size-btn--active {
+  background: #8b5cf6;
+  border-color: #8b5cf6;
+  color: #fff;
+  font-weight: 600;
+}
+
+.vc-tool-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vc-action-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.vc-action-btn--clear {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+.vc-action-btn--clear:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.04);
+}
+
+.vc-action-btn--export {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.vc-action-btn--export:hover {
+  background: rgba(34, 197, 94, 0.2);
+  transform: scale(1.04);
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.15);
+}
+
+.vc-canvas-wrapper {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.vc-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+@media (max-width: 900px) {
+  .vc-body-layout--split {
+    flex-direction: column;
+    overflow-y: auto;
+    gap: 12px;
+    padding: 10px;
+  }
+  .vc-whiteboard-panel {
+    height: 380px;
+    flex-shrink: 0;
+  }
+  .vc-grid--sidebar {
+    width: 100%;
+    height: auto;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}

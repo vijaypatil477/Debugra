@@ -1,21 +1,26 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { aiFixCode, aiExplainLogic, aiVisualizeExecution, aiGenerateTests } from '../services/api';
+import {
+  aiFixCode,
+  aiExplainLogic,
+  aiVisualizeExecution,
+  aiGenerateTests,
+  aiAuditCode,
+} from '../services/api';
 import { LANGUAGES } from '../utils/languageConfig';
 import { OUTPUT_TABS } from '../config/constants';
 
 /**
  * useAI
- * Encapsulates all Groq AI feature logic: Fix, Explain, Visualize, Tests.
+ * Encapsulates all Groq AI feature logic: Fix, Explain, Visualize, Tests, Audit.
  *
  * @param {string} language - current language key
  * @param {string} code     - current editor code
  * @param {string} stderr   - last stderr output (for Fix)
- * @param {Function} setCode - to apply AI-fixed code to the editor
  * @param {Function} setActiveOutputTab - to auto-switch to AI tab
  * @param {React.RefObject} editorRef - Monaco editor ref (for selection)
  */
-export function useAI({ language, code, stderr, setCode, setActiveOutputTab, editorRef }) {
+export function useAI({ language, code, stderr, setActiveOutputTab, editorRef }) {
   const [aiResponse, setAiResponse] = useState(null);
   const [isAILoading, setIsAILoading] = useState(false);
 
@@ -65,6 +70,11 @@ export function useAI({ language, code, stderr, setCode, setActiveOutputTab, edi
     [withAI, code, language]
   );
 
+  const audit = useCallback(
+    () => withAI(() => aiAuditCode(code, LANGUAGES[language].name)),
+    [withAI, code, language]
+  );
+
   const clearAI = useCallback(() => setAiResponse(null), []);
 
   return {
@@ -74,6 +84,7 @@ export function useAI({ language, code, stderr, setCode, setActiveOutputTab, edi
     explain,
     visualize,
     generateTests,
+    audit,
     clearAI,
   };
 }

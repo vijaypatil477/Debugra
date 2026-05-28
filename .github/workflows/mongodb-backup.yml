@@ -1,0 +1,48 @@
+name: MongoDB Daily Backup
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs every day at midnight (UTC)
+  workflow_dispatch: # Allows manual triggering from the Actions tab
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up MongoDB Tools
+        run: |
+          wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
+          echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+          sudo apt-get update
+          sudo apt-get install -y mongodb-database-tools
+
+      - name: Create Backup Directory
+        run: mkdir -p backups
+
+      - name: Run MongoDB Dump
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+        run: |
+          TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+          BACKUP_NAME="debugra_backup_$TIMESTAMP.archive"
+          mongodump --uri="$MONGO_URI" --archive="backups/$BACKUP_NAME" --gzip
+          echo "BACKUP_FILE=$BACKUP_NAME" >> $GITHUB_ENV
+
+      - name: Upload Backup as Artifact (Temporary Storage)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BACKUP_FILE }}
+          path: backups/${{ env.BACKUP_FILE }}
+          retention-days: 7
+
+      # Note: To store permanently, add a step here to upload to AWS S3, Google Cloud Storage, etc.
+      # using secrets for cloud provider authentication.

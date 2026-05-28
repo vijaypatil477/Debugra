@@ -145,7 +145,42 @@ Respond in JSON:
   );
 }
 
-// 5. Execution Visualization
+// 5. Security and refactoring audit
+async function auditCodeAI(code, language, apiKey = '') {
+  return chatCompletion(
+    `You are a senior application security reviewer and refactoring coach. Audit code for exploitable security risks, reliability hazards, memory/resource leaks, and unsafe architecture. Always respond in valid JSON.`,
+    `Audit this ${language} code:
+
+${code}
+
+Respond in this EXACT JSON format:
+{
+  "summary": "one-line audit summary",
+  "riskScore": 0,
+  "findings": [
+    {
+      "severity": "High",
+      "title": "short finding title",
+      "explanation": "why this is risky in 1-2 sentences",
+      "evidence": "specific code pattern or line reference if obvious",
+      "suggestion": "specific mitigation",
+      "refactor": "cleaner architecture or safer pattern"
+    }
+  ],
+  "remediationSteps": ["highest priority next step", "second priority next step"]
+}
+
+Rules:
+- Use severity values High, Medium, or Low.
+- Use riskScore as an integer from 0 to 100.
+- Include an empty findings array when no meaningful risk is found.
+- Do not invent line numbers when they are not obvious from the snippet.
+- Prefer concrete secure-coding guidance over generic advice.`,
+    apiKey
+  );
+}
+
+// 6. Execution Visualization
 async function visualizeAI(code, language, input = '', apiKey = '') {
   return chatCompletion(
     `You are a code tracer. Trace through code step by step showing variable states. Always respond in valid JSON.`,
@@ -166,4 +201,53 @@ Respond in JSON:
   );
 }
 
-module.exports = { explainError, fixCodeAI, explainLogicAI, generateTestsAI, visualizeAI };
+// 7. AI Code Explainer — explains a selected code snippet in plain language
+async function explainCodeSnippetAI(code, language, apiKey = '') {
+  return chatCompletion(
+    `You are an expert programming tutor. When a user highlights a snippet of code, explain what it does in simple, beginner-friendly language. Always respond in valid JSON.`,
+    `Explain this ${language} code snippet in simple terms:
+
+${code}
+
+Respond in this EXACT JSON format:
+{
+  "title": "Short 3-5 word title of what this code does",
+  "explanation": "A clear 2-4 sentence explanation a beginner would understand",
+  "concepts": ["concept1", "concept2"],
+  "tip": "One practical tip related to this code"
+}`,
+    apiKey
+  );
+}
+
+// 8. AI Code Explainer — follow-up Q&A on previously explained code
+async function askFollowUpAI(code, language, question, previousExplanation, apiKey = '') {
+  return chatCompletion(
+    `You are an expert programming tutor engaged in an interactive Q&A session. The user previously highlighted code and received an explanation. Now they have a follow-up question. Answer clearly and concisely. Always respond in valid JSON.`,
+    `The user is asking about this ${language} code:
+
+${code}
+
+Previous explanation: ${previousExplanation}
+
+User's follow-up question: ${question}
+
+Respond in this EXACT JSON format:
+{
+  "answer": "A clear, concise answer to their question",
+  "codeExample": "Optional: a small code example if it helps clarify (or empty string if not needed)"
+}`,
+    apiKey
+  );
+}
+
+module.exports = {
+  explainError,
+  fixCodeAI,
+  explainLogicAI,
+  generateTestsAI,
+  auditCodeAI,
+  visualizeAI,
+  explainCodeSnippetAI,
+  askFollowUpAI,
+};
