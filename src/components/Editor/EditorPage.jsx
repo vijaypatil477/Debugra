@@ -17,10 +17,18 @@ import {
 } from '../../hooks';
 import { getUserColor } from '../../hooks/useRoom';
 import { registerSnippets } from '../../utils/snippetsConfig';
+import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
 import { LANGUAGES } from '../../utils/languageConfig';
-import { LANG_FILE_NAMES, MOBILE_TABS, OUTPUT_TABS, EDITOR_THEMES } from '../../config/constants';
+import {
+  LANG_FILE_NAMES,
+  MOBILE_TABS,
+  OUTPUT_TABS,
+  EDITOR_THEMES,
+  EDITOR_FONTS,
+} from '../../config/constants';
 
 import AuthModal from '../Auth/AuthModal';
+import AccountSettings from '../Auth/AccountSettings';
 import ChatPanel from '../Chat/ChatPanel';
 import FileIcon from '../Icons/FileIcon';
 import HistoryPanel from './HistoryPanel';
@@ -43,6 +51,9 @@ function getApiKeyStatus() {
 }
 
 export default function EditorPage({ user }) {
+  const isTestRoom =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('testRoom') === '1';
   const navigate = useNavigate();
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
@@ -57,6 +68,7 @@ export default function EditorPage({ user }) {
   const [showAIChat, setShowAIChat] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
   const [apiKeyStatus, setApiKeyStatus] = useState(getApiKeyStatus);
   const [mobileTab, setMobileTab] = useState(MOBILE_TABS.CODE);
   const [showJoin, setShowJoin] = useState(false);
@@ -65,9 +77,12 @@ export default function EditorPage({ user }) {
   const [roomPassword, setRoomPassword] = useState('');
   const [outputWidth, setOutputWidth] = useState(420);
   const [minimapSide, setMinimapSide] = useState('right');
+  const [showMinimap, setShowMinimap] = useState(true); // ✅ CHANGE 1: Added showMinimap state
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showCommitMsg, setShowCommitMsg] = useState(false);
+  const [showVoiceCall, setShowVoiceCall] = useState(false);
+  const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -128,6 +143,10 @@ export default function EditorPage({ user }) {
   useEffect(() => {
     executionRunRef.current = execution.run;
   }, [execution.run]);
+
+  useEffect(() => {
+    ensureEditorFontLoaded(editor.fontFamily);
+  }, [editor.fontFamily]);
 
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
@@ -378,7 +397,7 @@ export default function EditorPage({ user }) {
   const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
 
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', '--blur-intensity': `${blurIntensity}px` }}>
       {/* ===== TOP BAR ===== */}
       <div className="topbar px-2 px-md-3">
         <div className="topbar-left d-flex align-items-center">
@@ -391,7 +410,7 @@ export default function EditorPage({ user }) {
           </button>
           <div className="topbar-sep mx-2 d-none d-md-block" />
           <span className="topbar-title d-none d-md-block">Code Editor</span>
-          {room.roomId && (
+          {(room.roomId || isTestRoom) && (
             <>
               <div className="topbar-sep mx-2 d-none d-sm-block" />
               <span className="topbar-title text-success d-none d-sm-inline">
@@ -412,9 +431,13 @@ export default function EditorPage({ user }) {
                 className="topbar-link ms-2"
                 onClick={() => setShowVideoCall(!showVideoCall)}
                 style={{
-                  background: showVideoCall ? 'rgba(239, 68, 68, 0.15)' : 'rgba(139, 92, 246, 0.15)',
+                  background: showVideoCall
+                    ? 'rgba(239, 68, 68, 0.15)'
+                    : 'rgba(139, 92, 246, 0.15)',
                   color: showVideoCall ? '#ff6b6b' : '#a78bfa',
-                  border: showVideoCall ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(139, 92, 246, 0.3)',
+                  border: showVideoCall
+                    ? '1px solid rgba(239, 68, 68, 0.3)'
+                    : '1px solid rgba(139, 92, 246, 0.3)',
                   padding: '3px 10px',
                   borderRadius: '6px',
                   fontWeight: 600,
@@ -422,6 +445,23 @@ export default function EditorPage({ user }) {
                 }}
               >
                 📹 {showVideoCall ? 'Leave Call' : 'Join Call'}
+              </button>
+              <button
+                className="topbar-link ms-2"
+                onClick={() => setShowVoiceCall((s) => !s)}
+                style={{
+                  background: showVoiceCall ? 'rgba(34,197,94,0.12)' : 'rgba(99,102,241,0.06)',
+                  color: showVoiceCall ? '#16a34a' : '#4f46e5',
+                  border: showVoiceCall
+                    ? '1px solid rgba(16,185,129,0.2)'
+                    : '1px solid rgba(99,102,241,0.12)',
+                  padding: '3px 10px',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  transition: 'all 0.18s',
+                }}
+              >
+                🔊 {showVoiceCall ? 'Leave Voice' : 'Join Voice'}
               </button>
             </>
           )}
@@ -456,6 +496,7 @@ export default function EditorPage({ user }) {
             </div>
           )}
           {!room.roomId && (
+          {!(room.roomId || isTestRoom) && (
             <div className="room-controls d-flex align-items-center gap-2">
               <button
                 className="topbar-link"
@@ -554,6 +595,13 @@ export default function EditorPage({ user }) {
               >
                 Log Out
               </button>
+              <button
+                className="topbar-link"
+                onClick={() => setShowAccount(true)}
+                title="Account settings"
+              >
+                Account
+              </button>
               <div className="user-avatar">{user.displayName?.[0]?.toUpperCase() || '?'}</div>
               <span
                 className="d-none d-md-inline"
@@ -640,6 +688,16 @@ export default function EditorPage({ user }) {
               onClick={() => setMinimapSide('right')}
             >
               Right
+            </button>
+            {/* ✅ CHANGE 2: Added Show/Hide toggle button for minimap */}
+            <button
+              type="button"
+              className={showMinimap ? 'active' : ''}
+              aria-pressed={showMinimap}
+              onClick={() => setShowMinimap(!showMinimap)}
+              title="Toggle minimap visibility"
+            >
+              {showMinimap ? 'Hide' : 'Show'}
             </button>
           </div>
         </div>
@@ -868,7 +926,7 @@ export default function EditorPage({ user }) {
                 <Settings size={14} />
               </button>
               {showSettings && (
-                <div className="audio-settings-popover" role="dialog" aria-label="Settings">
+                <div className="audio-settings-popover custom-layout-popover" role="dialog" aria-label="Settings">
                   <div className="audio-settings-head">
                     <span>Settings</span>
                     <button
@@ -878,6 +936,25 @@ export default function EditorPage({ user }) {
                     >
                       <i className="bi bi-x" />
                     </button>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-type" style={{ fontSize: '14px' }} />
+                      <span>Editor font</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.fontFamily}
+                      onChange={(e) => editor.setFontFamily(e.target.value)}
+                      aria-label="Editor font"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {EDITOR_FONTS.map((font) => (
+                        <option key={font.id} value={font.id}>
+                          {font.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="audio-settings-row">
                     <div className="audio-settings-label">
@@ -897,6 +974,27 @@ export default function EditorPage({ user }) {
                         </option>
                       ))}
                     </select>
+                  </div>
+                  {/* ===== WALLPAPER BLUR SETTING ROW ===== */}
+                  <div className="audio-settings-row" style={{ marginTop: '12px' }}>
+                    <div className="audio-settings-label">
+                      <i className="bi bi-sliders" style={{ fontSize: '14px' }} />
+                      <span>Wallpaper Blur</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        step="1"
+                        value={blurIntensity}
+                        onChange={(e) => setBlurIntensity(Number(e.target.value))}
+                        style={{ flex: 1, accentColor: '#00bcd4' }} 
+                      />
+                      <span style={{ fontSize: '12px', minWidth: '30px', textAlign: 'right' }}>
+                        {blurIntensity}px
+                      </span>
+                    </div>
                   </div>
                   <div className="audio-settings-row">
                     <div className="audio-settings-label">
@@ -970,7 +1068,7 @@ export default function EditorPage({ user }) {
       <div className="main-split">
         {/* EDITOR PANE */}
         <div
-          className="editor-pane"
+          className="editor-pane glass-panel"
           style={isMobile && mobileTab !== MOBILE_TABS.CODE ? { display: 'none' } : {}}
         >
           <div className="editor-tab-bar">
@@ -1028,9 +1126,9 @@ export default function EditorPage({ user }) {
               options={{
                 readOnly: room.isReadOnly,
                 fontSize: editor.fontSize,
-                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                fontFamily: getEditorFontFamily(editor.fontFamily),
                 minimap: {
-                  enabled: true,
+                  enabled: showMinimap, // ✅ CHANGE 3: Use showMinimap state instead of hardcoded true
                   side: minimapSide,
                   showSlider: 'always',
                   renderCharacters: false,
@@ -1140,7 +1238,7 @@ export default function EditorPage({ user }) {
 
         {/* OUTPUT PANE */}
         <div
-          className="output-pane"
+          className="output-pane glass-panel"
           style={
             isMobile
               ? mobileTab === MOBILE_TABS.OUTPUT
@@ -1224,14 +1322,27 @@ export default function EditorPage({ user }) {
                 <>
                   <button
                     className="toolbar-icon-btn"
-                    style={{ position: 'absolute', top: '8px', right: '8px', background: 'var(--bg-1)', zIndex: 10 }}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      background: 'var(--bg-1)',
+                      zIndex: 10,
+                    }}
                     onClick={() => {
                       navigator.clipboard.writeText(execution.stdout);
                       toast.success('Output copied!');
                     }}
                     title="Copy output"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                     </svg>
@@ -1404,13 +1515,19 @@ export default function EditorPage({ user }) {
       )}
 
       {/* Auth Modal */}
-      {showAuth && <AuthModal mode={authMode} onClose={() => setShowAuth(false)} />}
+      {showAuth && <AuthModal initialMode={authMode} onClose={() => setShowAuth(false)} />}
       {showApiKey && (
         <ApiKeyModal
           onClose={() => setShowApiKey(false)}
           onStatusChange={() => setApiKeyStatus(getApiKeyStatus())}
         />
       )}
+{showAccount && user && (
+  <AccountSettings
+    onClose={() => setShowAccount(false)}
+    user={user}
+  />
+)}
 
       {/* Video Call Overlay */}
       {showVideoCall && room.roomId && (
@@ -1433,6 +1550,21 @@ export default function EditorPage({ user }) {
           }}
         />
       )}
+{/* Video Call Overlay */}
+{showVideoCall && room.roomId && (
+  <VideoCall
+    roomId={room.roomId}
+    userName={
+      user?.displayName ||
+      user?.email?.split('@')[0] ||
+      'Guest'
+    }
+    onClose={() => setShowVideoCall(false)}
+  />
+)}
+
+{/* Real-time Democratic Vote Popup */}
+<VotePopup room={room} user={user} />
     </div>
   );
 }
