@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
+const net = require('net');
 const { rateLimit } = require('express-rate-limit');
 const executeRoutes = require('./routes/execute');
 const aiRoutes = require('./routes/ai');
@@ -24,14 +25,21 @@ const rateLimitEventBufferSize = Number.parseInt(
   10
 );
 const securityDiagnosticsToken = (process.env.SECURITY_DIAGNOSTICS_TOKEN || '').trim();
+const trustProxyHops = Number.parseInt(process.env.TRUST_PROXY || '0', 10);
 const rateLimitEvents = [];
 
+// Trust configurable number of proxy hops so req.ip resolves the true client IP
+app.set('trust proxy', trustProxyHops);
+
+function isValidIp(value) {
+  if (typeof value !== 'string' || !value) return false;
+  return net.isIPv4(value) || net.isIPv6(value);
+}
+
 function getClientIp(req) {
-  const forwardedFor = req.headers['x-forwarded-for'];
-  if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
-    return forwardedFor.split(',')[0].trim();
-  }
-  return req.ip || req.socket?.remoteAddress || 'unknown';
+  const raw = req.ip || req.socket?.remoteAddress;
+  if (isValidIp(raw)) return raw;
+  return 'unknown';
 }
 
 function recordRateLimitEvent(req) {
@@ -99,10 +107,12 @@ function unique(values) {
 
 // FIX 2: Parse CORS_ORIGINS and CLIENT_URL independently
 // and merge both — not OR — so neither is silently dropped
-const extraOrigins = unique([
-  ...(process.env.CORS_ORIGINS || '').split(','),
-  ...(process.env.CLIENT_URL   || '').split(','),
-].map((o) => o.trim()));
+const extraOrigins = unique(
+  [
+    ...(process.env.CORS_ORIGINS || '').split(','),
+    ...(process.env.CLIENT_URL || '').split(','),
+  ].map((o) => o.trim())
+);
 
 // FIX 3: Merge defaults + extras so production domains
 // are always present regardless of env var configuration
@@ -233,7 +243,13 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Groq-Api-Key', 'x-admin-token', 'x-security-diagnostics-token'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Groq-Api-Key',
+      'x-admin-token',
+      'x-security-diagnostics-token',
+    ],
     optionsSuccessStatus: 204,
   })
 );
@@ -317,4 +333,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, buildCspDirectives };
+module.exports = { app, buildCspDirectives, isValidIp, getClientIp };
