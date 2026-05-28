@@ -309,7 +309,7 @@ export default function LandingPage() {
           <span
             style={{
               fontSize: '0.6rem',
-              color: '#6a6a6a',
+              color: '#8a8a8a',
               fontFamily: 'JetBrains Mono, monospace',
               marginLeft: '4px',
               paddingBottom: '1px',
@@ -473,7 +473,7 @@ export default function LandingPage() {
                   <span className="preview-tag">Python 3</span>
                   <span
                     className="d-none d-sm-inline"
-                    style={{ fontSize: '0.65rem', color: '#6a6a6a' }}
+                    style={{ fontSize: '0.65rem', color: '#8a8a8a' }}
                   >
                     14px
                   </span>
@@ -540,7 +540,7 @@ export default function LandingPage() {
                   >
                     <div className="preview-success-badge">✓ SUCCESS</div>
                     <div className="text-light mt-2">[0, 1]</div>
-                    <div className="mt-2" style={{ color: '#6a6a6a', fontSize: '0.68rem' }}>
+                    <div className="mt-2" style={{ color: '#8a8a8a', fontSize: '0.68rem' }}>
                       Time: 0.03s
                     </div>
                   </div>
