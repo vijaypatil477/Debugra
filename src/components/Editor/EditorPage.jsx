@@ -40,6 +40,7 @@ import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import ComplexityOverlay from './ComplexityOverlay';
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -76,6 +77,7 @@ export default function EditorPage({ user }) {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -626,6 +628,34 @@ export default function EditorPage({ user }) {
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
               Explain
+            </button>
+            <button
+              className="ai-btn"
+              onClick={() => {
+                ai.analyzeComplexity();
+                setShowComplexityOverlay(true);
+              }}
+              disabled={ai.isComplexityLoading}
+              title="Analyze Time & Space Complexity (Big-O)"
+              style={{
+                background: ai.isComplexityLoading
+                  ? 'rgba(99, 102, 241, 0.18)'
+                  : 'rgba(99, 102, 241, 0.08)',
+                color: '#a5b4fc',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+              }}
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
+              Big-O
             </button>
           </div>
           <button
@@ -1327,6 +1357,17 @@ export default function EditorPage({ user }) {
         }}
         onApplyFix={() => {
           ai.fix();
+        }}
+      />
+
+      {/* Complexity Overlay */}
+      <ComplexityOverlay
+        isOpen={showComplexityOverlay}
+        isLoading={ai.isComplexityLoading}
+        response={ai.complexityResponse}
+        onClose={() => {
+          setShowComplexityOverlay(false);
+          ai.clearComplexity();
         }}
       />
 

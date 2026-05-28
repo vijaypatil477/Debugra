@@ -88,4 +88,9 @@ export const aiVisualizeExecution = async (code, language, input = '') => {
   return data;
 };
 
+export const aiAnalyzeComplexity = async (code, language) => {
+  const { data } = await api.post('/api/ai/analyze-complexity', { code, language });
+  return data;
+};
+
 export default api;

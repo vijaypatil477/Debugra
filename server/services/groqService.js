@@ -241,6 +241,44 @@ Respond in this EXACT JSON format:
   );
 }
 
+// 9. Complexity Analysis — Time & Space Big-O
+async function analyzeComplexityAI(code, language, apiKey = '') {
+  return chatCompletion(
+    `You are an expert algorithms professor and competitive programmer. Analyze code for time and space complexity using Big-O notation. Be precise and accurate. Always respond in valid JSON.`,
+    `Analyze the time and space complexity of this ${language} code:
+
+${code}
+
+Respond in this EXACT JSON format:
+{
+  "functionName": "name of the primary function or 'Code Block' if anonymous",
+  "timeComplexity": {
+    "best": "O(?)",
+    "average": "O(?)",
+    "worst": "O(?)",
+    "explanation": "concise 2-3 sentence explanation of the dominant time factor"
+  },
+  "spaceComplexity": {
+    "value": "O(?)",
+    "explanation": "concise 1-2 sentence explanation of memory usage"
+  },
+  "breakdown": [
+    { "operation": "short description of a key operation or loop", "complexity": "O(?)", "note": "why this complexity" }
+  ],
+  "overallRating": "Excellent",
+  "tips": ["specific actionable optimization suggestion"]
+}
+
+Rules:
+- Use standard Big-O notation: O(1), O(log n), O(n), O(n log n), O(n^2), O(n^3), O(2^n), O(n!).
+- overallRating must be exactly one of: "Excellent", "Good", "Fair", "Poor", "Critical".
+- Include 2-4 items in breakdown focusing on dominant operations.
+- Include 1-3 actionable tips; use empty array [] if code is already optimal.
+- If the code has multiple functions, analyze the overall combined complexity.`,
+    apiKey
+  );
+}
+
 module.exports = {
   explainError,
   fixCodeAI,
@@ -250,4 +288,5 @@ module.exports = {
   visualizeAI,
   explainCodeSnippetAI,
   askFollowUpAI,
+  analyzeComplexityAI,
 };
