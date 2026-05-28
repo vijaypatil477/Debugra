@@ -1,0 +1,766 @@
+/* ============================================================
+   PromptTemplatesGallery.css
+   Scoped styles for the AI Personality Template Gallery.
+   Uses design tokens from the global index.css:
+     --bg-0/1/2/3, --bg-active, --border,
+     --text-0/1/2, --accent, --green, --red
+   ============================================================ */
+
+/* ── Modal Overlay ─────────────────────────────────────────── */
+.ptg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: ptg-fade-in 0.18s ease-out;
+}
+
+@keyframes ptg-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Modal Box ─────────────────────────────────────────────── */
+.ptg-modal {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: min(780px, 96vw);
+  max-height: min(88vh, 700px);
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.6),
+    0 4px 16px rgba(0, 0, 0, 0.3);
+  animation: ptg-slide-up 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+@keyframes ptg-slide-up {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+/* ── Modal Header ──────────────────────────────────────────── */
+.ptg-header {
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.ptg-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ptg-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-0);
+  margin: 0 0 2px;
+  letter-spacing: -0.01em;
+}
+
+.ptg-subtitle {
+  font-size: 0.72rem;
+  color: var(--text-2);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.ptg-close-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-2);
+  color: var(--text-1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.ptg-close-btn:hover {
+  color: var(--text-0);
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+
+.ptg-close-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Search + Category Tabs ────────────────────────────────── */
+.ptg-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ptg-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 160px;
+}
+
+.ptg-search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-2);
+  pointer-events: none;
+  font-size: 0.8rem;
+}
+
+.ptg-search {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-0);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  padding: 6px 10px 6px 28px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.ptg-search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.15);
+}
+
+.ptg-search::placeholder {
+  color: var(--text-2);
+}
+
+/* Category filter tabs */
+.ptg-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.ptg-tab {
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text-2);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.ptg-tab:hover {
+  color: var(--text-0);
+  background: var(--bg-3);
+}
+
+.ptg-tab.ptg-tab--active {
+  border-color: transparent;
+  color: #fff;
+}
+
+.ptg-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Gallery Scroll Area ───────────────────────────────────── */
+.ptg-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px 20px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+.ptg-body::-webkit-scrollbar {
+  width: 5px;
+}
+.ptg-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ptg-body::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+}
+
+/* ── Custom Prompt Card (always on top) ────────────────────── */
+.ptg-custom-section {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ptg-section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-2);
+  margin-bottom: 10px;
+}
+
+.ptg-custom-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--bg-2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+}
+
+.ptg-custom-card:hover {
+  border-color: rgba(255,255,255,0.2);
+  background: var(--bg-3);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+
+.ptg-custom-card.ptg-card--selected {
+  border-color: var(--accent);
+  background: rgba(0, 120, 212, 0.08);
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 20px rgba(0, 120, 212, 0.2);
+}
+
+.ptg-custom-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ptg-custom-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+.ptg-custom-text {
+  flex: 1;
+}
+
+.ptg-custom-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-0);
+  margin-bottom: 3px;
+}
+
+.ptg-custom-desc {
+  font-size: 0.72rem;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+
+/* Expanding textarea for custom prompt */
+.ptg-custom-textarea-wrap {
+  margin-top: 10px;
+}
+
+.ptg-custom-textarea {
+  width: 100%;
+  min-height: 90px;
+  max-height: 200px;
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-0);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  padding: 8px 10px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.ptg-custom-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.12);
+}
+
+.ptg-custom-textarea::placeholder {
+  color: var(--text-2);
+}
+
+.ptg-char-count {
+  font-size: 0.62rem;
+  color: var(--text-2);
+  text-align: right;
+  margin-top: 4px;
+}
+
+/* ── Template Grid ─────────────────────────────────────────── */
+.ptg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+/* Empty state */
+.ptg-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-2);
+  font-size: 0.8rem;
+}
+
+.ptg-empty-icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+/* ── Template Card ─────────────────────────────────────────── */
+.ptg-card {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  background: var(--bg-2);
+  cursor: pointer;
+  transition:
+    transform  0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    background  0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  outline: none;
+  /* Allow keyboard focus ring */
+}
+
+.ptg-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  background: var(--bg-3);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.ptg-card:active {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.ptg-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Selected state — glow uses the template's accentColor via inline var */
+.ptg-card.ptg-card--selected {
+  border-color: var(--ptg-accent, var(--accent));
+  background: color-mix(in srgb, var(--ptg-accent, var(--accent)) 10%, var(--bg-2));
+  box-shadow:
+    0 0 0 1px var(--ptg-accent, var(--accent)),
+    0 6px 24px color-mix(in srgb, var(--ptg-accent, var(--accent)) 30%, transparent);
+  transform: translateY(-2px);
+}
+
+/* ── Card Header row (icon + check) ────────────────────────── */
+.ptg-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ptg-card-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  flex-shrink: 0;
+  /* subtle drop shadow for emoji */
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.4));
+  transition: transform 0.2s ease;
+}
+
+.ptg-card:hover .ptg-card-icon {
+  transform: scale(1.12);
+}
+
+/* Checkmark badge (visible when selected) */
+.ptg-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ptg-accent, var(--accent));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ptg-card.ptg-card--selected .ptg-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.ptg-check svg {
+  width: 11px;
+  height: 11px;
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+/* ── Card Body ─────────────────────────────────────────────── */
+.ptg-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ptg-card-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-0);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.ptg-card-desc {
+  font-size: 0.72rem;
+  color: var(--text-1);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Category Badge ─────────────────────────────────────────── */
+.ptg-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid;
+  align-self: flex-start;
+  transition: opacity 0.15s;
+}
+
+/* ── Card Footer (preview btn) ─────────────────────────────── */
+.ptg-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+
+.ptg-preview-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-2);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.ptg-preview-btn:hover {
+  color: var(--text-0);
+  background: var(--bg-3);
+}
+
+.ptg-preview-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Preview Modal ─────────────────────────────────────────── */
+.ptg-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: ptg-fade-in 0.12s ease;
+}
+
+.ptg-preview-modal {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: min(560px, 96vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+  animation: ptg-slide-up 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.ptg-preview-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ptg-preview-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.ptg-preview-title-group {
+  flex: 1;
+}
+
+.ptg-preview-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-0);
+  margin: 0 0 2px;
+}
+
+.ptg-preview-desc {
+  font-size: 0.7rem;
+  color: var(--text-2);
+  margin: 0;
+}
+
+.ptg-preview-close {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-2);
+  color: var(--text-1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  transition: all 0.15s;
+}
+
+.ptg-preview-close:hover {
+  color: var(--text-0);
+  background: var(--bg-3);
+}
+
+.ptg-preview-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+.ptg-preview-prompt {
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.73rem;
+  color: var(--text-0);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.ptg-preview-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ptg-preview-select-btn {
+  padding: 7px 18px;
+  border-radius: 6px;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.ptg-preview-select-btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+.ptg-preview-cancel-btn {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+  color: var(--text-1);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ptg-preview-cancel-btn:hover {
+  color: var(--text-0);
+  background: var(--bg-3);
+}
+
+/* ── Active Template Banner in Settings ─────────────────────── */
+.ptg-active-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+  text-align: left;
+  font-family: 'Inter', sans-serif;
+}
+
+.ptg-active-banner:hover {
+  border-color: var(--accent);
+  background: rgba(0, 120, 212, 0.06);
+}
+
+.ptg-active-banner:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ptg-active-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.ptg-active-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ptg-active-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+  margin-bottom: 1px;
+}
+
+.ptg-active-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ptg-active-arrow {
+  font-size: 0.7rem;
+  color: var(--text-2);
+  flex-shrink: 0;
+}
+
+/* ── Settings row wrapper ───────────────────────────────────── */
+.audio-settings-row.ptg-settings-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.ptg-settings-row-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-1);
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .ptg-modal {
+    max-height: 92vh;
+    border-radius: 10px;
+  }
+
+  .ptg-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ptg-controls {
+    flex-direction: column;
+  }
+
+  .ptg-search-wrap {
+    width: 100%;
+  }
+
+  .ptg-tabs {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .ptg-tabs::-webkit-scrollbar {
+    display: none;
+  }
+}
