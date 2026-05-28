@@ -5,6 +5,7 @@ import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
 import { Settings, Volume2, VolumeX } from 'lucide-react';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import {
   useRoom,
@@ -67,14 +68,12 @@ export default function EditorPage({ user }) {
   const [joinId, setJoinId] = useState('');
   const [joinPassword, setJoinPassword] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
-  const [outputWidth, setOutputWidth] = useState(420);
   const [minimapSide, setMinimapSide] = useState('right');
   const [showMinimap, setShowMinimap] = useState(true); // ✅ CHANGE 1: Added showMinimap state
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
-  const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
@@ -267,24 +266,6 @@ export default function EditorPage({ user }) {
     });
   };
 
-  // ─── Output Pane Resize ───────────────────────────────────────────────────
-  const handleResizeStart = (e) => {
-    e.preventDefault();
-    resizingRef.current = true;
-    const startX = e.clientX;
-    const startW = outputWidth;
-    const onMove = (ev) => {
-      if (!resizingRef.current) return;
-      setOutputWidth(Math.max(260, Math.min(800, startW + (startX - ev.clientX))));
-    };
-    const onUp = () => {
-      resizingRef.current = false;
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  };
 
   const langConfig = LANGUAGES[editor.language];
   const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
@@ -860,11 +841,13 @@ export default function EditorPage({ user }) {
 
       {/* ===== MAIN SPLIT ===== */}
       <div className="main-split">
-        {/* EDITOR PANE */}
-        <div
-          className="editor-pane glass-panel"
-          style={isMobile && mobileTab !== MOBILE_TABS.CODE ? { display: 'none' } : {}}
-        >
+        <PanelGroup autoSaveId="debugra-layout" direction="horizontal">
+          {(!isMobile || mobileTab === MOBILE_TABS.CODE) && (
+            <Panel defaultSize={60} minSize={20}>
+              <div
+                className="editor-pane glass-panel"
+                style={{ height: '100%', width: '100%', borderRight: 'none' }}
+              >
           <div className="editor-tab-bar">
             <div className="editor-tab">
               <FileIcon filename={editorFileName} size={17} />
@@ -1005,29 +988,35 @@ export default function EditorPage({ user }) {
           </div>
         </div>
 
-        {/* Resize Handle (desktop only) */}
-        {!isMobile && <div className="resize-handle" onMouseDown={handleResizeStart} />}
+          </Panel>
+          )}
 
-        {/* History Panel (desktop) */}
-        {showHistory && user && !isMobile && (
-          <HistoryPanel
-            user={user}
-            onLoadCode={editor.loadCode}
-            onClose={() => setShowHistory(false)}
-          />
-        )}
+          {/* Resize Handle (desktop only) */}
+          {!isMobile && <PanelResizeHandle className="resize-handle" />}
 
-        {/* OUTPUT PANE */}
-        <div
-          className="output-pane glass-panel"
-          style={
-            isMobile
-              ? mobileTab === MOBILE_TABS.OUTPUT
-                ? { display: 'flex', width: '100%' }
-                : { display: 'none' }
-              : { width: outputWidth + 'px' }
-          }
-        >
+          {/* History Panel (desktop) */}
+          {showHistory && user && !isMobile && (
+            <>
+              <Panel defaultSize={20} minSize={15} maxSize={30}>
+                <div style={{ height: '100%', overflow: 'hidden' }}>
+                  <HistoryPanel
+                    user={user}
+                    onLoadCode={editor.loadCode}
+                    onClose={() => setShowHistory(false)}
+                  />
+                </div>
+              </Panel>
+              <PanelResizeHandle className="resize-handle" />
+            </>
+          )}
+
+          {/* OUTPUT PANE */}
+          {(!isMobile || mobileTab === MOBILE_TABS.OUTPUT) && (
+            <Panel defaultSize={40} minSize={20}>
+              <div
+                className="output-pane glass-panel"
+                style={{ width: '100%', maxWidth: 'none', height: '100%', minWidth: 0 }}
+              >
           <div className="output-tabs">
             {/* copy */}
              <div
@@ -1173,7 +1162,10 @@ export default function EditorPage({ user }) {
               </div>
             )}
           </div>
-        </div>
+              </div>
+            </Panel>
+          )}
+        </PanelGroup>
       </div>
 
       {/* ===== STATUS BAR ===== */}
