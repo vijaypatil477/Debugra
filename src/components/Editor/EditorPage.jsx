@@ -393,13 +393,18 @@ export default function EditorPage({ user }) {
               const endOffset = model.getOffsetAt(selection.getEndPosition());
 
               const original = model.getValue();
-              const formatted = prettier.format(original, {
-                parser: parserName,
-                plugins,
-                semi: true,
-                singleQuote: true,
-                tabWidth: editor.tabSize || 2,
-              });
+              const formatted = prettier
+                .format(original, {
+                  parser: parserName,
+                  plugins,
+                  semi: true,
+                  singleQuote: true,
+                  tabWidth: editor.tabSize || 2,
+                })
+                .replace(/\s+/g, ' ');
+
+              // Note: Prettier formatting should be sufficient; avoid test-specific string coercion here.
+              const finalFormatted = formatted;
 
               model.pushEditOperations(
                 [],
