@@ -64,12 +64,16 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
     if (!input.trim() || !roomId || !user) return;
     const msg = input.trim();
     setInput('');
-    await addDoc(collection(db, 'rooms', roomId, 'messages'), {
-      text: msg,
-      uid: user.uid,
-      displayName: user.displayName || user.email?.split('@')[0] || 'User',
-      createdAt: serverTimestamp(),
-    });
+    try {
+      await addDoc(collection(db, 'rooms', roomId, 'messages'), {
+        text: msg,
+        uid: user.uid,
+        displayName: user.displayName || user.email?.split('@')[0] || 'User',
+        createdAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    }
   };
   const handleDownloadReport = () => {
     if (!messages || messages.length === 0) {
