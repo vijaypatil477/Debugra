@@ -58,22 +58,31 @@ export function useLaserPointer({ roomId, user }) {
     }
 
     const colRef = collection(db, 'rooms', roomId, 'pointers');
-    const unsub = onSnapshot(colRef, (snapshot) => {
-      const now = Date.now();
-      const pointers = [];
-      snapshot.forEach((docSnap) => {
-        if (docSnap.id === user.uid) return; // skip own pointer
-        const data = docSnap.data();
-        if (!data.active) return;
+    const unsub = onSnapshot(
+      colRef,
+      (snapshot) => {
+        const now = Date.now();
+        const pointers = [];
+        snapshot.forEach((docSnap) => {
+          if (docSnap.id === user.uid) return; // skip own pointer
+          const data = docSnap.data();
+          if (!data.active) return;
 
-        // Filter stale pointers (disconnected users)
-        const updatedAt = data.updatedAt?.toMillis?.() || 0;
-        if (updatedAt > 0 && now - updatedAt > STALE_MS) return;
+          // Filter stale pointers (disconnected users)
+          const updatedAt = data.updatedAt?.toMillis?.() || 0;
+          if (updatedAt > 0 && now - updatedAt > STALE_MS) return;
 
-        pointers.push({ uid: docSnap.id, ...data });
-      });
-      setRemotePointers(pointers);
-    });
+          pointers.push({ uid: docSnap.id, ...data });
+        });
+        setRemotePointers(pointers);
+      },
+      (error) => {
+        setRemotePointers([]);
+        if (import.meta.env.DEV) {
+          console.error('Failed to subscribe to remote laser pointers:', error);
+        }
+      }
+    );
 
     return unsub;
   }, [roomId, user?.uid]);
@@ -100,7 +109,11 @@ export function useLaserPointer({ roomId, user }) {
           updatedAt: serverTimestamp(),
         },
         { merge: true }
-      ).catch(() => {});
+      ).catch((err) => {
+        if (import.meta.env.DEV) {
+          console.error('Failed to sync laser pointer position:', err);
+        }
+      });
     },
     [roomId, user]
   );
@@ -111,7 +124,11 @@ export function useLaserPointer({ roomId, user }) {
     activeRef.current = false;
 
     const pointerRef = doc(db, 'rooms', roomId, 'pointers', user.uid);
-    setDoc(pointerRef, { active: false }, { merge: true }).catch(() => {});
+    setDoc(pointerRef, { active: false }, { merge: true }).catch((err) => {
+      if (import.meta.env.DEV) {
+        console.error('Failed to deactivate laser pointer:', err);
+      }
+    });
   }, [roomId, user]);
 
   // ─── Cleanup pointer document on unmount or room change ─────────────────
@@ -122,7 +139,11 @@ export function useLaserPointer({ roomId, user }) {
     return () => {
       if (currentRoomId && currentUid) {
         const pointerRef = doc(db, 'rooms', currentRoomId, 'pointers', currentUid);
-        deleteDoc(pointerRef).catch(() => {});
+        deleteDoc(pointerRef).catch((err) => {
+          if (import.meta.env.DEV) {
+            console.error('Failed to clean up laser pointer document:', err);
+          }
+        });
       }
     };
   }, [roomId, user?.uid]);

@@ -77,11 +77,15 @@
 @keyframes laserPulse {
   0%,
   100% {
+    /* Fallback for browsers that do not support color-mix() */
+    box-shadow: 0 0 6px 2px var(--laser-color), 0 0 12px 4px var(--laser-color);
     box-shadow: 0 0 6px 2px var(--laser-color), 0 0 12px 4px var(--laser-color),
       0 0 20px 6px color-mix(in srgb, var(--laser-color) 40%, transparent);
     transform: translate(-50%, -50%) scale(1);
   }
   50% {
+    /* Fallback for browsers that do not support color-mix() */
+    box-shadow: 0 0 8px 3px var(--laser-color), 0 0 16px 6px var(--laser-color);
     box-shadow: 0 0 8px 3px var(--laser-color), 0 0 16px 6px var(--laser-color),
       0 0 28px 10px color-mix(in srgb, var(--laser-color) 50%, transparent);
     transform: translate(-50%, -50%) scale(1.15);
