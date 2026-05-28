@@ -7,3 +7,5 @@ export { useExecution } from './useExecution';
 export { useEditor } from './useEditor';
 export { useIsMobile } from './useIsMobile';
 export { useAudioFeedback } from './useAudioFeedback';
+export { useInlineComplete } from './useInlineComplete';
+

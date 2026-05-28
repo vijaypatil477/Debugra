@@ -13,6 +13,7 @@ import {
   useEditor,
   useIsMobile,
   useAudioFeedback,
+  useInlineComplete,
 } from '../../hooks';
 import { getUserColor } from '../../hooks/useRoom';
 import { registerSnippets } from '../../utils/snippetsConfig';
@@ -48,6 +49,7 @@ export default function EditorPage({ user }) {
 
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
+  const [editorMounted, setEditorMounted] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
@@ -132,6 +134,14 @@ export default function EditorPage({ user }) {
     stderr: execution.stderr,
     setActiveOutputTab: execution.setActiveOutputTab,
     editorRef,
+  });
+
+  // ─── Inline Completion Logic ────────────────────────────────────────────────
+  const inlineAI = useInlineComplete({
+    editorRef,
+    monacoRef,
+    language: editor.language,
+    editorMounted,
   });
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
@@ -246,6 +256,7 @@ export default function EditorPage({ user }) {
   const handleEditorMount = (editorInstance, monaco) => {
     editorRef.current = editorInstance;
     monacoRef.current = monaco;
+    setEditorMounted(true);
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
@@ -638,6 +649,27 @@ export default function EditorPage({ user }) {
               title="Groq API key settings"
             >
               Key
+            </button>
+            <button
+              className={`autocomplete-toggle ${inlineAI.isEnabled ? 'active' : ''} ${inlineAI.isLoading ? 'loading' : ''}`}
+              onClick={inlineAI.toggleEnabled}
+              title="Toggle Low-Latency Copilot-style Autocomplete suggestions (Press Tab to accept)"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z" />
+                <path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5.5Z" />
+                <path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1Z" />
+              </svg>
+              <span>{inlineAI.isEnabled ? 'AI Suggest: On' : 'AI Suggest: Off'}</span>
             </button>
             <button
               className="ai-btn"

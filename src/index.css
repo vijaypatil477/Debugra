@@ -2437,3 +2437,61 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Autocomplete Toggle Button Styling */
+.autocomplete-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-1);
+  font-size: 0.7rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+}
+
+.autocomplete-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-0);
+  border-color: var(--accent);
+}
+
+.autocomplete-toggle.active {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #a78bfa;
+}
+
+.autocomplete-toggle.active:hover {
+  background: rgba(139, 92, 246, 0.18);
+  border-color: #8b5cf6;
+}
+
+.autocomplete-toggle svg {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.autocomplete-toggle.active svg {
+  color: #a78bfa;
+  filter: drop-shadow(0 0 4px rgba(139, 92, 246, 0.6));
+}
+
+.autocomplete-toggle.loading svg {
+  animation: autocomplete-spin 1s linear infinite;
+}
+
+@keyframes autocomplete-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+

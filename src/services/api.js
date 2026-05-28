@@ -81,4 +81,13 @@ export const aiGenerateCommitMessage = async (diff, language) => {
   return data;
 };
 
+export const aiInlineComplete = async (prefix, suffix, language) => {
+  const { data } = await api.post(
+    '/api/ai/inline-complete',
+    { prefix, suffix, language },
+    { timeout: 8000 }
+  );
+  return data;
+};
+
 export default api;

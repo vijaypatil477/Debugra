@@ -272,6 +272,63 @@ Respond in this EXACT JSON format:
   );
 }
 
+// 9. AI Code Completion — low-latency inline code completions
+async function inlineCompleteAI(prefix, suffix, language, apiKey = '') {
+  const systemPrompt = `You are a low-latency inline code completion engine.
+Your job is to provide the code suggestion that fits between the <prefix> and <suffix> for ${language} code.
+Rules:
+- Provide ONLY the direct completion text that continues from the prefix.
+- Do NOT wrap your response in markdown code blocks or code fences.
+- Do NOT include any introductory or explanatory text.
+- Do NOT output reasoning or <think> tags.
+- Keep the completion short (usually 1 to few lines, maximum 128 tokens).
+- Stop when you complete the current line, statement, or logical block.`;
+
+  const userPrompt = `<prefix>
+${prefix}
+</prefix>
+<suffix>
+${suffix}
+</suffix>
+
+Provide the completion code:`;
+
+  const response = await getGroqClient(apiKey).chat.completions.create({
+    model: MODEL,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0,
+    max_tokens: 128,
+    stop: ["\n\n"],
+  });
+
+  let completion = response.choices[0].message.content || '';
+
+  // Clean up any potential <think> tags or markdown fences
+  const thinkStart = completion.indexOf('<think>');
+  if (thinkStart !== -1) {
+    const thinkEnd = completion.indexOf('</think>');
+    if (thinkEnd !== -1) {
+      completion = completion.substring(0, thinkStart) + completion.substring(thinkEnd + 8);
+    } else {
+      completion = completion.substring(0, thinkStart);
+    }
+  }
+
+  if (completion.includes('```')) {
+    const match = completion.match(/```[a-z]*\n([\s\S]*?)```/);
+    if (match) {
+      completion = match[1];
+    } else {
+      completion = completion.replace(/```[a-z]*\n?/g, '').replace(/```/g, '');
+    }
+  }
+
+  return { completion: completion.trimEnd() };
+}
+
 module.exports = {
   explainError,
   fixCodeAI,
@@ -282,4 +339,6 @@ module.exports = {
   explainCodeSnippetAI,
   askFollowUpAI,
   generateCommitMessageAI,
+  inlineCompleteAI,
 };
+
