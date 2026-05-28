@@ -11,13 +11,12 @@ import {
   DEFAULT_THEME,
 } from '../config/constants';
 
-
 /**
  * useEditor
  * Manages local editor state:
- *   - code, language, font size, cursor position
- *   - stdin detection and management
- *   - save to cloud and download as file
+ * - code, language, font size, cursor position
+ * - stdin detection and management
+ * - save to cloud and download as file
  */
 export function useEditor({ user, onNeedAuth }) {
   const [code, setCode] = useState(LANGUAGES[DEFAULT_LANGUAGE].template);
@@ -28,9 +27,7 @@ export function useEditor({ user, onNeedAuth }) {
   const [stdinValue, setStdinValue] = useState('');
   const [stdinOpen, setStdinOpen] = useState(false);
 
-
   const [needsInput, setNeedsInput] = useState(false);
-
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -40,27 +37,22 @@ export function useEditor({ user, onNeedAuth }) {
     return () => clearTimeout(timer);
   }, [code, language]);
 
-
   useEffect(() => {
     localStorage.setItem('debugra-theme', theme);
   }, [theme]);
-
 
   // Auto-open stdin panel when input-reading functions are detected
   useEffect(() => {
     if (needsInput && !stdinOpen) setStdinOpen(true);
   }, [needsInput]);
 
-
   const changeLanguage = useCallback((newLang) => {
     setLanguage(newLang);
     setCode(LANGUAGES[newLang].template);
   }, []);
 
-
   const increaseFontSize = useCallback(() => setFontSize((f) => Math.min(f + 1, 28)), []);
   const decreaseFontSize = useCallback(() => setFontSize((f) => Math.max(f - 1, 10)), []);
-
 
   const downloadCode = useCallback(() => {
     const filename = LANG_FILE_NAMES[language] || 'code.txt';
@@ -74,7 +66,6 @@ export function useEditor({ user, onNeedAuth }) {
     toast.success(`Downloaded ${filename}`);
   }, [code, language]);
 
-
   const saveToCloud = useCallback(async () => {
     if (!user) {
       onNeedAuth?.();
@@ -82,11 +73,9 @@ export function useEditor({ user, onNeedAuth }) {
       return;
     }
 
-
     const defaultName = LANG_FILE_NAMES[language] || 'code.txt';
     const fileName = window.prompt('Enter a name for this file:', defaultName);
     if (!fileName) return; // User cancelled
-
 
     try {
       await addDoc(collection(db, 'users', user.uid, 'savedCode'), {
@@ -101,7 +90,6 @@ export function useEditor({ user, onNeedAuth }) {
     }
   }, [user, code, language, onNeedAuth]);
 
-
   const resetCode = useCallback(() => {
     setCode(LANGUAGES[language].template);
     toast.success('Editor reset to default template!');
@@ -111,7 +99,6 @@ export function useEditor({ user, onNeedAuth }) {
     setCode(newCode);
     if (newLang && LANGUAGES[newLang]) setLanguage(newLang);
   }, []);
-
 
   return {
     code,
