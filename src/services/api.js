@@ -88,4 +88,9 @@ export const aiVisualizeExecution = async (code, language, input = '') => {
   return data;
 };
 
+export const aiGenerateCommitMessage = async (diff, language) => {
+  const { data } = await api.post('/api/ai/generate-commit-message', { diff, language });
+  return data;
+};
+
 export default api;

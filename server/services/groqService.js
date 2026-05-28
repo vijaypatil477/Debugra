@@ -241,6 +241,37 @@ Respond in this EXACT JSON format:
   );
 }
 
+// 8. AI Commit Message Generator — generates Conventional Commits messages from code diffs
+async function generateCommitMessageAI(diff, language, apiKey = '') {
+  return chatCompletion(
+    `You are an expert software engineer who writes clean, informative git commit messages following the Conventional Commits specification.
+
+Rules:
+- The header MUST be in the format: type(scope): subject
+- The header (first line) MUST be at most 72 characters
+- Valid types: feat, fix, refactor, style, docs, test, chore, perf, ci, build
+- The scope should reflect the area of code changed (e.g., editor, auth, api)
+- The subject should be lowercase, imperative mood, no period at the end
+- Optionally include a body with bullet points explaining key changes
+- Be specific and context-aware based on the diff provided
+- Always respond in valid JSON.`,
+    `Generate a git commit message for the following code changes in ${language}:
+
+--- Diff ---
+${diff}
+--- End Diff ---
+
+Respond in this EXACT JSON format:
+{
+  "header": "type(scope): concise description of change (max 72 chars)",
+  "body": "- bullet point 1 explaining a key change\n- bullet point 2 if needed\n- bullet point 3 if needed",
+  "type": "feat|fix|refactor|style|docs|test|chore|perf",
+  "scope": "the scope of the change"
+}`,
+    apiKey
+  );
+}
+
 module.exports = {
   explainError,
   fixCodeAI,
@@ -250,4 +281,5 @@ module.exports = {
   visualizeAI,
   explainCodeSnippetAI,
   askFollowUpAI,
+  generateCommitMessageAI,
 };
