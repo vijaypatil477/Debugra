@@ -2254,3 +2254,322 @@ body {
     min-height: 0;
   }
 }
+
+/* ============ WELCOME TOUR ============ */
+
+/* Full-screen overlay with spotlight cutout */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: rgba(0, 0, 0, 0.72);
+  transition: clip-path 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+/* Pulsing glow ring around the target element */
+.tour-glow-ring {
+  position: fixed;
+  z-index: 9999;
+  border-radius: 8px;
+  pointer-events: none;
+  border: 2px solid rgba(0, 120, 212, 0.6);
+  box-shadow:
+    0 0 12px rgba(0, 120, 212, 0.4),
+    0 0 32px rgba(0, 120, 212, 0.15),
+    inset 0 0 12px rgba(0, 120, 212, 0.08);
+  animation: tour-glow-pulse 2s ease-in-out infinite;
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes tour-glow-pulse {
+  0%,
+  100% {
+    border-color: rgba(0, 120, 212, 0.6);
+    box-shadow:
+      0 0 12px rgba(0, 120, 212, 0.4),
+      0 0 32px rgba(0, 120, 212, 0.15),
+      inset 0 0 12px rgba(0, 120, 212, 0.08);
+  }
+  50% {
+    border-color: rgba(78, 201, 176, 0.7);
+    box-shadow:
+      0 0 20px rgba(78, 201, 176, 0.5),
+      0 0 48px rgba(78, 201, 176, 0.2),
+      inset 0 0 16px rgba(78, 201, 176, 0.1);
+  }
+}
+
+/* Glassmorphic tooltip card */
+.tour-tooltip {
+  position: fixed;
+  z-index: 10000;
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  background: linear-gradient(
+    135deg,
+    rgba(37, 37, 38, 0.97) 0%,
+    rgba(45, 45, 45, 0.95) 100%
+  );
+  border: 1px solid rgba(0, 120, 212, 0.35);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 0 24px rgba(0, 120, 212, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: tour-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  font-family: 'Inter', system-ui, sans-serif;
+  transition: top 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+    left 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tour-tooltip--animating {
+  animation: tour-step-transition 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tour-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tour-step-transition {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Tooltip arrow */
+.tour-tooltip-arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: rgba(37, 37, 38, 0.97);
+  border: 1px solid rgba(0, 120, 212, 0.35);
+  transform: rotate(45deg);
+}
+
+.tour-tooltip-arrow--left {
+  left: -7px;
+  top: 50%;
+  margin-top: -6px;
+  border-right: none;
+  border-top: none;
+}
+
+.tour-tooltip-arrow--right {
+  right: -7px;
+  top: 50%;
+  margin-top: -6px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.tour-tooltip-arrow--top {
+  top: -7px;
+  left: 50%;
+  margin-left: -6px;
+  border-bottom: none;
+  border-right: none;
+}
+
+.tour-tooltip-arrow--bottom {
+  bottom: -7px;
+  left: 50%;
+  margin-left: -6px;
+  border-top: none;
+  border-left: none;
+}
+
+/* Tooltip header */
+.tour-tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.tour-tooltip-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(0, 120, 212, 0.2), rgba(78, 201, 176, 0.15));
+  border: 1px solid rgba(0, 120, 212, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.tour-tooltip-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  flex: 1;
+  letter-spacing: -0.01em;
+}
+
+.tour-tooltip-close {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.tour-tooltip-close:hover {
+  color: var(--text-0);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--border);
+}
+
+/* Tooltip body */
+.tour-tooltip-body {
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--text-1);
+  margin-bottom: 16px;
+}
+
+/* Tooltip footer */
+.tour-tooltip-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Step dots */
+.tour-step-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tour-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.3s ease;
+}
+
+.tour-step-dot.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(0, 120, 212, 0.5);
+  transform: scale(1.2);
+}
+
+.tour-step-dot.completed {
+  background: var(--green);
+  border-color: var(--green);
+}
+
+/* Navigation buttons */
+.tour-tooltip-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tour-tooltip-skip {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 0.68rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.tour-tooltip-skip:hover {
+  color: var(--text-0);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tour-nav-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.72rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tour-nav-btn--back {
+  background: transparent;
+  color: var(--text-1);
+}
+
+.tour-nav-btn--back:hover {
+  color: var(--text-0);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.tour-nav-btn--next {
+  background: linear-gradient(135deg, #0078d4 0%, #00a6ed 100%);
+  color: #fff;
+  border: 1px solid rgba(0, 120, 212, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 120, 212, 0.25);
+}
+
+.tour-nav-btn--next:hover {
+  background: linear-gradient(135deg, #1a8ceb 0%, #2eb8f0 100%);
+  box-shadow: 0 4px 16px rgba(0, 120, 212, 0.35);
+  transform: translateY(-1px);
+}
+
+.tour-nav-btn--next:active {
+  transform: translateY(0);
+}
+
+/* Step counter */
+.tour-step-counter {
+  position: absolute;
+  top: 8px;
+  right: 40px;
+  font-size: 0.62rem;
+  color: var(--text-2);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+/* Hide tour on mobile */
+@media (max-width: 768px) {
+  .tour-overlay,
+  .tour-glow-ring,
+  .tour-tooltip {
+    display: none !important;
+  }
+}
+

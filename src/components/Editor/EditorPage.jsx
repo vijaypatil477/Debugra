@@ -13,6 +13,7 @@ import {
   useEditor,
   useIsMobile,
   useAudioFeedback,
+  useWelcomeTour,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { LANGUAGES } from '../../utils/languageConfig';
@@ -30,6 +31,7 @@ import EditorStatusBar from './EditorStatusBar';
 import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
+import WelcomeTour from './WelcomeTour';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 
 function getApiKeyStatus() {
@@ -63,6 +65,7 @@ export default function EditorPage({ user }) {
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
+  const tour = useWelcomeTour();
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
   const handleCopyOutput = async () => {
@@ -1180,6 +1183,19 @@ export default function EditorPage({ user }) {
 
       {/* Real-time Democratic Vote Popup */}
       <VotePopup room={room} user={user} />
+
+      {/* Welcome Tour for first-time users */}
+      {!isMobile && (
+        <WelcomeTour
+          isActive={tour.isActive}
+          currentStep={tour.currentStep}
+          totalSteps={tour.totalSteps}
+          step={tour.step}
+          onNext={tour.nextStep}
+          onPrev={tour.prevStep}
+          onSkip={tour.skipTour}
+        />
+      )}
     </div>
   );
 }
