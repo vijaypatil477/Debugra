@@ -85,18 +85,8 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   }, [code, language, stdinValue, roomId, user, isEditor]);
 
   // ─── Sync active file (language) for presence ───────────────────────────────
-  useEffect(() => {
-    if (!roomId || !user || !roomData) return;
-    const currentUsers = roomData.activeUsers || [];
-    const myIndex = currentUsers.findIndex((u) => u.uid === user.uid);
-    if (myIndex !== -1 && currentUsers[myIndex].activeFile !== language) {
-      const newUsers = [...currentUsers];
-      newUsers[myIndex] = { ...newUsers[myIndex], activeFile: language };
-      updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
-    }
-  }, [roomId, user, roomData, language]);
-
-  // ─── Sync active file (language) for presence ───────────────────────────────
+  // FIX: Removed duplicate useEffect that had identical logic and dependency
+  // array, which was causing two Firestore writes on every language/file change.
   useEffect(() => {
     if (!roomId || !user || !roomData) return;
     const currentUsers = roomData.activeUsers || [];
@@ -442,4 +432,3 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     transitionVoteToExecuting,
   };
 }
-
