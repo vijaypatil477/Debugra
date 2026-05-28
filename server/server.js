@@ -12,8 +12,10 @@ const memoryTracker = require('./middleware/memoryTracker');
 const memoryProfiler = require('./services/memoryProfiler');
 const errorHandler = require('./middleware/errorHandler');
 const webhookRoutes = require('./routes/webhooks');
+const { executeLimiter, aiLimiter } = require('./middleware/rateLimiters');
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3001;
 const isProd = process.env.NODE_ENV === 'production';
 const cspReportUri = (process.env.CSP_REPORT_URI || '').trim();
@@ -78,22 +80,36 @@ function requireSecurityDiagnosticsAccess(req, res, next) {
   return next();
 }
 
+// ──────────────────────────────────────────────
+// CORS Origin Configuration
+// ──────────────────────────────────────────────
+
 const defaultDevOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'https://debugra.tech',
   'https://www.debugra.tech',
 ];
-const extraOrigins = (process.env.CORS_ORIGINS || process.env.CLIENT_URL || '')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
 
-const allowedOrigins = unique([...defaultDevOrigins, ...extraOrigins]);
-
+// FIX 1: Move unique() above its first usage to avoid
+// calling it before it is defined
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
 }
+
+// FIX 2: Parse CORS_ORIGINS and CLIENT_URL independently
+// and merge both — not OR — so neither is silently dropped
+const extraOrigins = unique([
+  ...(process.env.CORS_ORIGINS || '').split(','),
+  ...(process.env.CLIENT_URL   || '').split(','),
+].map((o) => o.trim()));
+
+// FIX 3: Merge defaults + extras so production domains
+// are always present regardless of env var configuration
+const allowedOrigins = unique([...defaultDevOrigins, ...extraOrigins]);
+
+// FIX 4: Log on startup so you can verify in any environment
+logger.info('[CORS] Allowed origins: ' + allowedOrigins.join(', '));
 
 function buildCspDirectives() {
   const clientOrigins = unique([...allowedOrigins]);
@@ -208,13 +224,16 @@ app.use(
         return callback(null, true);
       }
 
+      // FIX 5: Log blocked origins to help debug future CORS issues
+      logger.warn(`[CORS] Blocked origin: ${origin}`);
+
       const corsError = new Error('Not allowed by CORS');
       corsError.status = 403;
       return callback(corsError);
     },
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Groq-Api-Key'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Groq-Api-Key', 'x-admin-token', 'x-security-diagnostics-token'],
     optionsSuccessStatus: 204,
   })
 );
@@ -280,8 +299,8 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.use('/api/execute', executeRoutes);
-app.use('/api/ai', aiRoutes);
+app.use('/api/execute', executeLimiter, executeRoutes);
+app.use('/api/ai', aiLimiter, aiRoutes);
 app.use('/api/admin/memory-profile', memoryRoutes);
 app.use('/api/webhooks', webhookRoutes);
 

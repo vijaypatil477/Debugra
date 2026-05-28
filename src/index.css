@@ -79,7 +79,7 @@ body,
 }
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background: var(--bg-0);
+  background: linear-gradient(135deg, #0f0c20 0%, #15102a 50%, #06040a 100%);
   color: var(--text-0);
   -webkit-font-smoothing: antialiased;
 }
@@ -2253,4 +2253,46 @@ body {
     flex: 1;
     min-height: 0;
   }
+}
+/* ===== GLASSMORPHISM BACKDROP EFFECT ===== */
+.glass-panel {
+  /* Semi-transparent overlay color tint */
+  background-color: rgba(30, 30, 30, 0.75) !important; 
+  
+  /* Link browser engine filtering directly to your dynamic custom property hook */
+  backdrop-filter: blur(var(--blur-intensity, 10px)) !important;
+  -webkit-backdrop-filter: blur(var(--blur-intensity, 10px)) !important; /* Safari compatibility */
+  
+  /* Smooth transition rendering animations when sliding */
+  transition: backdrop-filter 0.1s ease-out, -webkit-backdrop-filter 0.1s ease-out;
+}
+/* Expand the settings popover bounding box to display the new options */
+.custom-layout-popover {
+  min-height: 240px !important;
+  height: auto !important;
+  max-height: 400px !important;
+  overflow-y: visible !important;
+}
+/* ===== GLASSMORPHISM OVERRIDES FOR CORE WORKSPACE PANELS ===== */
+
+/* 1. Target the left-side editor panel and right-side output panel wrappers */
+.editor-pane.glass-panel,
+.output-pane.glass-panel {
+  background-color: rgba(30, 30, 30, 0.45) !important; /* Semi-transparent base tint */
+  backdrop-filter: blur(var(--blur-intensity)) !important;
+  -webkit-backdrop-filter: blur(var(--blur-intensity)) !important; /* Safari support */
+  transition: backdrop-filter 0.1s ease-out;
+}
+
+/* 2. Target internal console and execution panel backgrounds */
+.editor-pane.glass-panel .output-content,
+.output-pane.glass-panel .output-panel,
+.output-pane.glass-panel .output-content {
+  background-color: transparent !important;
+}
+
+/* 3. Soften the top tab headers for the glassy look */
+.editor-tab-bar, .output-tabs {
+  background-color: rgba(20, 20, 20, 0.3) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
