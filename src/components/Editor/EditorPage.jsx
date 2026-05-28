@@ -53,7 +53,6 @@ export default function EditorPage({ user }) {
   const navigate = useNavigate();
   const editorRef = useRef(null);
 
-  // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
@@ -69,35 +68,16 @@ export default function EditorPage({ user }) {
   const [roomPassword, setRoomPassword] = useState('');
   const [outputWidth, setOutputWidth] = useState(420);
   const [minimapSide, setMinimapSide] = useState('right');
-  const [showMinimap, setShowMinimap] = useState(true); // ✅ CHANGE 1: Added showMinimap state
+  const [showMinimap, setShowMinimap] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
-  const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
+  const [blurIntensity, setBlurIntensity] = useState(10);
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
-
-  // ─── Editor Logic ──────────────────────────────────────────────────────────
-  const handleCopyOutput = async () => {
-  if (!execution.stdout) return;
-
-      try {
-        await navigator.clipboard.writeText(execution.stdout);
-
-        setCopied(true);
-
-        toast.success('Output copied!');
-
-        setTimeout(() => {
-          setCopied(false);
-        }, 2000);
-
-      } catch (err) {
-        toast.error('Failed to copy output');
-      }
-    };
 
   const editor = useEditor({
     user,
@@ -107,7 +87,6 @@ export default function EditorPage({ user }) {
     },
   });
 
-  // ─── Room/Collaboration Logic ──────────────────────────────────────────────
   const room = useRoom({
     user,
     code: editor.code,
@@ -138,7 +117,6 @@ export default function EditorPage({ user }) {
     ensureEditorFontLoaded(editor.fontFamily);
   }, [editor.fontFamily]);
 
-  // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
     language: editor.language,
     code: editor.code,
@@ -147,7 +125,6 @@ export default function EditorPage({ user }) {
     editorRef,
   });
 
-  // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
     if (!window.__MONACO_SNIPPETS_REGISTERED__) {
       registerSnippets(monaco);
@@ -261,13 +238,23 @@ export default function EditorPage({ user }) {
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
-    // Ctrl+Enter → Run
     editorInstance.addCommand(2048 | 3, () => {
       if (executionRunRef.current) executionRunRef.current();
     });
   };
 
-  // ─── Output Pane Resize ───────────────────────────────────────────────────
+  const handleCopyOutput = async () => {
+    if (!execution.stdout) return;
+    try {
+      await navigator.clipboard.writeText(execution.stdout);
+      setCopied(true);
+      toast.success('Output copied!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast.error('Failed to copy output');
+    }
+  };
+
   const handleResizeStart = (e) => {
     e.preventDefault();
     resizingRef.current = true;
@@ -291,13 +278,10 @@ export default function EditorPage({ user }) {
 
   return (
     <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', '--blur-intensity': `${blurIntensity}px` }}>
-      {/* ===== TOP BAR ===== */}
+      {/* TOP BAR */}
       <div className="topbar px-2 px-md-3">
         <div className="topbar-left d-flex align-items-center">
-          <button
-            onClick={() => navigate('/')}
-            className="topbar-logo d-flex align-items-center gap-2"
-          >
+          <button onClick={() => navigate('/')} className="topbar-logo d-flex align-items-center gap-2">
             <img src="/icon-dark.svg" height="20" alt="Debugra Logo" />
             <span className="d-none d-sm-inline">Debugra</span>
           </button>
@@ -307,8 +291,8 @@ export default function EditorPage({ user }) {
             <>
               <div className="topbar-sep mx-2 d-none d-sm-block" />
               <span className="topbar-title text-success d-none d-sm-inline">
-                ✦ Room: {room.roomId}
-                <span className="d-none d-lg-inline"> ({room.activeUsers.length} online)</span>
+                Room {room.roomId}
+                <span className="d-none d-lg-inline"> {room.activeUsers.length} online</span>
               </span>
               <button
                 className="topbar-link ms-2"
@@ -320,48 +304,18 @@ export default function EditorPage({ user }) {
                 <span className="d-none d-sm-inline">Copy ID</span>
                 <span className="d-inline d-sm-none">ID</span>
               </button>
-              <button
-                className="topbar-link ms-2"
-                onClick={() => setShowVideoCall(!showVideoCall)}
-                style={{
-                  background: showVideoCall
-                    ? 'rgba(239, 68, 68, 0.15)'
-                    : 'rgba(139, 92, 246, 0.15)',
-                  color: showVideoCall ? '#ff6b6b' : '#a78bfa',
-                  border: showVideoCall
-                    ? '1px solid rgba(239, 68, 68, 0.3)'
-                    : '1px solid rgba(139, 92, 246, 0.3)',
-                  padding: '3px 10px',
-                  borderRadius: '6px',
-                  fontWeight: 600,
-                  transition: 'all 0.2s',
-                }}
-              >
-                📹 {showVideoCall ? 'Leave Call' : 'Join Call'}
+              <button className="topbar-link ms-2" onClick={() => setShowVideoCall(!showVideoCall)}>
+                {showVideoCall ? 'Leave Call' : 'Join Call'}
               </button>
-              <button
-                className="topbar-link ms-2"
-                onClick={() => setShowVoiceCall((s) => !s)}
-                style={{
-                  background: showVoiceCall ? 'rgba(34,197,94,0.12)' : 'rgba(99,102,241,0.06)',
-                  color: showVoiceCall ? '#16a34a' : '#4f46e5',
-                  border: showVoiceCall
-                    ? '1px solid rgba(16,185,129,0.2)'
-                    : '1px solid rgba(99,102,241,0.12)',
-                  padding: '3px 10px',
-                  borderRadius: '6px',
-                  fontWeight: 600,
-                  transition: 'all 0.18s',
-                }}
-              >
-                🔊 {showVoiceCall ? 'Leave Voice' : 'Join Voice'}
+              <button className="topbar-link ms-2" onClick={() => setShowVoiceCall(!showVoiceCall)}>
+                {showVoiceCall ? 'Leave Voice' : 'Join Voice'}
               </button>
             </>
           )}
         </div>
 
         <div className="topbar-right d-flex align-items-center gap-2">
-          {!(room.roomId || isTestRoom) && (
+          {!room.roomId && !isTestRoom && (
             <div className="room-controls d-flex align-items-center gap-2">
               <button
                 className="topbar-link"
@@ -375,7 +329,7 @@ export default function EditorPage({ user }) {
                   if (created) setRoomPassword('');
                 }}
               >
-                + New Room
+                New Room
               </button>
               <input
                 value={roomPassword}
@@ -389,14 +343,6 @@ export default function EditorPage({ user }) {
                   <input
                     value={joinId}
                     onChange={(e) => setJoinId(e.target.value)}
-                    onKeyDown={(e) =>
-                      e.key === 'Enter' &&
-                      room
-                        .joinRoom(joinId, joinPassword)
-                        .then(
-                          (ok) => ok && (setShowJoin(false), setJoinId(''), setJoinPassword(''))
-                        )
-                    }
                     placeholder="Room ID"
                     className="topbar-input"
                     autoFocus
@@ -404,28 +350,11 @@ export default function EditorPage({ user }) {
                   <input
                     value={joinPassword}
                     onChange={(e) => setJoinPassword(e.target.value)}
-                    onKeyDown={(e) =>
-                      e.key === 'Enter' &&
-                      room
-                        .joinRoom(joinId, joinPassword)
-                        .then(
-                          (ok) => ok && (setShowJoin(false), setJoinId(''), setJoinPassword(''))
-                        )
-                    }
                     placeholder="Passcode"
                     className="topbar-input topbar-password-input"
                     type="password"
                   />
-                  <button
-                    className="topbar-link"
-                    onClick={() =>
-                      room
-                        .joinRoom(joinId, joinPassword)
-                        .then(
-                          (ok) => ok && (setShowJoin(false), setJoinId(''), setJoinPassword(''))
-                        )
-                    }
-                  >
+                  <button className="topbar-link" onClick={() => room.joinRoom(joinId, joinPassword)}>
                     Join
                   </button>
                   <button className="topbar-link" onClick={() => setShowJoin(false)}>
@@ -449,6 +378,7 @@ export default function EditorPage({ user }) {
               )}
             </div>
           )}
+
           {user ? (
             <div className="d-flex align-items-center gap-2">
               <button
@@ -460,40 +390,17 @@ export default function EditorPage({ user }) {
               >
                 Log Out
               </button>
-              <button
-                className="topbar-link"
-                onClick={() => setShowAccount(true)}
-                title="Account settings"
-              >
+              <button className="topbar-link" onClick={() => setShowAccount(true)}>
                 Account
               </button>
               <div className="user-avatar">{user.displayName?.[0]?.toUpperCase() || '?'}</div>
-              <span
-                className="d-none d-md-inline"
-                style={{ fontSize: '0.7rem', color: 'var(--text-1)' }}
-              >
-                {user.displayName || user.email?.split('@')[0]}
-              </span>
             </div>
           ) : (
             <div className="d-flex gap-2">
-              <button
-                className="topbar-link"
-                onClick={() => {
-                  setAuthMode('login');
-                  setShowAuth(true);
-                }}
-              >
+              <button className="topbar-link" onClick={() => { setAuthMode('login'); setShowAuth(true); }}>
                 Sign In
               </button>
-              <button
-                className="topbar-link"
-                style={{ background: '#8b5cf6', color: 'white', border: 'none' }}
-                onClick={() => {
-                  setAuthMode('signup');
-                  setShowAuth(true);
-                }}
-              >
+              <button className="topbar-link" style={{ background: '#8b5cf6', color: 'white', border: 'none' }} onClick={() => { setAuthMode('signup'); setShowAuth(true); }}>
                 Sign Up
               </button>
             </div>
@@ -501,211 +408,59 @@ export default function EditorPage({ user }) {
         </div>
       </div>
 
-      {/* ===== TOOLBAR ===== */}
+      {/* TOOLBAR */}
       <div className="toolbar px-2 py-1">
         <div className="toolbar-left d-flex align-items-center gap-2">
-          <select
-            className="lang-select"
-            value={editor.language}
-            onChange={(e) => editor.changeLanguage(e.target.value)}
-            disabled={room.isReadOnly}
-          >
+          <select className="lang-select" value={editor.language} onChange={(e) => editor.changeLanguage(e.target.value)} disabled={room.isReadOnly}>
             {Object.entries(LANGUAGES).map(([key, lang]) => (
-              <option key={key} value={key}>
-                {lang.name}
-              </option>
+              <option key={key} value={key}>{lang.name}</option>
             ))}
           </select>
-          <select
-            className="lang-select d-none d-sm-block"
-            value={editor.theme}
-            onChange={(e) => editor.setTheme(e.target.value)}
-            aria-label="Editor theme"
-          >
+
+          <select className="lang-select d-none d-sm-block" value={editor.theme} onChange={(e) => editor.setTheme(e.target.value)} aria-label="Editor theme">
             {EDITOR_THEMES.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
+              <option key={t.id} value={t.id}>{t.label}</option>
             ))}
           </select>
+
           <div className="font-size-ctrl d-none d-sm-flex align-items-center gap-1">
             <button onClick={editor.decreaseFontSize}>−</button>
             <span>{editor.fontSize}px</span>
             <button onClick={editor.increaseFontSize}>+</button>
           </div>
-          <div
-            className="minimap-side-ctrl d-none d-md-flex align-items-center gap-1"
-            aria-label="Minimap position"
-          >
+
+          <div className="minimap-side-ctrl d-none d-md-flex align-items-center gap-1" aria-label="Minimap position">
             <span>Minimap</span>
-            <button
-              type="button"
-              className={minimapSide === 'left' ? 'active' : ''}
-              aria-pressed={minimapSide === 'left'}
-              onClick={() => setMinimapSide('left')}
-            >
-              Left
-            </button>
-            <button
-              type="button"
-              className={minimapSide === 'right' ? 'active' : ''}
-              aria-pressed={minimapSide === 'right'}
-              onClick={() => setMinimapSide('right')}
-            >
-              Right
-            </button>
-            {/* ✅ CHANGE 2: Added Show/Hide toggle button for minimap */}
-            <button
-              type="button"
-              className={showMinimap ? 'active' : ''}
-              aria-pressed={showMinimap}
-              onClick={() => setShowMinimap(!showMinimap)}
-              title="Toggle minimap visibility"
-            >
+            <button type="button" className={minimapSide === 'left' ? 'active' : ''} aria-pressed={minimapSide === 'left'} onClick={() => setMinimapSide('left')}>Left</button>
+            <button type="button" className={minimapSide === 'right' ? 'active' : ''} aria-pressed={minimapSide === 'right'} onClick={() => setMinimapSide('right')}>Right</button>
+            <button type="button" className={showMinimap ? 'active' : ''} aria-pressed={showMinimap} onClick={() => setShowMinimap(!showMinimap)} title="Toggle minimap visibility">
               {showMinimap ? 'Hide' : 'Show'}
             </button>
           </div>
         </div>
+
         <div className="toolbar-right d-flex align-items-center gap-2">
           <div className="d-none d-md-flex align-items-center gap-2">
-            <button
-              className={`ai-btn api-key-toggle ${apiKeyStatus}`}
-              onClick={() => setShowApiKey(true)}
-              title="Groq API key settings"
-            >
+            <button className={`ai-btn api-key-toggle ${apiKeyStatus}`} onClick={() => setShowApiKey(true)} title="Groq API key settings">
               Key
             </button>
-            <button
-              className="ai-btn"
-              onClick={ai.generateTests}
-              disabled={ai.isAILoading || room.isReadOnly}
-            >
-              Tests
-            </button>
-            <button className="ai-btn" onClick={ai.audit} disabled={ai.isAILoading}>
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                <path d="M9 12l2 2 4-5" />
-              </svg>
-              Audit
-            </button>
-            <button className="ai-btn" onClick={ai.visualize} disabled={ai.isAILoading}>
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="2" y1="12" x2="22" y2="12" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-              Visualize
-            </button>
-            <button className="ai-btn" onClick={ai.explain} disabled={ai.isAILoading}>
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-              </svg>
-              Explain
-            </button>
+            <button className="ai-btn" onClick={ai.generateTests} disabled={ai.isAILoading || room.isReadOnly}>Tests</button>
+            <button className="ai-btn" onClick={ai.audit} disabled={ai.isAILoading}>Audit</button>
+            <button className="ai-btn" onClick={ai.visualize} disabled={ai.isAILoading}>Visualize</button>
+            <button className="ai-btn" onClick={ai.explain} disabled={ai.isAILoading}>Explain</button>
           </div>
-          <button
-            className="ai-btn fix"
-            onClick={ai.fix}
-            disabled={ai.isAILoading || room.isReadOnly}
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-            </svg>
-            Fix
-          </button>
+
+          <button className="ai-btn fix" onClick={ai.fix} disabled={ai.isAILoading || room.isReadOnly}>Fix</button>
+
           <div className="d-flex align-items-center gap-1">
-            <button
-              className="toolbar-icon-btn"
-              aria-label="Download Code"
-              onClick={editor.downloadCode}
-              title="Download"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-            </button>
-            <button
-              className="toolbar-icon-btn"
-              aria-label="Save to Cloud"
-              onClick={editor.saveToCloud}
-              title="Save to cloud"
-              disabled={room.isReadOnly}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                <polyline points="17 21 17 13 7 13 7 21" />
-                <polyline points="7 3 7 8 15 8" />
-              </svg>
-            </button>
+            <button className="toolbar-icon-btn" aria-label="Download Code" onClick={editor.downloadCode}>Download</button>
+            <button className="toolbar-icon-btn" aria-label="Save to Cloud" onClick={editor.saveToCloud} disabled={room.isReadOnly}>Save</button>
             {user && (
-              <button
-                className="toolbar-icon-btn"
-                aria-label="Toggle History"
-                onClick={() => setShowHistory(!showHistory)}
-                title="History"
-                style={
-                  showHistory ? { background: 'var(--bg-active)', color: 'var(--accent)' } : {}
-                }
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
+              <button className="toolbar-icon-btn" aria-label="Toggle History" onClick={() => setShowHistory(!showHistory)} title="History">
+                History
               </button>
             )}
+
             <div className="audio-settings-wrap">
               <button
                 className="toolbar-icon-btn"
@@ -713,24 +468,19 @@ export default function EditorPage({ user }) {
                 aria-expanded={showSettings}
                 onClick={() => setShowSettings((open) => !open)}
                 title="Settings"
-                style={
-                  showSettings ? { background: 'var(--bg-active)', color: 'var(--accent)' } : {}
-                }
               >
                 <Settings size={14} />
               </button>
+
               {showSettings && (
                 <div className="audio-settings-popover custom-layout-popover" role="dialog" aria-label="Settings">
                   <div className="audio-settings-head">
                     <span>Settings</span>
-                    <button
-                      className="history-action-btn"
-                      aria-label="Close Settings"
-                      onClick={() => setShowSettings(false)}
-                    >
+                    <button className="history-action-btn" aria-label="Close Settings" onClick={() => setShowSettings(false)}>
                       <i className="bi bi-x" />
                     </button>
                   </div>
+
                   <div className="audio-settings-row">
                     <div className="audio-settings-label">
                       <i className="bi bi-type" style={{ fontSize: '14px' }} />
@@ -744,12 +494,11 @@ export default function EditorPage({ user }) {
                       style={{ fontSize: '0.7rem', padding: '2px 6px' }}
                     >
                       {EDITOR_FONTS.map((font) => (
-                        <option key={font.id} value={font.id}>
-                          {font.label}
-                        </option>
+                        <option key={font.id} value={font.id}>{font.label}</option>
                       ))}
                     </select>
                   </div>
+
                   <div className="audio-settings-row">
                     <div className="audio-settings-label">
                       <i className="bi bi-palette" style={{ fontSize: '14px' }} />
@@ -763,13 +512,12 @@ export default function EditorPage({ user }) {
                       style={{ fontSize: '0.7rem', padding: '2px 6px' }}
                     >
                       {EDITOR_THEMES.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.label}
-                        </option>
+                        <option key={t.id} value={t.id}>{t.label}</option>
                       ))}
                     </select>
                   </div>
-                  {/* ===== WALLPAPER BLUR SETTING ROW ===== */}
+
+                  {/* Wallpaper Blur Setting */}
                   <div className="audio-settings-row" style={{ marginTop: '12px' }}>
                     <div className="audio-settings-label">
                       <i className="bi bi-sliders" style={{ fontSize: '14px' }} />
@@ -783,82 +531,55 @@ export default function EditorPage({ user }) {
                         step="1"
                         value={blurIntensity}
                         onChange={(e) => setBlurIntensity(Number(e.target.value))}
-                        style={{ flex: 1, accentColor: '#00bcd4' }} 
+                        style={{ flex: 1, accentColor: '#00bcd4' }}
                       />
                       <span style={{ fontSize: '12px', minWidth: '30px', textAlign: 'right' }}>
                         {blurIntensity}px
                       </span>
                     </div>
                   </div>
+
                   <div className="audio-settings-row">
                     <div className="audio-settings-label">
                       {audioFeedback.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
                       <span>Audio feedback</span>
                     </div>
-                    <button
-                      className={`audio-toggle ${audioFeedback.muted ? '' : 'active'}`}
-                      aria-pressed={!audioFeedback.muted}
-                      onClick={() => audioFeedback.setMuted(!audioFeedback.muted)}
-                    >
+                    <button className={`audio-toggle ${audioFeedback.muted ? '' : 'active'}`} aria-pressed={!audioFeedback.muted} onClick={() => audioFeedback.setMuted(!audioFeedback.muted)}>
                       {audioFeedback.muted ? 'Muted' : 'On'}
                     </button>
                   </div>
+
                   <label className="audio-settings-slider">
                     <span>Volume</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={audioFeedback.volume}
-                      onChange={(e) => audioFeedback.setVolume(e.target.value)}
-                    />
+                    <input type="range" min="0" max="1" step="0.05" value={audioFeedback.volume} onChange={(e) => audioFeedback.setVolume(Number(e.target.value))} />
                     <span>{Math.round(audioFeedback.volume * 100)}%</span>
                   </label>
-                  <button
-                    className="audio-test-btn"
-                    onClick={audioFeedback.testSound}
-                    disabled={audioFeedback.muted}
-                  >
+
+                  <button className="audio-test-btn" onClick={audioFeedback.testSound} disabled={audioFeedback.muted}>
                     Test chime
                   </button>
                 </div>
               )}
             </div>
           </div>
+
           <span className="kbd-hint d-none d-lg-inline">Ctrl+Enter</span>
-          <button
-            className="clear-btn d-none d-sm-block"
-            onClick={() => {
-              execution.clear();
-              ai.clearAI();
-            }}
-            disabled={room.isReadOnly}
-          >
+
+          <button className="clear-btn d-none d-sm-block" onClick={() => { execution.clear(); ai.clearAI(); }} disabled={room.isReadOnly}>
             Clear
           </button>
-          <button
-            className="run-btn d-none d-sm-flex align-items-center"
-            onClick={execution.run}
-            disabled={execution.isRunning}
-          >
-            {execution.isRunning ? (
-              <>
-                <span className="spinner" /> Running...
-              </>
-            ) : (
-              <>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="5 3 19 12 5 21 5 3" />
-                </svg>{' '}
-                Run
-              </>
-            )}
+
+          <button className="clear-btn d-none d-sm-block" onClick={() => setShowResetConfirm(true)} disabled={room.isReadOnly} style={{ color: '#f87171', borderColor: 'rgba(248,113,113,0.3)' }} title="Reset editor to default template">
+            Reset
+          </button>
+
+          <button className="run-btn d-none d-sm-flex align-items-center" onClick={execution.run} disabled={execution.isRunning}>
+            {execution.isRunning ? <span className="spinner" /> : 'Run'}
           </button>
         </div>
       </div>
 
-      {/* ===== MAIN SPLIT ===== */}
+      {/* MAIN SPLIT */}
       <div className="main-split">
         {/* EDITOR PANE */}
         <div
@@ -869,12 +590,7 @@ export default function EditorPage({ user }) {
             <div className="editor-tab">
               <FileIcon filename={editorFileName} size={17} />
               <span className="editor-tab-name">{editorFileName}</span>
-              <button
-                className="editor-tab-close"
-                type="button"
-                aria-label={`Close ${editorFileName}`}
-                title="Close tab"
-              >
+              <button className="editor-tab-close" type="button" aria-label={`Close ${editorFileName}`} title="Close tab">
                 ×
               </button>
             </div>
@@ -886,27 +602,17 @@ export default function EditorPage({ user }) {
             )}
           </div>
 
-          {/* Monaco Editor */}
-          <div
-            id="editor-container"
-            style={{ flex: 1, minHeight: 0, opacity: room.isReadOnly ? 0.8 : 1 }}
-          >
+          <div id="editor-container" style={{ flex: 1, minHeight: 0, opacity: room.isReadOnly ? 0.8 : 1 }}>
             {room.isReadOnly && (
               <div className="readonly-badge">
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="11" width="18" height="11" rx="2" />
                   <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
                 Read Only
               </div>
             )}
+
             <Editor
               height="100%"
               language={langConfig.monacoLang}
@@ -922,7 +628,7 @@ export default function EditorPage({ user }) {
                 fontSize: editor.fontSize,
                 fontFamily: getEditorFontFamily(editor.fontFamily),
                 minimap: {
-                  enabled: showMinimap, // ✅ CHANGE 3: Use showMinimap state instead of hardcoded true
+                  enabled: showMinimap,
                   side: minimapSide,
                   showSlider: 'always',
                   renderCharacters: false,
@@ -954,14 +660,7 @@ export default function EditorPage({ user }) {
             />
           </div>
 
-          {/* Stdin Panel */}
-          <div
-            style={{
-              borderTop: '1px solid var(--border)',
-              background: 'var(--bg-1)',
-              flexShrink: 0,
-            }}
-          >
+          <div style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-1)', flexShrink: 0 }}>
             <button
               onClick={() => editor.setStdinOpen(!editor.stdinOpen)}
               className="stdin-toggle-btn"
@@ -970,9 +669,7 @@ export default function EditorPage({ user }) {
               <div className="d-flex align-items-center gap-2">
                 {editor.needsInput && <span className="stdin-pulse-dot" />}
                 <span>User Input (stdin)</span>
-                {editor.needsInput && (
-                  <span style={{ fontSize: '0.62rem', color: '#ce9178' }}>— input detected</span>
-                )}
+                {editor.needsInput && <span style={{ fontSize: '0.62rem', color: '#ce9178' }}>— input detected</span>}
               </div>
               <span
                 style={{
@@ -1005,19 +702,12 @@ export default function EditorPage({ user }) {
           </div>
         </div>
 
-        {/* Resize Handle (desktop only) */}
         {!isMobile && <div className="resize-handle" onMouseDown={handleResizeStart} />}
 
-        {/* History Panel (desktop) */}
         {showHistory && user && !isMobile && (
-          <HistoryPanel
-            user={user}
-            onLoadCode={editor.loadCode}
-            onClose={() => setShowHistory(false)}
-          />
+          <HistoryPanel user={user} onLoadCode={editor.loadCode} onClose={() => setShowHistory(false)} />
         )}
 
-        {/* OUTPUT PANE */}
         <div
           className="output-pane glass-panel"
           style={
@@ -1025,105 +715,60 @@ export default function EditorPage({ user }) {
               ? mobileTab === MOBILE_TABS.OUTPUT
                 ? { display: 'flex', width: '100%' }
                 : { display: 'none' }
-              : { width: outputWidth + 'px' }
+              : { width: `${outputWidth}px` }
           }
         >
           <div className="output-tabs">
-            {/* copy */}
-             <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
-                className={`output-tab ${
-                  execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''
-                }`}
+                className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''}`}
                 onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDOUT)}
               >
                 Output
               </button>
 
               {execution.stdout && (
-                <button
-                  onClick={handleCopyOutput}
-                  title="Copy Output"
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#aaa',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
+                <button onClick={handleCopyOutput} title="Copy Output" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#aaa', display: 'flex', alignItems: 'center' }}>
                   {copied ? '✓' : '📋'}
                 </button>
               )}
-             </div>
+            </div>
+
             {execution.stderr && (
               <button
                 className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDERR ? 'active' : ''}`}
                 onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDERR)}
               >
-                <span
-                  style={{
-                    color: execution.activeOutputTab === OUTPUT_TABS.STDERR ? '#f44747' : undefined,
-                  }}
-                >
+                <span style={{ color: execution.activeOutputTab === OUTPUT_TABS.STDERR ? '#f44747' : undefined }}>
                   ✦ Errors
                 </span>
               </button>
             )}
+
             {(ai.aiResponse || ai.isAILoading) && (
               <button
                 className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.AI ? 'active' : ''}`}
                 onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.AI)}
               >
-                AI{' '}
-                {ai.isAILoading && (
-                  <span
-                    className="spinner"
-                    style={{ width: '8px', height: '8px', borderWidth: '1.5px', marginLeft: '4px' }}
-                  />
-                )}
+                AI {ai.isAILoading && <span className="spinner" style={{ width: '8px', height: '8px', borderWidth: '1.5px', marginLeft: '4px' }} />}
               </button>
             )}
           </div>
 
           <div className="output-content">
-            <div
-              className={`output-panel ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''}`}
-              id="output-stdout"
-              style={{ position: 'relative' }}
-            >
+            <div className={`output-panel ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''}`} id="output-stdout" style={{ position: 'relative' }}>
               {execution.stdout ? (
                 <>
                   <button
                     className="toolbar-icon-btn"
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      background: 'var(--bg-1)',
-                      zIndex: 10,
-                    }}
+                    style={{ position: 'absolute', top: '8px', right: '8px', background: 'var(--bg-1)', zIndex: 10 }}
                     onClick={() => {
                       navigator.clipboard.writeText(execution.stdout);
                       toast.success('Output copied!');
                     }}
                     title="Copy output"
                   >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                     </svg>
@@ -1134,12 +779,11 @@ export default function EditorPage({ user }) {
                 <span className="output-placeholder">Run your code to see output here.</span>
               )}
             </div>
-            <div
-              className={`output-panel ${execution.activeOutputTab === OUTPUT_TABS.STDERR ? 'active' : ''}`}
-              id="output-stderr"
-            >
+
+            <div className={`output-panel ${execution.activeOutputTab === OUTPUT_TABS.STDERR ? 'active' : ''}`} id="output-stderr">
               {execution.stderr || <span className="output-placeholder">No errors.</span>}
             </div>
+
             <div
               className="output-panel"
               style={{
@@ -1159,13 +803,9 @@ export default function EditorPage({ user }) {
             </div>
           </div>
 
-          {/* Execution info bar */}
           <div className="exec-info">
             <div className="exec-item">
-              Status:{' '}
-              <span className={`status-badge status-${execution.execStatus.type}`}>
-                {execution.execStatus.text}
-              </span>
+              Status: <span className={`status-badge status-${execution.execStatus.type}`}>{execution.execStatus.text}</span>
             </div>
             {execution.execTime && (
               <div className="exec-item">
@@ -1176,7 +816,6 @@ export default function EditorPage({ user }) {
         </div>
       </div>
 
-      {/* ===== STATUS BAR ===== */}
       <EditorStatusBar
         execStatus={execution.execStatus}
         langName={langConfig.name}
@@ -1185,26 +824,14 @@ export default function EditorPage({ user }) {
         user={user}
       />
 
-      {/* Chat */}
       {isMobile && mobileTab === MOBILE_TABS.CHAT && room.roomId ? (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <ChatPanel
-            roomId={room.roomId}
-            user={user}
-            isOpen={true}
-            onToggle={() => setMobileTab(MOBILE_TABS.CODE)}
-          />
+          <ChatPanel roomId={room.roomId} user={user} isOpen={true} onToggle={() => setMobileTab(MOBILE_TABS.CODE)} />
         </div>
       ) : (
-        <ChatPanel
-          roomId={room.roomId}
-          user={user}
-          isOpen={chatOpen}
-          onToggle={() => setChatOpen(!chatOpen)}
-        />
+        <ChatPanel roomId={room.roomId} user={user} isOpen={chatOpen} onToggle={() => setChatOpen(!chatOpen)} />
       )}
 
-      {/* History (mobile full-screen) */}
       {isMobile && mobileTab === MOBILE_TABS.SAVED && user && (
         <div
           style={{
@@ -1226,9 +853,7 @@ export default function EditorPage({ user }) {
               background: 'var(--bg-1)',
             }}
           >
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-0)' }}>
-              Code History
-            </span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-0)' }}>Code History</span>
             <button
               onClick={() => setMobileTab(MOBILE_TABS.CODE)}
               style={{
@@ -1255,7 +880,6 @@ export default function EditorPage({ user }) {
         </div>
       )}
 
-      {/* Mobile Bottom Nav */}
       {isMobile && (
         <MobileBottomNav
           mobileTab={mobileTab}
@@ -1270,36 +894,87 @@ export default function EditorPage({ user }) {
         />
       )}
 
-      {/* Auth Modal */}
+      {showResetConfirm && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          onClick={() => setShowResetConfirm(false)}
+        >
+          <div
+            style={{
+              background: 'var(--bg-1)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '24px',
+              maxWidth: '360px',
+              width: '90%',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <span style={{ fontWeight: 700, color: 'var(--text-0)', fontSize: '0.95rem' }}>Reset Editor?</span>
+            </div>
+
+            <p style={{ color: 'var(--text-1)', fontSize: '0.82rem', marginBottom: '20px', lineHeight: 1.5 }}>
+              This will clear all current code and revert to the default template for <strong>{LANGUAGES[editor.language]?.name}</strong>. This action cannot be undone.
+            </p>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button className="clear-btn" onClick={() => setShowResetConfirm(false)}>Cancel</button>
+              <button
+                className="clear-btn"
+                style={{
+                  background: 'rgba(248,113,113,0.15)',
+                  color: '#f87171',
+                  borderColor: 'rgba(248,113,113,0.3)',
+                }}
+                onClick={() => {
+                  editor.resetCode();
+                  setShowResetConfirm(false);
+                }}
+              >
+                Yes, Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAuth && <AuthModal initialMode={authMode} onClose={() => setShowAuth(false)} />}
+
       {showApiKey && (
         <ApiKeyModal
           onClose={() => setShowApiKey(false)}
           onStatusChange={() => setApiKeyStatus(getApiKeyStatus())}
         />
       )}
-{showAccount && user && (
-  <AccountSettings
-    onClose={() => setShowAccount(false)}
-    user={user}
-  />
-)}
 
-{/* Video Call Overlay */}
-{showVideoCall && room.roomId && (
-  <VideoCall
-    roomId={room.roomId}
-    userName={
-      user?.displayName ||
-      user?.email?.split('@')[0] ||
-      'Guest'
-    }
-    onClose={() => setShowVideoCall(false)}
-  />
-)}
+      {showAccount && user && (
+        <AccountSettings onClose={() => setShowAccount(false)} user={user} />
+      )}
 
-{/* Real-time Democratic Vote Popup */}
-<VotePopup room={room} user={user} />
+      {showVideoCall && room.roomId && (
+        <VideoCall
+          roomId={room.roomId}
+          userName={user?.displayName || user?.email?.split('@')[0] || 'Guest'}
+          onClose={() => setShowVideoCall(false)}
+        />
+      )}
+
+      <VotePopup room={room} user={user} />
     </div>
   );
 }

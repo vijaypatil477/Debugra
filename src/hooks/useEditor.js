@@ -15,9 +15,9 @@ import {
 /**
  * useEditor
  * Manages local editor state:
- *   - code, language, font size, cursor position
- *   - stdin detection and management
- *   - save to cloud and download as file
+ * - code, language, font size, cursor position
+ * - stdin detection and management
+ * - save to cloud and download as file
  */
 export function useEditor({ user, onNeedAuth }) {
   const [code, setCode] = useState(LANGUAGES[DEFAULT_LANGUAGE].template);
@@ -98,6 +98,11 @@ export function useEditor({ user, onNeedAuth }) {
     }
   }, [user, code, language, onNeedAuth]);
 
+  const resetCode = useCallback(() => {
+    setCode(LANGUAGES[language].template);
+    toast.success('Editor reset to default template!');
+  }, [language]);
+
   const loadCode = useCallback((newCode, newLang) => {
     setCode(newCode);
     if (newLang && LANGUAGES[newLang]) setLanguage(newLang);
@@ -126,6 +131,7 @@ export function useEditor({ user, onNeedAuth }) {
     decreaseFontSize,
     downloadCode,
     saveToCloud,
+    resetCode,
     loadCode,
   };
 }
