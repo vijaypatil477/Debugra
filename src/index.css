@@ -2296,3 +2296,9 @@ body {
   background-color: rgba(20, 20, 20, 0.3) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
+
+/* ===== REAL-TIME CODE SPELL CHECKER SQUIGGLY DECORATOR ===== */
+.spell-error-decorator {
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='6' height='3'><path d='M0,2 Q1.5,0 3,2 T6,2' fill='none' stroke='%23f44747' stroke-width='0.75'/></svg>") repeat-x bottom left !important;
+  border-bottom: 1px transparent;
+}
