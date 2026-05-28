@@ -329,6 +329,51 @@ Provide the completion code:`;
   return { completion: completion.trimEnd() };
 }
 
+// 10. AI Chat Sidebar — stateful conversational code assistant
+async function chatWithAI(messages, activeCode, language, apiKey = '') {
+  const systemPrompt = `You are a helpful, expert AI programming assistant in a collaborative real-time IDE.
+The user is currently working on a file in ${language}.
+${activeCode ? `Here is the active code of the file for your context:
+\`\`\`${language}
+${activeCode}
+\`\`\`
+` : 'No file context was provided.'}
+Rules:
+- Be concise, direct, and technically precise.
+- ALWAYS wrap code snippets in markdown code fences with correct language identifiers (e.g., \`\`\`javascript) to support high-quality syntax highlighting.
+- Answer user follow-up questions step-by-step when explaining complex logic.`;
+
+  const formattedMessages = [
+    { role: 'system', content: systemPrompt },
+    ...messages.map(m => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.content
+    }))
+  ];
+
+  const response = await getGroqClient(apiKey).chat.completions.create({
+    model: MODEL,
+    messages: formattedMessages,
+    temperature: 0.5,
+    max_tokens: 2000,
+  });
+
+  let reply = response.choices[0].message.content || '';
+
+  // Clean up any potential <think> tags robustly
+  const thinkStart = reply.indexOf('<think>');
+  if (thinkStart !== -1) {
+    const thinkEnd = reply.indexOf('</think>');
+    if (thinkEnd !== -1) {
+      reply = reply.substring(0, thinkStart) + reply.substring(thinkEnd + 8);
+    } else {
+      reply = reply.substring(0, thinkStart);
+    }
+  }
+
+  return { content: reply.trim() };
+}
+
 module.exports = {
   explainError,
   fixCodeAI,
@@ -340,5 +385,7 @@ module.exports = {
   askFollowUpAI,
   generateCommitMessageAI,
   inlineCompleteAI,
+  chatWithAI,
 };
+
 

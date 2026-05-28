@@ -24,6 +24,7 @@ import AuthModal from '../Auth/AuthModal';
 import ChatPanel from '../Chat/ChatPanel';
 import FileIcon from '../Icons/FileIcon';
 import HistoryPanel from './HistoryPanel';
+import AIChatPanel from './AIChatPanel';
 import AIResponsePanel from './AIResponsePanel';
 import ApiKeyModal from './ApiKeyModal';
 import CollaborationControls from './CollaborationControls';
@@ -53,6 +54,7 @@ export default function EditorPage({ user }) {
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiKeyStatus, setApiKeyStatus] = useState(getApiKeyStatus);
@@ -805,7 +807,10 @@ export default function EditorPage({ user }) {
               <button
                 className="toolbar-icon-btn"
                 aria-label="Toggle History"
-                onClick={() => setShowHistory(!showHistory)}
+                onClick={() => {
+                  setShowHistory(!showHistory);
+                  setShowAIChat(false);
+                }}
                 title="History"
                 style={
                   showHistory ? { background: 'var(--bg-active)', color: 'var(--accent)' } : {}
@@ -824,6 +829,31 @@ export default function EditorPage({ user }) {
                 </svg>
               </button>
             )}
+            <button
+              className="toolbar-icon-btn"
+              aria-label="Toggle AI Chat"
+              onClick={() => {
+                setShowAIChat(!showAIChat);
+                setShowHistory(false);
+              }}
+              title="AI Chat Assistant"
+              style={
+                showAIChat ? { background: 'rgba(139, 92, 246, 0.12)', color: '#a78bfa', borderColor: 'rgba(139, 92, 246, 0.3)' } : {}
+              }
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z" />
+              </svg>
+            </button>
             <div className="audio-settings-wrap">
               <button
                 className="toolbar-icon-btn"
@@ -1095,6 +1125,19 @@ export default function EditorPage({ user }) {
           />
         )}
 
+        {/* AI Chat Sidebar Panel (desktop) */}
+        {showAIChat && !isMobile && (
+          <AIChatPanel
+            activeCode={editor.code}
+            language={editor.language}
+            onClose={() => setShowAIChat(false)}
+            onApplyFix={(code) => {
+              editor.setCode(code);
+              toast.success('AI code suggestion applied!');
+            }}
+          />
+        )}
+
         {/* OUTPUT PANE */}
         <div
           className="output-pane"
@@ -1317,6 +1360,31 @@ export default function EditorPage({ user }) {
               onClose={() => setMobileTab(MOBILE_TABS.CODE)}
             />
           </div>
+        </div>
+      )}
+
+      {/* AI Chat Sidebar Panel (mobile full-screen overlay) */}
+      {showAIChat && isMobile && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 50,
+            background: 'var(--bg-0)',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <AIChatPanel
+            activeCode={editor.code}
+            language={editor.language}
+            onClose={() => setShowAIChat(false)}
+            onApplyFix={(code) => {
+              editor.setCode(code);
+              toast.success('AI code suggestion applied!');
+              setShowAIChat(false);
+            }}
+          />
         </div>
       )}
 
