@@ -5,8 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Settings } from 'lucide-react';
-import { Menu } from 'lucide-react';
+import { Eye, EyeOff, Settings, Menu } from 'lucide-react';
 
 import {
   useRoom,
