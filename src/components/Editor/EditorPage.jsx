@@ -81,23 +81,22 @@ export default function EditorPage({ user }) {
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
   const handleCopyOutput = async () => {
-  if (!execution.stdout) return;
+    if (!execution.stdout) return;
 
-      try {
-        await navigator.clipboard.writeText(execution.stdout);
+    try {
+      await navigator.clipboard.writeText(execution.stdout);
 
-        setCopied(true);
+      setCopied(true);
 
-        toast.success('Output copied!');
+      toast.success('Output copied!');
 
-        setTimeout(() => {
-          setCopied(false);
-        }, 2000);
-
-      } catch (err) {
-        toast.error('Failed to copy output');
-      }
-    };
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch (err) {
+      toast.error('Failed to copy output');
+    }
+  };
 
   const editor = useEditor({
     user,
@@ -290,7 +289,14 @@ export default function EditorPage({ user }) {
   const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
 
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', '--blur-intensity': `${blurIntensity}px` }}>
+    <div
+      style={{
+        height: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        '--blur-intensity': `${blurIntensity}px`,
+      }}
+    >
       {/* ===== TOP BAR ===== */}
       <div className="topbar px-2 px-md-3">
         <div className="topbar-left d-flex align-items-center">
@@ -720,7 +726,11 @@ export default function EditorPage({ user }) {
                 <Settings size={14} />
               </button>
               {showSettings && (
-                <div className="audio-settings-popover custom-layout-popover" role="dialog" aria-label="Settings">
+                <div
+                  className="audio-settings-popover custom-layout-popover"
+                  role="dialog"
+                  aria-label="Settings"
+                >
                   <div className="audio-settings-head">
                     <span>Settings</span>
                     <button
@@ -775,7 +785,9 @@ export default function EditorPage({ user }) {
                       <i className="bi bi-sliders" style={{ fontSize: '14px' }} />
                       <span>Wallpaper Blur</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}
+                    >
                       <input
                         type="range"
                         min="0"
@@ -783,7 +795,7 @@ export default function EditorPage({ user }) {
                         step="1"
                         value={blurIntensity}
                         onChange={(e) => setBlurIntensity(Number(e.target.value))}
-                        style={{ flex: 1, accentColor: '#00bcd4' }} 
+                        style={{ flex: 1, accentColor: '#00bcd4' }}
                       />
                       <span style={{ fontSize: '12px', minWidth: '30px', textAlign: 'right' }}>
                         {blurIntensity}px
@@ -1030,7 +1042,7 @@ export default function EditorPage({ user }) {
         >
           <div className="output-tabs">
             {/* copy */}
-             <div
+            <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1062,7 +1074,7 @@ export default function EditorPage({ user }) {
                   {copied ? '✓' : '📋'}
                 </button>
               )}
-             </div>
+            </div>
             {execution.stderr && (
               <button
                 className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDERR ? 'active' : ''}`}
@@ -1278,28 +1290,19 @@ export default function EditorPage({ user }) {
           onStatusChange={() => setApiKeyStatus(getApiKeyStatus())}
         />
       )}
-{showAccount && user && (
-  <AccountSettings
-    onClose={() => setShowAccount(false)}
-    user={user}
-  />
-)}
+      {showAccount && user && <AccountSettings onClose={() => setShowAccount(false)} user={user} />}
 
-{/* Video Call Overlay */}
-{showVideoCall && room.roomId && (
-  <VideoCall
-    roomId={room.roomId}
-    userName={
-      user?.displayName ||
-      user?.email?.split('@')[0] ||
-      'Guest'
-    }
-    onClose={() => setShowVideoCall(false)}
-  />
-)}
+      {/* Video Call Overlay */}
+      {showVideoCall && room.roomId && (
+        <VideoCall
+          roomId={room.roomId}
+          userName={user?.displayName || user?.email?.split('@')[0] || 'Guest'}
+          onClose={() => setShowVideoCall(false)}
+        />
+      )}
 
-{/* Real-time Democratic Vote Popup */}
-<VotePopup room={room} user={user} />
+      {/* Real-time Democratic Vote Popup */}
+      <VotePopup room={room} user={user} />
     </div>
   );
 }
