@@ -2,8 +2,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /rooms/{roomId} {
-      // Anyone can read a room
-      allow read: if true;
+      // Only authenticated users can read a room
+      allow read: if request.auth != null;
       
       // Creating a room requires auth and setting yourself as host
       allow create: if request.auth != null 
