@@ -15,6 +15,7 @@ import {
   useAudioFeedback,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
+import { initVimMode } from 'monaco-vim';
 import {
   loadCDNDictionary,
   spellCheckText,
@@ -57,6 +58,15 @@ function getApiKeyStatus() {
 export default function EditorPage({ user }) {
   const navigate = useNavigate();
   const editorRef = useRef(null);
+
+  // ─── Vim Keybindings State & Refs ──────────────────────────────────────────
+  const [vimModeEnabled, setVimModeEnabled] = useState(() => {
+    const stored = localStorage.getItem('debugra-vim-enabled');
+    return stored === 'true';
+  });
+  const [editorInstance, setEditorInstance] = useState(null);
+  const vimModeRef = useRef(null);
+  const vimStatusRef = useRef(null);
 
   // ─── Spell Checker State & Refs ─────────────────────────────────────────────
   const [spellCheckEnabled, setSpellCheckEnabled] = useState(() => {
@@ -254,6 +264,56 @@ export default function EditorPage({ user }) {
     return () => clearTimeout(timer);
   }, [editor.code, spellCheckEnabled, userDict, runSpellCheck]);
 
+  // Sync Vim Mode setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('debugra-vim-enabled', String(vimModeEnabled));
+  }, [vimModeEnabled]);
+
+  // Handle Vim Keybindings lifecycle
+  useEffect(() => {
+    if (!editorInstance) return;
+
+    // Clean up any existing vim mode
+    if (vimModeRef.current) {
+      try {
+        vimModeRef.current.dispose();
+      } catch (err) {
+        console.error('Error disposing vim mode:', err);
+      }
+      vimModeRef.current = null;
+    }
+
+    let initTimeout = null;
+    const tryInitVim = () => {
+      if (vimModeEnabled) {
+        if (vimStatusRef.current) {
+          try {
+            vimModeRef.current = initVimMode(editorInstance, vimStatusRef.current);
+          } catch (err) {
+            console.error('Failed to initialize Vim mode:', err);
+          }
+        } else {
+          // Retry shortly if the status bar element isn't in DOM yet
+          initTimeout = setTimeout(tryInitVim, 50);
+        }
+      }
+    };
+
+    tryInitVim();
+
+    return () => {
+      if (initTimeout) clearTimeout(initTimeout);
+      if (vimModeRef.current) {
+        try {
+          vimModeRef.current.dispose();
+        } catch (err) {
+          console.error('Error disposing vim mode in cleanup:', err);
+        }
+        vimModeRef.current = null;
+      }
+    };
+  }, [vimModeEnabled, editorInstance]);
+
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
     if (!window.__MONACO_SNIPPETS_REGISTERED__) {
@@ -365,6 +425,7 @@ export default function EditorPage({ user }) {
 
   const handleEditorMount = (editorInstance) => {
     editorRef.current = editorInstance;
+    setEditorInstance(editorInstance);
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
@@ -1042,6 +1103,31 @@ export default function EditorPage({ user }) {
                       </div>
                     </div>
                   )}
+                  {/* ===== VIM KEYBINDINGS ROW ===== */}
+                  <div className="audio-settings-row" style={{ borderTop: '1px solid var(--border)', paddingTop: '10px', marginTop: '10px' }}>
+                    <div className="audio-settings-label">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
+                        <line x1="6" y1="8" x2="6" y2="8" />
+                        <line x1="10" y1="8" x2="10" y2="8" />
+                        <line x1="14" y1="8" x2="14" y2="8" />
+                        <line x1="18" y1="8" x2="18" y2="8" />
+                        <line x1="6" y1="12" x2="6" y2="12" />
+                        <line x1="10" y1="12" x2="10" y2="12" />
+                        <line x1="14" y1="12" x2="14" y2="12" />
+                        <line x1="18" y1="12" x2="18" y2="12" />
+                        <line x1="7" y1="16" x2="17" y2="16" />
+                      </svg>
+                      <span>Vim Mode</span>
+                    </div>
+                    <button
+                      className={`audio-toggle ${vimModeEnabled ? 'active' : ''}`}
+                      aria-pressed={vimModeEnabled}
+                      onClick={() => setVimModeEnabled(!vimModeEnabled)}
+                    >
+                      {vimModeEnabled ? 'On' : 'Off'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1413,6 +1499,8 @@ export default function EditorPage({ user }) {
         user={user}
         spellCheckEnabled={spellCheckEnabled}
         typoCount={activeTypos.length}
+        vimModeEnabled={vimModeEnabled}
+        vimStatusRef={vimStatusRef}
         onTypoClick={() => {
           if (activeTypos.length > 0 && editorRef.current) {
             const editorInstance = editorRef.current;

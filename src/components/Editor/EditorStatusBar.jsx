@@ -17,6 +17,8 @@ export default function EditorStatusBar({
   user,
   spellCheckEnabled = false,
   typoCount = 0,
+  vimModeEnabled = false,
+  vimStatusRef,
   onTypoClick,
 }) {
   const { roomId, activeUsers, showOnlineDropdown, setShowOnlineDropdown } = room;
@@ -24,6 +26,13 @@ export default function EditorStatusBar({
   return (
     <div className="statusbar">
       <div className="statusbar-left">
+        {/* Vim Mode Status Log */}
+        {vimModeEnabled && (
+          <div
+            ref={vimStatusRef}
+            className="statusbar-vim-status"
+          />
+        )}
         {/* Error/Success count */}
         <span title={execStatus.text}>
           {execStatus.type === 'error' ? (
