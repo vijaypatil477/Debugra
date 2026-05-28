@@ -26,6 +26,7 @@ export function useExecution({
   isMobile,
   setMobileTab,
   audioFeedback,
+  tts,
   user,
   room,
 }) {
@@ -142,9 +143,11 @@ export function useExecution({
       if (result.status?.id === 3) {
         setExecStatus(EXEC_STATUS.SUCCESS);
         audioFeedback?.playOutcome?.('success');
+        tts?.speak?.('success',elapsed + 's');
       } else {
         setExecStatus({ type: 'error', text: result.status?.description || 'Error' });
         audioFeedback?.playOutcome?.('error');
+        tts?.speak?.('error');
         if (result.stderr) setActiveOutputTab(OUTPUT_TABS.STDERR);
       }
     } catch (err) {

@@ -13,6 +13,7 @@ import {
   useEditor,
   useIsMobile,
   useAudioFeedback,
+  useTTS,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
@@ -78,6 +79,7 @@ export default function EditorPage({ user }) {
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
+  const tts = useTTS();
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
   const handleCopyOutput = async () => {
@@ -125,6 +127,7 @@ export default function EditorPage({ user }) {
     isMobile,
     setMobileTab,
     audioFeedback,
+    tts,
     user,
     room,
   });
@@ -822,6 +825,18 @@ export default function EditorPage({ user }) {
                   >
                     Test chime
                   </button>
+                  <div className="audio-settings-row" style={{ marginTop: '8px' }}>
+                    <div className="audio-settings-label">
+                      <span>🔊 Voice alerts</span>
+                    </div>
+                    <button
+                      className={`audio-toggle ${tts.ttsEnabled ? 'active' : ''}`}
+                      aria-pressed={tts.ttsEnabled}
+                      onClick={() => tts.setTTSEnabled(!tts.ttsEnabled)}
+                    >
+                      {tts.ttsEnabled ? 'On' : 'Off'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
