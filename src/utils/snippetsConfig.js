@@ -735,4 +735,52 @@ export const registerSnippets = (monaco) => {
       ],
     }),
   });
+
+  // --- HTML ---
+  monaco.languages.registerCompletionItemProvider('html', {
+    provideCompletionItems: (model, position) => ({
+      suggestions: [
+        {
+          label: 'html5',
+          kind: snippetKind,
+          insertText: '<!DOCTYPE html>\n<html lang="en">\n<head>\n\t<meta charset="UTF-8">\n\t<meta name="viewport" content="width=device-width, initial-scale=1.0">\n\t<title>$1</title>\n</head>\n<body>\n\t$2\n</body>\n</html>',
+          insertTextRules: insertSnippet,
+          documentation: 'HTML5 Boilerplate',
+          range: getRange(model, position),
+        },
+        {
+          label: 'div',
+          kind: snippetKind,
+          insertText: '<div class="$1">\n\t$2\n</div>',
+          insertTextRules: insertSnippet,
+          documentation: 'Div element',
+          range: getRange(model, position),
+        },
+      ],
+    }),
+  });
+
+  // --- CSS ---
+  monaco.languages.registerCompletionItemProvider('css', {
+    provideCompletionItems: (model, position) => ({
+      suggestions: [
+        {
+          label: 'flex',
+          kind: snippetKind,
+          insertText: 'display: flex;\njustify-content: $1;\nalign-items: $2;',
+          insertTextRules: insertSnippet,
+          documentation: 'Flexbox container',
+          range: getRange(model, position),
+        },
+        {
+          label: 'grid',
+          kind: snippetKind,
+          insertText: 'display: grid;\ngrid-template-columns: $1;',
+          insertTextRules: insertSnippet,
+          documentation: 'Grid container',
+          range: getRange(model, position),
+        },
+      ],
+    }),
+  });
 };
