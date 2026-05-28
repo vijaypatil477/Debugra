@@ -241,6 +241,33 @@ Respond in this EXACT JSON format:
   );
 }
 
+async function optimizeIdentifiersAI(code, language, apiKey = '') {
+  return chatCompletion(
+    `You are an expert code refactoring assistant specializing in identifier readability, standard naming conventions, and clean code principles. Analyze the code and suggest improvements for unreadable, temporary, or poorly named variables and functions. Always respond in valid JSON.`,
+    `Analyze this ${language} code for unreadable, temporary, or inconsistent variable/function names:
+
+${code}
+
+Respond in this EXACT JSON format:
+{
+  "suggestions": [
+    {
+      "oldName": "current variable/function name",
+      "newName": "better descriptive name following standard naming conventions",
+      "explanation": "short rationale of why this change improves clarity/intent",
+      "confidence": 95
+    }
+  ]
+}
+
+Rules:
+- Provide an empty suggestions array if all names are already highly descriptive and follow best practices.
+- The confidence score should be an integer between 0 and 100.
+- Make suggestions context-aware (e.g. use proper terminology for the domain).`,
+    apiKey
+  );
+}
+
 module.exports = {
   explainError,
   fixCodeAI,
@@ -250,4 +277,5 @@ module.exports = {
   visualizeAI,
   explainCodeSnippetAI,
   askFollowUpAI,
+  optimizeIdentifiersAI,
 };
