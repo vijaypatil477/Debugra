@@ -4,7 +4,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings } from 'lucide-react';
+import { Settings, Volume2, VolumeX, Menu } from 'lucide-react';
 
 import {
   useRoom,
@@ -442,6 +442,17 @@ export default function EditorPage({ user }) {
       {/* ===== TOP BAR ===== */}
       <div className="topbar px-2 px-md-3">
         <div className="topbar-left d-flex align-items-center">
+          {isMobile && (
+            <button
+              className="mobile-drawer-toggle"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={drawerOpen}
+              title="Menu"
+            >
+              <Menu size={18} />
+            </button>
+          )}
           <button
             onClick={() => navigate('/')}
             className="topbar-logo d-flex align-items-center gap-2"

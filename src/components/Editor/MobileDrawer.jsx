@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu, X, Volume2, VolumeX } from 'lucide-react';
+import { X, Volume2, VolumeX } from 'lucide-react';
 import { EDITOR_THEMES } from '../../config/constants';
 import HistoryPanel from './HistoryPanel';
 
@@ -33,17 +33,6 @@ export default function MobileDrawer({
 
   return (
     <>
-      {/* ===== HAMBURGER BUTTON ===== */}
-      <button
-        className="mobile-drawer-toggle"
-        onClick={onOpen}
-        aria-label="Open menu"
-        aria-expanded={isOpen}
-        title="Menu"
-      >
-        <Menu size={20} />
-      </button>
-
       {/* ===== DRAWER OVERLAY ===== */}
       {isOpen && (
         <div
