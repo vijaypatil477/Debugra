@@ -8,6 +8,9 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import ChatMessage from './ChatMessage';
+import ChatHeader from './ChatHeader';
+import ChatInput from './ChatInput';
 
 const hashColor = (str) => {
   const colors = [
@@ -23,12 +26,6 @@ const hashColor = (str) => {
   let hash = 0;
   for (let i = 0; i < (str || '').length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
   return colors[Math.abs(hash) % colors.length];
-};
-
-const formatTime = (timestamp) => {
-  if (!timestamp?.toDate) return '';
-  const d = timestamp.toDate();
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
 export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
@@ -64,12 +61,16 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
     if (!input.trim() || !roomId || !user) return;
     const msg = input.trim();
     setInput('');
-    await addDoc(collection(db, 'rooms', roomId, 'messages'), {
-      text: msg,
-      uid: user.uid,
-      displayName: user.displayName || user.email?.split('@')[0] || 'User',
-      createdAt: serverTimestamp(),
-    });
+    try {
+      await addDoc(collection(db, 'rooms', roomId, 'messages'), {
+        text: msg,
+        uid: user.uid,
+        displayName: user.displayName || user.email?.split('@')[0] || 'User',
+        createdAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    }
   };
   const handleDownloadReport = () => {
     if (!messages || messages.length === 0) {
@@ -113,6 +114,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
         <button
           onClick={onToggle}
           title="Team Chat"
+          aria-label="Toggle Team Chat"
           className="chat-fab"
           style={{
             position: 'fixed',
@@ -194,124 +196,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
             fontFamily: "'Inter', system-ui, sans-serif",
           }}
         >
-          {/* Header */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '12px 14px',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-              background: '#252526',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#94a3b8"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              <div>
-                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#e2e8f0' }}>
-                  Team Chat
-                </div>
-                <div style={{ fontSize: '0.6rem', color: '#64748b' }}>{roomId}</div>
-              </div>
-            </div>
-            {/* Download Report Button */}
-            <button
-              onClick={handleDownloadReport}
-              title="Download Report as Markdown"
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '4px',
-                borderRadius: '4px',
-                color: '#94a3b8',
-                transition: 'color 0.2s',
-                marginRight: 'auto',
-                marginLeft: '8px',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#e2e8f0')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
-            >
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '0.55rem',
-                  color: '#10b981',
-                  fontWeight: 600,
-                }}
-              >
-                <span
-                  style={{
-                    width: '5px',
-                    height: '5px',
-                    borderRadius: '50%',
-                    background: '#10b981',
-                  }}
-                />
-                Live
-              </span>
-              <button
-                onClick={onToggle}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: '#e2e8f0',
-                }}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-          </div>
+          <ChatHeader roomId={roomId} onDownloadReport={handleDownloadReport} onToggle={onToggle} />
 
           {/* Messages */}
           <div
@@ -359,69 +244,13 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
               const initial = (msg.displayName?.[0] || '?').toUpperCase();
 
               return (
-                <div
+                <ChatMessage
                   key={msg.id}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: isMe ? 'flex-end' : 'flex-start',
-                    marginTop: msg.showHeader ? '10px' : '2px',
-                  }}
-                >
-                  {msg.showHeader && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        marginBottom: '3px',
-                        padding: '0 2px',
-                        flexDirection: isMe ? 'row-reverse' : 'row',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '4px',
-                          background: isMe ? '#374151' : avatarColor,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.5rem',
-                          fontWeight: 700,
-                          color: 'white',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {initial}
-                      </div>
-                      <span style={{ fontSize: '0.6rem', color: '#64748b', fontWeight: 600 }}>
-                        {isMe ? 'You' : msg.displayName}
-                      </span>
-                      <span style={{ fontSize: '0.5rem', color: '#334155' }}>
-                        {formatTime(msg.createdAt)}
-                      </span>
-                    </div>
-                  )}
-                  <div
-                    style={{
-                      maxWidth: '80%',
-                      padding: '7px 10px',
-                      borderRadius: '8px',
-                      borderTopLeftRadius: !isMe && msg.showHeader ? '2px' : '8px',
-                      borderTopRightRadius: isMe && msg.showHeader ? '2px' : '8px',
-                      background: isMe ? '#2d2d2d' : 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      color: '#cbd5e1',
-                      fontSize: '0.76rem',
-                      lineHeight: 1.5,
-                      wordBreak: 'break-word',
-                    }}
-                  >
-                    {msg.text}
-                  </div>
-                </div>
+                  msg={msg}
+                  isMe={isMe}
+                  avatarColor={avatarColor}
+                  initial={initial}
+                />
               );
             })}
             <div ref={bottomRef} />
@@ -465,6 +294,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
               <button
                 onClick={handleSend}
                 disabled={!input.trim()}
+                aria-label="Send Message"
                 style={{
                   width: '30px',
                   height: '30px',
