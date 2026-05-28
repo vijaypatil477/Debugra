@@ -1828,6 +1828,17 @@ body {
   }
   .topbar {
     padding: 0 8px;
+    gap: 4px;
+  }
+  .topbar-left {
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+  .topbar-logo {
+    flex-shrink: 0;
+  }
+  .topbar-logo span {
+    display: none;
   }
   .topbar-right .room-controls {
     display: none;
@@ -2033,14 +2044,12 @@ body {
 
 /* ============ MOBILE DRAWER ============ */
 .mobile-drawer-toggle {
-  display: none;
-  position: fixed;
-  top: 8px;
-  left: 8px;
+  display: flex;
+  position: relative;
   z-index: 45;
-  width: 36px;
-  height: 36px;
-  padding: 6px;
+  width: 32px;
+  height: 32px;
+  padding: 4px;
   background: var(--bg-2);
   border: 1px solid var(--border);
   color: var(--text-0);
@@ -2049,6 +2058,8 @@ body {
   transition: all 0.2s ease;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  margin-right: 8px;
 }
 
 .mobile-drawer-toggle:hover {
@@ -2061,9 +2072,9 @@ body {
   transform: scale(0.95);
 }
 
-@media (max-width: 768px) {
+@media (min-width: 769px) {
   .mobile-drawer-toggle {
-    display: flex;
+    display: none;
   }
 }
 
