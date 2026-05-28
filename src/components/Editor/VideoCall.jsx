@@ -9,6 +9,8 @@ import {
   addDoc,
   updateDoc,
   serverTimestamp,
+  query,
+  orderBy,
 } from 'firebase/firestore';
 import './VideoCall.css';
 
@@ -31,6 +33,17 @@ const VideoCall = ({ roomId, userName, onClose }) => {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [error, setError] = useState(null);
+
+  // Whiteboard state
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [brushColor, setBrushColor] = useState('#a78bfa'); // Sleek Neon Purple
+  const [brushWidth, setBrushWidth] = useState(5);
+  const [isEraser, setIsEraser] = useState(false);
+  const [strokes, setStrokes] = useState([]);
+
+  const canvasRef = useRef(null);
+  const currentStrokePoints = useRef([]);
 
   const localVideoRef = useRef(null);
   const peersRef = useRef(new Map());
@@ -386,6 +399,163 @@ const VideoCall = ({ roomId, userName, onClose }) => {
     onClose?.();
   };
 
+  // ── Whiteboard Syncing & Event Handlers ───────────
+  useEffect(() => {
+    if (!roomId) return;
+    const q = query(
+      collection(db, 'rooms', roomId, 'drawings'),
+      orderBy('createdAt', 'asc')
+    );
+    return onSnapshot(q, (snap) => {
+      const remoteStrokes = snap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setStrokes(remoteStrokes);
+    });
+  }, [roomId]);
+
+  const redrawCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Premium dark canvas background color
+    ctx.fillStyle = '#0d0d1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Dynamic grid lines for that blueprint/technical feel
+    ctx.strokeStyle = 'rgba(139, 92, 246, 0.05)';
+    ctx.lineWidth = 1;
+    const gridSize = 40;
+    for (let x = 0; x < canvas.width; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+    for (let y = 0; y < canvas.height; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+
+    // Render each stroke
+    strokes.forEach((stroke) => {
+      if (!stroke.points || stroke.points.length < 2) return;
+      ctx.beginPath();
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = stroke.width;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      const first = stroke.points[0];
+      ctx.moveTo(first.x * canvas.width, first.y * canvas.height);
+
+      for (let i = 1; i < stroke.points.length; i++) {
+        const pt = stroke.points[i];
+        ctx.lineTo(pt.x * canvas.width, pt.y * canvas.height);
+      }
+      ctx.stroke();
+    });
+  }, [strokes]);
+
+  useEffect(() => {
+    redrawCanvas();
+  }, [redrawCanvas, showWhiteboard]);
+
+  const handleStartDraw = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    if (clientX === undefined || clientY === undefined) return;
+
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
+
+    setIsDrawing(true);
+    currentStrokePoints.current = [{ x, y }];
+
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.strokeStyle = isEraser ? '#0d0d1a' : brushColor;
+    ctx.lineWidth = brushWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.moveTo(x * canvas.width, y * canvas.height);
+  };
+
+  const handleDrawing = (e) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    if (clientX === undefined || clientY === undefined) return;
+
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
+
+    currentStrokePoints.current.push({ x, y });
+
+    const ctx = canvas.getContext('2d');
+    ctx.lineTo(x * canvas.width, y * canvas.height);
+    ctx.stroke();
+  };
+
+  const handleStopDraw = async () => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+
+    if (currentStrokePoints.current.length > 1 && roomId) {
+      try {
+        await addDoc(collection(db, 'rooms', roomId, 'drawings'), {
+          points: currentStrokePoints.current,
+          color: isEraser ? '#0d0d1a' : brushColor,
+          width: brushWidth,
+          createdAt: serverTimestamp(),
+        });
+      } catch (err) {
+        console.error('Failed to sync drawing:', err);
+      }
+    }
+    currentStrokePoints.current = [];
+  };
+
+  const clearCanvas = async () => {
+    if (!roomId) return;
+    try {
+      const deletePromises = strokes.map((s) =>
+        deleteDoc(doc(db, 'rooms', roomId, 'drawings', s.id))
+      );
+      await Promise.all(deletePromises);
+    } catch (err) {
+      console.error('Failed to clear canvas:', err);
+    }
+  };
+
+  const exportImage = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Convert canvas data to PNG Data URL
+    const dataUrl = canvas.toDataURL('image/png');
+
+    // Create a temporary virtual link to trigger instant download
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = `whiteboard-${roomId || 'session'}.png`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // ── Render ───────────────────────────────────────
   return (
     <div className="vc-overlay">
@@ -421,42 +591,121 @@ const VideoCall = ({ roomId, userName, onClose }) => {
           </div>
         )}
 
-        <div className="vc-grid">
-          {/* Local video tile */}
-          <div className="vc-tile vc-tile--local">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              muted
-              playsInline
-              className={`vc-video ${isScreenSharing ? 'vc-video--screen' : ''}`}
-            />
-            {isVideoOff && <div className="vc-video-off">📷 Camera Off</div>}
-            <div className="vc-tile-label">
-              {userName || 'You'} (You){isMuted ? ' 🔇' : ''}
-              {isScreenSharing ? ' (Sharing)' : ''}
-            </div>
-          </div>
+        <div className={`vc-body-layout ${showWhiteboard ? 'vc-body-layout--split' : ''}`}>
+          {showWhiteboard && (
+            <div className="vc-whiteboard-panel">
+              <div className="vc-whiteboard-tools">
+                <div className="vc-tool-section">
+                  <span className="vc-tool-label">Colors:</span>
+                  <div className="vc-color-palette">
+                    {[
+                      { value: '#a78bfa', label: 'Purple' },
+                      { value: '#38bdf8', label: 'Blue' },
+                      { value: '#4ade80', label: 'Green' },
+                      { value: '#fb7185', label: 'Coral' },
+                      { value: '#f8f8f2', label: 'White' },
+                    ].map((color) => (
+                      <button
+                        key={color.value}
+                        className={`vc-color-btn ${brushColor === color.value && !isEraser ? 'vc-color-btn--active' : ''}`}
+                        style={{ backgroundColor: color.value }}
+                        onClick={() => {
+                          setBrushColor(color.value);
+                          setIsEraser(false);
+                        }}
+                        title={color.label}
+                      />
+                    ))}
+                    <button
+                      className={`vc-eraser-btn ${isEraser ? 'vc-eraser-btn--active' : ''}`}
+                      onClick={() => setIsEraser(true)}
+                      title="Eraser"
+                    >
+                      🧽
+                    </button>
+                  </div>
+                </div>
 
-          {/* Remote peer tiles */}
-          {Array.from(peers.values()).map((peer) => (
-            <div key={peer.id} className="vc-tile">
-              <video
-                autoPlay
-                playsInline
-                className={`vc-video ${peer.isScreenSharing ? 'vc-video--screen' : ''}`}
-                ref={(el) => {
-                  if (el && peer.stream) el.srcObject = peer.stream;
-                }}
-              />
-              {peer.isVideoOff && <div className="vc-video-off">📷 Camera Off</div>}
-              <div className="vc-tile-label">
-                {peer.name || 'Peer'}
-                {peer.isMuted ? ' 🔇' : ''}
-                {peer.isScreenSharing ? ' (Sharing)' : ''}
+                <div className="vc-tool-section">
+                  <span className="vc-tool-label">Size:</span>
+                  <div className="vc-size-palette">
+                    {[2, 5, 10, 20].map((size) => (
+                      <button
+                        key={size}
+                        className={`vc-size-btn ${brushWidth === size ? 'vc-size-btn--active' : ''}`}
+                        onClick={() => setBrushWidth(size)}
+                      >
+                        {size}px
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="vc-tool-actions">
+                  <button className="vc-action-btn vc-action-btn--clear" onClick={clearCanvas} title="Clear board for everyone">
+                    🗑️ Clear
+                  </button>
+                  <button className="vc-action-btn vc-action-btn--export" onClick={exportImage} title="Export as PNG">
+                    📥 Export Image
+                  </button>
+                </div>
+              </div>
+
+              <div className="vc-canvas-wrapper">
+                <canvas
+                  ref={canvasRef}
+                  width={1200}
+                  height={900}
+                  className="vc-canvas"
+                  onMouseDown={handleStartDraw}
+                  onMouseMove={handleDrawing}
+                  onMouseUp={handleStopDraw}
+                  onMouseLeave={handleStopDraw}
+                  onTouchStart={handleStartDraw}
+                  onTouchMove={handleDrawing}
+                  onTouchEnd={handleStopDraw}
+                />
               </div>
             </div>
-          ))}
+          )}
+
+          <div className={`vc-grid ${showWhiteboard ? 'vc-grid--sidebar' : ''}`}>
+            {/* Local video tile */}
+            <div className="vc-tile vc-tile--local">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className={`vc-video ${isScreenSharing ? 'vc-video--screen' : ''}`}
+              />
+              {isVideoOff && <div className="vc-video-off">📷 Camera Off</div>}
+              <div className="vc-tile-label">
+                {userName || 'You'} (You){isMuted ? ' 🔇' : ''}
+                {isScreenSharing ? ' (Sharing)' : ''}
+              </div>
+            </div>
+
+            {/* Remote peer tiles */}
+            {Array.from(peers.values()).map((peer) => (
+              <div key={peer.id} className="vc-tile">
+                <video
+                  autoPlay
+                  playsInline
+                  className={`vc-video ${peer.isScreenSharing ? 'vc-video--screen' : ''}`}
+                  ref={(el) => {
+                    if (el && peer.stream) el.srcObject = peer.stream;
+                  }}
+                />
+                {peer.isVideoOff && <div className="vc-video-off">📷 Camera Off</div>}
+                <div className="vc-tile-label">
+                  {peer.name || 'Peer'}
+                  {peer.isMuted ? ' 🔇' : ''}
+                  {peer.isScreenSharing ? ' (Sharing)' : ''}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="vc-controls">
@@ -480,6 +729,17 @@ const VideoCall = ({ roomId, userName, onClose }) => {
             title={isScreenSharing ? 'Stop Sharing' : 'Share Screen'}
           >
             🖥️
+          </button>
+          <button
+            className={`vc-ctrl-btn ${showWhiteboard ? 'vc-ctrl-btn--active' : ''}`}
+            onClick={() => setShowWhiteboard(!showWhiteboard)}
+            title={showWhiteboard ? 'Hide Whiteboard' : 'Show Whiteboard'}
+            style={{
+              borderColor: showWhiteboard ? 'rgba(167, 139, 250, 0.4)' : undefined,
+              background: showWhiteboard ? 'rgba(167, 139, 250, 0.15)' : undefined,
+            }}
+          >
+            🎨
           </button>
           <button className="vc-ctrl-btn vc-ctrl-btn--hangup" onClick={hangUp} title="Hang Up">
             📞
