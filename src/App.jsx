@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import LandingPage from './components/Landing/LandingPage';
 import EditorPage from './components/Editor/EditorPage';
 import OfflineBanner from "./components/Editor/OfflineBanner";
+import BacktoTop from './components/BacktoTop/BacktoTop';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/editor" element={<EditorPage user={user} />} />
       </Routes>
+      <BacktoTop/>
     </BrowserRouter>
   );
 }
