@@ -53,7 +53,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
   z-index: 10;
 }
 
@@ -61,7 +63,6 @@
   background-color: rgba(255, 255, 255, 0.08);
   color: #e2e8f0; /* Brighter color on hover */
 }
-
 
 /* ============ RESET ============ */
 *,
@@ -2257,14 +2258,16 @@ body {
 /* ===== GLASSMORPHISM BACKDROP EFFECT ===== */
 .glass-panel {
   /* Semi-transparent overlay color tint */
-  background-color: rgba(30, 30, 30, 0.75) !important; 
-  
+  background-color: rgba(30, 30, 30, 0.75) !important;
+
   /* Link browser engine filtering directly to your dynamic custom property hook */
   backdrop-filter: blur(var(--blur-intensity, 10px)) !important;
   -webkit-backdrop-filter: blur(var(--blur-intensity, 10px)) !important; /* Safari compatibility */
-  
+
   /* Smooth transition rendering animations when sliding */
-  transition: backdrop-filter 0.1s ease-out, -webkit-backdrop-filter 0.1s ease-out;
+  transition:
+    backdrop-filter 0.1s ease-out,
+    -webkit-backdrop-filter 0.1s ease-out;
 }
 /* Expand the settings popover bounding box to display the new options */
 .custom-layout-popover {
@@ -2292,7 +2295,8 @@ body {
 }
 
 /* 3. Soften the top tab headers for the glassy look */
-.editor-tab-bar, .output-tabs {
+.editor-tab-bar,
+.output-tabs {
   background-color: rgba(20, 20, 20, 0.3) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
