@@ -31,6 +31,7 @@ import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
+import SnippetManager from './SnippetManager';
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -41,6 +42,7 @@ function getApiKeyStatus() {
 export default function EditorPage({ user }) {
   const navigate = useNavigate();
   const editorRef = useRef(null);
+  const monacoRef = useRef(null); // NEW: store monaco instance for dynamic re-registration
 
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
@@ -58,6 +60,7 @@ export default function EditorPage({ user }) {
   const [outputWidth, setOutputWidth] = useState(420);
   const [minimapSide, setMinimapSide] = useState('right');
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsTab, setSettingsTab] = useState('general');
   const [showVideoCall, setShowVideoCall] = useState(false);
   const resizingRef = useRef(false);
 
@@ -66,23 +69,18 @@ export default function EditorPage({ user }) {
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
   const handleCopyOutput = async () => {
-  if (!execution.stdout) return;
-
-      try {
-        await navigator.clipboard.writeText(execution.stdout);
-
-        setCopied(true);
-
-        toast.success('Output copied!');
-
-        setTimeout(() => {
-          setCopied(false);
-        }, 2000);
-
-      } catch (err) {
-        toast.error('Failed to copy output');
-      }
-    };
+    if (!execution.stdout) return;
+    try {
+      await navigator.clipboard.writeText(execution.stdout);
+      setCopied(true);
+      toast.success('Output copied!');
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch (err) {
+      toast.error('Failed to copy output');
+    }
+  };
 
   const editor = useEditor({
     user,
@@ -130,6 +128,8 @@ export default function EditorPage({ user }) {
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
+    monacoRef.current = monaco; // ✅ store Monaco instance for later refresh
+
     if (!window.__MONACO_SNIPPETS_REGISTERED__) {
       registerSnippets(monaco);
       window.__MONACO_SNIPPETS_REGISTERED__ = true;
@@ -662,6 +662,7 @@ export default function EditorPage({ user }) {
               >
                 <Settings size={14} />
               </button>
+              {/* ===== SETTINGS POPOVER WITH TABS ===== */}
               {showSettings && (
                 <div className="audio-settings-popover" role="dialog" aria-label="Settings">
                   <div className="audio-settings-head">
@@ -674,57 +675,96 @@ export default function EditorPage({ user }) {
                       <i className="bi bi-x" />
                     </button>
                   </div>
-                  <div className="audio-settings-row">
-                    <div className="audio-settings-label">
-                      <i className="bi bi-palette" style={{ fontSize: '14px' }} />
-                      <span>Theme</span>
-                    </div>
-                    <select
-                      className="lang-select"
-                      value={editor.theme}
-                      onChange={(e) => editor.setTheme(e.target.value)}
-                      aria-label="Editor theme"
-                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
-                    >
-                      {EDITOR_THEMES.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.label}
-                        </option>
-                      ))}
-                    </select>
+
+                  {/* Tabs */}
+                  <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 8 }}>
+                    {['general', 'snippets'].map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setSettingsTab(tab)}
+                        style={{
+                          flex: 1,
+                          fontSize: '0.68rem',
+                          fontWeight: settingsTab === tab ? 700 : 400,
+                          color: settingsTab === tab ? 'var(--accent)' : 'var(--text-2)',
+                          background: 'none',
+                          border: 'none',
+                          borderBottom: settingsTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
+                          padding: '4px 0',
+                          cursor: 'pointer',
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {tab}
+                      </button>
+                    ))}
                   </div>
-                  <div className="audio-settings-row">
-                    <div className="audio-settings-label">
-                      {audioFeedback.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-                      <span>Audio feedback</span>
-                    </div>
-                    <button
-                      className={`audio-toggle ${audioFeedback.muted ? '' : 'active'}`}
-                      aria-pressed={!audioFeedback.muted}
-                      onClick={() => audioFeedback.setMuted(!audioFeedback.muted)}
-                    >
-                      {audioFeedback.muted ? 'Muted' : 'On'}
-                    </button>
-                  </div>
-                  <label className="audio-settings-slider">
-                    <span>Volume</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={audioFeedback.volume}
-                      onChange={(e) => audioFeedback.setVolume(e.target.value)}
+
+                  {/* General Tab */}
+                  {settingsTab === 'general' && (
+                    <>
+                      <div className="audio-settings-row">
+                        <div className="audio-settings-label">
+                          <i className="bi bi-palette" style={{ fontSize: '14px' }} />
+                          <span>Theme</span>
+                        </div>
+                        <select
+                          className="lang-select"
+                          value={editor.theme}
+                          onChange={(e) => editor.setTheme(e.target.value)}
+                          aria-label="Editor theme"
+                          style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                        >
+                          {EDITOR_THEMES.map((t) => (
+                            <option key={t.id} value={t.id}>{t.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="audio-settings-row">
+                        <div className="audio-settings-label">
+                          {audioFeedback.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                          <span>Audio feedback</span>
+                        </div>
+                        <button
+                          className={`audio-toggle ${audioFeedback.muted ? '' : 'active'}`}
+                          aria-pressed={!audioFeedback.muted}
+                          onClick={() => audioFeedback.setMuted(!audioFeedback.muted)}
+                        >
+                          {audioFeedback.muted ? 'Muted' : 'On'}
+                        </button>
+                      </div>
+                      <label className="audio-settings-slider">
+                        <span>Volume</span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          value={audioFeedback.volume}
+                          onChange={(e) => audioFeedback.setVolume(e.target.value)}
+                        />
+                        <span>{Math.round(audioFeedback.volume * 100)}%</span>
+                      </label>
+                      <button
+                        className="audio-test-btn"
+                        onClick={audioFeedback.testSound}
+                        disabled={audioFeedback.muted}
+                      >
+                        Test chime
+                      </button>
+                    </>
+                  )}
+
+                  {/* Snippets Tab — with refresh callback */}
+                  {settingsTab === 'snippets' && (
+                    <SnippetManager
+                      onSnippetsChange={() => {
+                        if (monacoRef.current) {
+                          registerSnippets(monacoRef.current);
+                        }
+                      }}
                     />
-                    <span>{Math.round(audioFeedback.volume * 100)}%</span>
-                  </label>
-                  <button
-                    className="audio-test-btn"
-                    onClick={audioFeedback.testSound}
-                    disabled={audioFeedback.muted}
-                  >
-                    Test chime
-                  </button>
+                  )}
                 </div>
               )}
             </div>

@@ -1,3 +1,13 @@
+const STORAGE_KEY = 'debugra_custom_snippets';
+
+function loadCustomSnippets() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
 export const registerSnippets = (monaco) => {
   // Helper to get range for replacing the typed snippet keyword
   const getRange = (model, position) => {
@@ -14,397 +24,117 @@ export const registerSnippets = (monaco) => {
   const insertSnippet = 4;
   const snippetKind = 27;
 
-  // --- JAVA ---
-  monaco.languages.registerCompletionItemProvider('java', {
-    provideCompletionItems: (model, position) => ({
-      suggestions: [
-        {
-          label: 'sysout',
-          kind: snippetKind,
-          insertText: 'System.out.println($1);',
-          insertTextRules: insertSnippet,
-          documentation: 'Print to standard output',
-          range: getRange(model, position),
-        },
-        {
-          label: 'syserr',
-          kind: snippetKind,
-          insertText: 'System.err.println($1);',
-          insertTextRules: insertSnippet,
-          documentation: 'Print to standard error',
-          range: getRange(model, position),
-        },
-        {
-          label: 'printf',
-          kind: snippetKind,
-          insertText: 'System.out.printf("$1\\n", $2);',
-          insertTextRules: insertSnippet,
-          documentation: 'Print formatted string',
-          range: getRange(model, position),
-        },
-        {
-          label: 'main',
-          kind: snippetKind,
-          insertText: 'public static void main(String[] args) {\n\t$1\n}',
-          insertTextRules: insertSnippet,
-          documentation: 'Main method',
-          range: getRange(model, position),
-        },
-        {
-          label: 'fori',
-          kind: snippetKind,
-          insertText: 'for (int i = 0; i < $1; i++) {\n\t$2\n}',
-          insertTextRules: insertSnippet,
-          documentation: 'For loop',
-          range: getRange(model, position),
-        },
-      ],
-    }),
-  });
+  // ─── Built-in snippets per language ───────────────────────────────────────
 
-  // --- C++ ---
-  monaco.languages.registerCompletionItemProvider('cpp', {
-    provideCompletionItems: (model, position) => ({
-      suggestions: [
-        {
-          label: 'cout',
-          kind: snippetKind,
-          insertText: 'cout << $1 << endl;',
-          insertTextRules: insertSnippet,
-          documentation: 'Print to console',
-          range: getRange(model, position),
-        },
-        {
-          label: 'cin',
-          kind: snippetKind,
-          insertText: 'cin >> $1;',
-          insertTextRules: insertSnippet,
-          documentation: 'Read from console',
-          range: getRange(model, position),
-        },
-        {
-          label: 'fori',
-          kind: snippetKind,
-          insertText: 'for (int i = 0; i < $1; i++) {\n\t$2\n}',
-          insertTextRules: insertSnippet,
-          documentation: 'For loop',
-          range: getRange(model, position),
-        },
-        {
-          label: 'main',
-          kind: snippetKind,
-          insertText: 'int main() {\n\t$1\n\treturn 0;\n}',
-          insertTextRules: insertSnippet,
-          documentation: 'Main function',
-          range: getRange(model, position),
-        },
-      ],
-    }),
-  });
-
-  // --- C ---
-  monaco.languages.registerCompletionItemProvider('c', {
-    provideCompletionItems: (model, position) => ({
-      suggestions: [
-        {
-          label: 'printf',
-          kind: snippetKind,
-          insertText: 'printf("$1\\n", $2);',
-          insertTextRules: insertSnippet,
-          documentation: 'Print to console',
-          range: getRange(model, position),
-        },
-        {
-          label: 'scanf',
-          kind: snippetKind,
-          insertText: 'scanf("%d", &$1);',
-          insertTextRules: insertSnippet,
-          documentation: 'Read from console',
-          range: getRange(model, position),
-        },
-        {
-          label: 'main',
-          kind: snippetKind,
-          insertText: 'int main() {\n\t$1\n\treturn 0;\n}',
-          insertTextRules: insertSnippet,
-          documentation: 'Main function',
-          range: getRange(model, position),
-        },
-      ],
-    }),
-  });
-
-  // --- JAVASCRIPT & TYPESCRIPT ---
-  const jsSnippets = {
-    provideCompletionItems: (model, position) => ({
-      suggestions: [
-        {
-          label: 'clg',
-          kind: snippetKind,
-          insertText: 'console.log($1);',
-          insertTextRules: insertSnippet,
-          documentation: 'console.log',
-          range: getRange(model, position),
-        },
-        {
-          label: 'cerr',
-          kind: snippetKind,
-          insertText: 'console.error($1);',
-          insertTextRules: insertSnippet,
-          documentation: 'console.error',
-          range: getRange(model, position),
-        },
-        {
-          label: 'fn',
-          kind: snippetKind,
-          insertText: 'function $1($2) {\n\t$3\n}',
-          insertTextRules: insertSnippet,
-          documentation: 'Function',
-          range: getRange(model, position),
-        },
-        {
-          label: 'afn',
-          kind: snippetKind,
-          insertText: 'const $1 = ($2) => {\n\t$3\n};',
-          insertTextRules: insertSnippet,
-          documentation: 'Arrow Function',
-          range: getRange(model, position),
-        },
-        {
-          label: 'fori',
-          kind: snippetKind,
-          insertText: 'for (let i = 0; i < $1; i++) {\n\t$2\n}',
-          insertTextRules: insertSnippet,
-          documentation: 'For loop',
-          range: getRange(model, position),
-        },
-      ],
-    }),
+  const builtinSnippets = {
+    java: [
+      { label: 'sysout', insertText: 'System.out.println($1);', documentation: 'Print to standard output' },
+      { label: 'syserr', insertText: 'System.err.println($1);', documentation: 'Print to standard error' },
+      { label: 'printf', insertText: 'System.out.printf("$1\\n", $2);', documentation: 'Print formatted string' },
+      { label: 'main',   insertText: 'public static void main(String[] args) {\n\t$1\n}', documentation: 'Main method' },
+      { label: 'fori',   insertText: 'for (int i = 0; i < $1; i++) {\n\t$2\n}', documentation: 'For loop' },
+    ],
+    cpp: [
+      { label: 'cout', insertText: 'cout << $1 << endl;', documentation: 'Print to console' },
+      { label: 'cin',  insertText: 'cin >> $1;', documentation: 'Read from console' },
+      { label: 'fori', insertText: 'for (int i = 0; i < $1; i++) {\n\t$2\n}', documentation: 'For loop' },
+      { label: 'main', insertText: 'int main() {\n\t$1\n\treturn 0;\n}', documentation: 'Main function' },
+    ],
+    c: [
+      { label: 'printf', insertText: 'printf("$1\\n", $2);', documentation: 'Print to console' },
+      { label: 'scanf',  insertText: 'scanf("%d", &$1);', documentation: 'Read from console' },
+      { label: 'main',   insertText: 'int main() {\n\t$1\n\treturn 0;\n}', documentation: 'Main function' },
+    ],
+    javascript: [
+      { label: 'clg',  insertText: 'console.log($1);', documentation: 'console.log' },
+      { label: 'cerr', insertText: 'console.error($1);', documentation: 'console.error' },
+      { label: 'fn',   insertText: 'function $1($2) {\n\t$3\n}', documentation: 'Function' },
+      { label: 'afn',  insertText: 'const $1 = ($2) => {\n\t$3\n};', documentation: 'Arrow Function' },
+      { label: 'fori', insertText: 'for (let i = 0; i < $1; i++) {\n\t$2\n}', documentation: 'For loop' },
+    ],
+    typescript: [
+      { label: 'clg',  insertText: 'console.log($1);', documentation: 'console.log' },
+      { label: 'cerr', insertText: 'console.error($1);', documentation: 'console.error' },
+      { label: 'fn',   insertText: 'function $1($2) {\n\t$3\n}', documentation: 'Function' },
+      { label: 'afn',  insertText: 'const $1 = ($2) => {\n\t$3\n};', documentation: 'Arrow Function' },
+      { label: 'fori', insertText: 'for (let i = 0; i < $1; i++) {\n\t$2\n}', documentation: 'For loop' },
+    ],
+    python: [
+      { label: 'pr',   insertText: 'print($1)', documentation: 'Print' },
+      { label: 'def',  insertText: 'def $1($2):\n\t$3', documentation: 'Function definition' },
+      { label: 'fori', insertText: 'for i in range($1):\n\t$2', documentation: 'For loop' },
+      { label: 'main', insertText: 'if __name__ == "__main__":\n\t$1', documentation: 'Main block' },
+    ],
+    csharp: [
+      { label: 'cw',   insertText: 'Console.WriteLine($1);', documentation: 'Console.WriteLine' },
+      { label: 'cr',   insertText: 'Console.ReadLine();', documentation: 'Console.ReadLine' },
+      { label: 'main', insertText: 'static void Main() {\n\t$1\n}', documentation: 'Main method' },
+    ],
+    go: [
+      { label: 'fp',   insertText: 'fmt.Println($1)', documentation: 'fmt.Println' },
+      { label: 'ff',   insertText: 'fmt.Printf("$1\\n", $2)', documentation: 'fmt.Printf' },
+      { label: 'fn',   insertText: 'func $1($2) {\n\t$3\n}', documentation: 'Function' },
+      { label: 'main', insertText: 'func main() {\n\t$1\n}', documentation: 'Main func' },
+    ],
+    rust: [
+      { label: 'pl',   insertText: 'println!("$1");', documentation: 'println!' },
+      { label: 'fn',   insertText: 'fn $1($2) {\n\t$3\n}', documentation: 'Function' },
+      { label: 'main', insertText: 'fn main() {\n\t$1\n}', documentation: 'Main function' },
+    ],
+    php: [
+      { label: 'ec', insertText: 'echo $1;', documentation: 'echo' },
+      { label: 'pr', insertText: 'print_r($1);', documentation: 'print_r' },
+      { label: 'fn', insertText: 'function $1($2) {\n\t$3\n}', documentation: 'Function' },
+    ],
+    ruby: [
+      { label: 'pu',  insertText: 'puts $1', documentation: 'puts' },
+      { label: 'def', insertText: 'def $1\n\t$2\nend', documentation: 'Function' },
+    ],
+    swift: [
+      { label: 'pr', insertText: 'print($1)', documentation: 'print' },
+      { label: 'fn', insertText: 'func $1($2) {\n\t$3\n}', documentation: 'Function' },
+    ],
   };
-  monaco.languages.registerCompletionItemProvider('javascript', jsSnippets);
-  monaco.languages.registerCompletionItemProvider('typescript', jsSnippets);
 
-  // --- PYTHON ---
-  monaco.languages.registerCompletionItemProvider('python', {
-    provideCompletionItems: (model, position) => ({
-      suggestions: [
-        {
-          label: 'pr',
-          kind: snippetKind,
-          insertText: 'print($1)',
-          insertTextRules: insertSnippet,
-          documentation: 'Print',
-          range: getRange(model, position),
-        },
-        {
-          label: 'def',
-          kind: snippetKind,
-          insertText: 'def $1($2):\n\t$3',
-          insertTextRules: insertSnippet,
-          documentation: 'Function definition',
-          range: getRange(model, position),
-        },
-        {
-          label: 'fori',
-          kind: snippetKind,
-          insertText: 'for i in range($1):\n\t$2',
-          insertTextRules: insertSnippet,
-          documentation: 'For loop',
-          range: getRange(model, position),
-        },
-        {
-          label: 'main',
-          kind: snippetKind,
-          insertText: 'if __name__ == "__main__":\n\t$1',
-          insertTextRules: insertSnippet,
-          documentation: 'Main block',
-          range: getRange(model, position),
-        },
-      ],
-    }),
-  });
+  // ─── Register per language ─────────────────────────────────────────────────
 
-  // --- C# ---
-  monaco.languages.registerCompletionItemProvider('csharp', {
-    provideCompletionItems: (model, position) => ({
-      suggestions: [
-        {
-          label: 'cw',
-          kind: snippetKind,
-          insertText: 'Console.WriteLine($1);',
-          insertTextRules: insertSnippet,
-          documentation: 'Console.WriteLine',
-          range: getRange(model, position),
-        },
-        {
-          label: 'cr',
-          kind: snippetKind,
-          insertText: 'Console.ReadLine();',
-          insertTextRules: insertSnippet,
-          documentation: 'Console.ReadLine',
-          range: getRange(model, position),
-        },
-        {
-          label: 'main',
-          kind: snippetKind,
-          insertText: 'static void Main() {\n\t$1\n}',
-          insertTextRules: insertSnippet,
-          documentation: 'Main method',
-          range: getRange(model, position),
-        },
-      ],
-    }),
-  });
+  Object.entries(builtinSnippets).forEach(([lang, items]) => {
+    monaco.languages.registerCompletionItemProvider(lang, {
+      provideCompletionItems: (model, position) => {
+        const range = getRange(model, position);
 
-  // --- GO ---
-  monaco.languages.registerCompletionItemProvider('go', {
-    provideCompletionItems: (model, position) => ({
-      suggestions: [
-        {
-          label: 'fp',
-          kind: snippetKind,
-          insertText: 'fmt.Println($1)',
-          insertTextRules: insertSnippet,
-          documentation: 'fmt.Println',
-          range: getRange(model, position),
-        },
-        {
-          label: 'ff',
-          kind: snippetKind,
-          insertText: 'fmt.Printf("$1\\n", $2)',
-          insertTextRules: insertSnippet,
-          documentation: 'fmt.Printf',
-          range: getRange(model, position),
-        },
-        {
-          label: 'fn',
-          kind: snippetKind,
-          insertText: 'func $1($2) {\n\t$3\n}',
-          insertTextRules: insertSnippet,
-          documentation: 'Function',
-          range: getRange(model, position),
-        },
-        {
-          label: 'main',
-          kind: snippetKind,
-          insertText: 'func main() {\n\t$1\n}',
-          insertTextRules: insertSnippet,
-          documentation: 'Main func',
-          range: getRange(model, position),
-        },
-      ],
-    }),
-  });
+        // Merge built-in snippets with custom snippets for this language
+        const custom = loadCustomSnippets().filter((s) => s.language === lang);
 
-  // --- RUST ---
-  monaco.languages.registerCompletionItemProvider('rust', {
-    provideCompletionItems: (model, position) => ({
-      suggestions: [
-        {
-          label: 'pl',
+        const builtinSuggestions = items.map((s) => ({
+          label: s.label,
           kind: snippetKind,
-          insertText: 'println!("$1");',
+          insertText: s.insertText,
           insertTextRules: insertSnippet,
-          documentation: 'println!',
-          range: getRange(model, position),
-        },
-        {
-          label: 'fn',
-          kind: snippetKind,
-          insertText: 'fn $1($2) {\n\t$3\n}',
-          insertTextRules: insertSnippet,
-          documentation: 'Function',
-          range: getRange(model, position),
-        },
-        {
-          label: 'main',
-          kind: snippetKind,
-          insertText: 'fn main() {\n\t$1\n}',
-          insertTextRules: insertSnippet,
-          documentation: 'Main function',
-          range: getRange(model, position),
-        },
-      ],
-    }),
-  });
+          documentation: s.documentation,
+          range,
+        }));
 
-  // --- PHP ---
-  monaco.languages.registerCompletionItemProvider('php', {
-    provideCompletionItems: (model, position) => ({
-      suggestions: [
-        {
-          label: 'ec',
+        const customSuggestions = custom.map((s) => ({
+          label: s.label,
           kind: snippetKind,
-          insertText: 'echo $1;',
+          insertText: s.insertText,
           insertTextRules: insertSnippet,
-          documentation: 'echo',
-          range: getRange(model, position),
-        },
-        {
-          label: 'pr',
-          kind: snippetKind,
-          insertText: 'print_r($1);',
-          insertTextRules: insertSnippet,
-          documentation: 'print_r',
-          range: getRange(model, position),
-        },
-        {
-          label: 'fn',
-          kind: snippetKind,
-          insertText: 'function $1($2) {\n\t$3\n}',
-          insertTextRules: insertSnippet,
-          documentation: 'Function',
-          range: getRange(model, position),
-        },
-      ],
-    }),
-  });
+          documentation: `★ ${s.documentation} (custom)`,
+          range,
+          sortText: `0_${s.label}`, // Sort custom snippets to the top
+        }));
 
-  // --- RUBY ---
-  monaco.languages.registerCompletionItemProvider('ruby', {
-    provideCompletionItems: (model, position) => ({
-      suggestions: [
-        {
-          label: 'pu',
-          kind: snippetKind,
-          insertText: 'puts $1',
-          insertTextRules: insertSnippet,
-          documentation: 'puts',
-          range: getRange(model, position),
-        },
-        {
-          label: 'def',
-          kind: snippetKind,
-          insertText: 'def $1\n\t$2\nend',
-          insertTextRules: insertSnippet,
-          documentation: 'Function',
-          range: getRange(model, position),
-        },
-      ],
-    }),
+        return { suggestions: [...customSuggestions, ...builtinSuggestions] };
+      },
+    });
   });
+};
 
-  // --- SWIFT ---
-  monaco.languages.registerCompletionItemProvider('swift', {
-    provideCompletionItems: (model, position) => ({
-      suggestions: [
-        {
-          label: 'pr',
-          kind: snippetKind,
-          insertText: 'print($1)',
-          insertTextRules: insertSnippet,
-          documentation: 'print',
-          range: getRange(model, position),
-        },
-        {
-          label: 'fn',
-          kind: snippetKind,
-          insertText: 'func $1($2) {\n\t$3\n}',
-          insertTextRules: insertSnippet,
-          documentation: 'Function',
-          range: getRange(model, position),
-        },
-      ],
-    }),
-  });
+// ─── Re-register custom snippets after user adds/edits them ─────────────────
+// Call this after the user saves a new custom snippet to refresh completions
+export const refreshCustomSnippets = (monaco) => {
+  // Monaco completion providers are additive and cannot be removed individually,
+  // so custom snippets are loaded fresh from localStorage on every provideCompletionItems
+  // call above — no extra work needed here. This export is kept for future use.
 };
