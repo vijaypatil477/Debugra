@@ -71,7 +71,7 @@ export const registerSnippets = (monaco) => {
             '\t\telse right = mid - 1;',
             '\t}',
             '\treturn -1;',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Binary Search Algorithm (Java)',
@@ -88,7 +88,7 @@ export const registerSnippets = (monaco) => {
             '\t\t\tdfs(neighbor, adj, visited);',
             '\t\t}',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Depth-First Search (DFS) Graph Traversal (Java)',
@@ -112,7 +112,7 @@ export const registerSnippets = (monaco) => {
             '\t\t\t}',
             '\t\t}',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Breadth-First Search (BFS) Graph Traversal (Java)',
@@ -144,7 +144,7 @@ export const registerSnippets = (monaco) => {
             '\t\tquickSort(arr, low, pi - 1);',
             '\t\tquickSort(arr, pi + 1, high);',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Quick Sort Algorithm (Java)',
@@ -203,7 +203,7 @@ export const registerSnippets = (monaco) => {
             '\t\telse right = mid - 1;',
             '\t}',
             '\treturn -1;',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Binary Search Algorithm (C++)',
@@ -220,7 +220,7 @@ export const registerSnippets = (monaco) => {
             '\t\t\tdfs(neighbor, adj, visited);',
             '\t\t}',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Depth-First Search (DFS) Graph Traversal (C++)',
@@ -245,7 +245,7 @@ export const registerSnippets = (monaco) => {
             '\t\t\t}',
             '\t\t}',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Breadth-First Search (BFS) Graph Traversal (C++)',
@@ -273,7 +273,7 @@ export const registerSnippets = (monaco) => {
             '\t\tquickSort(arr, low, pi - 1);',
             '\t\tquickSort(arr, pi + 1, high);',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Quick Sort Algorithm (C++)',
@@ -372,7 +372,7 @@ export const registerSnippets = (monaco) => {
             '\t\telse right = mid - 1;',
             '\t}',
             '\treturn -1;',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Binary Search Algorithm (JavaScript)',
@@ -389,7 +389,7 @@ export const registerSnippets = (monaco) => {
             '\t\t\tdfs(neighbor, adj, visited);',
             '\t\t}',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Depth-First Search (DFS) Graph Traversal (JavaScript)',
@@ -412,7 +412,7 @@ export const registerSnippets = (monaco) => {
             '\t\t\t}',
             '\t\t}',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Breadth-First Search (BFS) Graph Traversal (JavaScript)',
@@ -429,7 +429,7 @@ export const registerSnippets = (monaco) => {
             '\tconst middle = arr.filter(x => x === pivot);',
             '\tconst right = arr.filter(x => x > pivot);',
             '\treturn [...quickSort(left), ...middle, ...quickSort(right)];',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Quick Sort Algorithm (JavaScript)',
@@ -491,7 +491,7 @@ export const registerSnippets = (monaco) => {
             '\t\t\tleft = mid + 1',
             '\t\telse:',
             '\t\t\tright = mid - 1',
-            '\treturn -1'
+            '\treturn -1',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Binary Search Algorithm (Python)',
@@ -505,7 +505,7 @@ export const registerSnippets = (monaco) => {
             '\tvisited[node] = True',
             '\tfor neighbor in adj[node]:',
             '\t\tif not visited[neighbor]:',
-            '\t\t\tdfs(neighbor, adj, visited)'
+            '\t\t\tdfs(neighbor, adj, visited)',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Depth-First Search (DFS) Graph Traversal (Python)',
@@ -525,7 +525,7 @@ export const registerSnippets = (monaco) => {
             '\t\tfor neighbor in adj[curr]:',
             '\t\t\tif not visited[neighbor]:',
             '\t\t\t\tvisited[neighbor] = True',
-            '\t\t\t\tq.append(neighbor)'
+            '\t\t\t\tq.append(neighbor)',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Breadth-First Search (BFS) Graph Traversal (Python)',
@@ -542,7 +542,7 @@ export const registerSnippets = (monaco) => {
             '\tleft = [x for x in arr if x < pivot]',
             '\tmiddle = [x for x in arr if x == pivot]',
             '\tright = [x for x in arr if x > pivot]',
-            '\treturn quick_sort(left) + middle + quick_sort(right)'
+            '\treturn quick_sort(left) + middle + quick_sort(right)',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Quick Sort Algorithm (Python)',

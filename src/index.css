@@ -10,7 +10,7 @@
   --border: #404040;
   --text-0: #d4d4d4;
   --text-1: #9d9d9d;
-  --text-2: #6a6a6a;
+  --text-2: #8a8a8a;
   --accent: #0078d4;
   --accent-hover: #1a8ceb;
   --green: #4ec9b0;
@@ -28,7 +28,7 @@
   --bg-hover: rgba(255, 255, 255, 0.04);
   --text-primary: #d4d4d4;
   --text-secondary: #9d9d9d;
-  --text-muted: #6a6a6a;
+  --text-muted: #8a8a8a;
   --success: #4ec9b0;
   --warning: #dcdcaa;
   --error: #f44747;
@@ -46,14 +46,16 @@
   right: 12px;
   background: transparent;
   border: none;
-  color: #6a6a6a; /* Muted color from your design system */
+  color: var(--text-muted); /* Muted color from your design system */
   cursor: pointer;
   padding: 6px;
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
   z-index: 10;
 }
 
@@ -61,7 +63,6 @@
   background-color: rgba(255, 255, 255, 0.08);
   color: #e2e8f0; /* Brighter color on hover */
 }
-
 
 /* ============ RESET ============ */
 *,
@@ -1592,7 +1593,7 @@ body {
   font-size: 0.68rem;
   padding: 3px 10px;
   border-radius: 3px;
-  color: #6a6a6a;
+  color: var(--text-muted);
 }
 .preview-output-tab.active {
   color: #d4d4d4;
@@ -2257,14 +2258,16 @@ body {
 /* ===== GLASSMORPHISM BACKDROP EFFECT ===== */
 .glass-panel {
   /* Semi-transparent overlay color tint */
-  background-color: rgba(30, 30, 30, 0.75) !important; 
-  
+  background-color: rgba(30, 30, 30, 0.75) !important;
+
   /* Link browser engine filtering directly to your dynamic custom property hook */
   backdrop-filter: blur(var(--blur-intensity, 10px)) !important;
   -webkit-backdrop-filter: blur(var(--blur-intensity, 10px)) !important; /* Safari compatibility */
-  
+
   /* Smooth transition rendering animations when sliding */
-  transition: backdrop-filter 0.1s ease-out, -webkit-backdrop-filter 0.1s ease-out;
+  transition:
+    backdrop-filter 0.1s ease-out,
+    -webkit-backdrop-filter 0.1s ease-out;
 }
 /* Expand the settings popover bounding box to display the new options */
 .custom-layout-popover {
@@ -2292,7 +2295,8 @@ body {
 }
 
 /* 3. Soften the top tab headers for the glassy look */
-.editor-tab-bar, .output-tabs {
+.editor-tab-bar,
+.output-tabs {
   background-color: rgba(20, 20, 20, 0.3) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
