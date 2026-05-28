@@ -13,6 +13,7 @@ import {
   useEditor,
   useIsMobile,
   useAudioFeedback,
+  useLaserPointer,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { LANGUAGES } from '../../utils/languageConfig';
@@ -29,6 +30,7 @@ import EditorStatusBar from './EditorStatusBar';
 import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
+import LaserPointers from './LaserPointers';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 
 function getApiKeyStatus() {
@@ -126,6 +128,22 @@ export default function EditorPage({ user }) {
     setActiveOutputTab: execution.setActiveOutputTab,
     editorRef,
   });
+
+  // ─── Laser Pointer Logic ───────────────────────────────────────────────────
+  const laser = useLaserPointer({ roomId: room.roomId, user });
+
+  const handleEditorMouseMove = (e) => {
+    if (!room.roomId) return;
+    const container = e.currentTarget;
+    const rect = container.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    laser.updatePointer(x, y);
+  };
+
+  const handleEditorMouseLeave = () => {
+    laser.deactivatePointer();
+  };
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
@@ -786,8 +804,11 @@ export default function EditorPage({ user }) {
           {/* Monaco Editor */}
           <div
             id="editor-container"
-            style={{ flex: 1, minHeight: 0, opacity: room.isReadOnly ? 0.8 : 1 }}
+            style={{ flex: 1, minHeight: 0, opacity: room.isReadOnly ? 0.8 : 1, position: 'relative' }}
+            onMouseMove={handleEditorMouseMove}
+            onMouseLeave={handleEditorMouseLeave}
           >
+            {room.roomId && <LaserPointers pointers={laser.remotePointers} />}
             {room.isReadOnly && (
               <div className="readonly-badge">
                 <svg
