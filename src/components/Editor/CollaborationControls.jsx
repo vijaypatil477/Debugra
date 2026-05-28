@@ -35,6 +35,7 @@ export default function CollaborationControls({ room, user }) {
     >
       {/* Participants button */}
       <button
+        aria-label="Participants"
         onClick={() => setShowParticipants(!showParticipants)}
         style={{
           background: showParticipants ? 'var(--bg-3)' : 'var(--bg-1)',
@@ -63,6 +64,7 @@ export default function CollaborationControls({ room, user }) {
 
       {/* Exit Room button */}
       <button
+        aria-label="Exit Room"
         onClick={leaveRoom}
         style={{
           background: '#f44747',

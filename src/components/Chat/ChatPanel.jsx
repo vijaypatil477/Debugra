@@ -117,6 +117,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
         <button
           onClick={onToggle}
           title="Team Chat"
+          aria-label="Toggle Team Chat"
           className="chat-fab"
           style={{
             position: 'fixed',
@@ -233,6 +234,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
             <button
               onClick={handleDownloadReport}
               title="Download Report as Markdown"
+              aria-label="Download Debug Report"
               style={{
                 background: 'none',
                 border: 'none',
@@ -288,6 +290,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
               </span>
               <button
                 onClick={onToggle}
+                aria-label="Close Chat Panel"
                 style={{
                   width: '32px',
                   height: '32px',
@@ -469,6 +472,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
               <button
                 onClick={handleSend}
                 disabled={!input.trim()}
+                aria-label="Send Message"
                 style={{
                   width: '30px',
                   height: '30px',

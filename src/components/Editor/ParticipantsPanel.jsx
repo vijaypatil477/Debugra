@@ -42,7 +42,7 @@ export default function ParticipantsPanel({ room, user, onClose }) {
         <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-0)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <User size={18} /> Participants ({activeUsers.length})
         </h3>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-2)', cursor: 'pointer' }}>
+        <button aria-label="Close Participants Panel" onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-2)', cursor: 'pointer' }}>
           ✕
         </button>
       </div>

@@ -131,6 +131,7 @@ export default function AuthModal({ onClose, initialMode = 'login' }) {
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-24px' }}>
           <button
             onClick={onClose}
+            aria-label="Close modal"
             style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
           >
             <X size={20} />
