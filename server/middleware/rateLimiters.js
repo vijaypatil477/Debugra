@@ -30,6 +30,10 @@ function createAiLimiter() {
     limit: 5,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
+    skip(req) {
+      const apiKey = String(req.get('x-groq-api-key') || '').trim();
+      return apiKey.length >= 20;
+    },
     handler(req, res) {
       const retryAfter = retryAfterSeconds(req);
       res.set('Retry-After', String(retryAfter));

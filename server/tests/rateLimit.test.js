@@ -73,4 +73,22 @@ describe('aiLimiter — /api/ai', () => {
     expect(res.headers['retry-after']).toBeDefined();
     expect(Number(res.headers['retry-after'])).toBeGreaterThan(0);
   });
+
+  it('skips rate limiting when custom x-groq-api-key header is supplied', async () => {
+    for (let i = 0; i < 10; i++) {
+      const res = await request(app)
+        .post('/')
+        .set('x-groq-api-key', 'gsk_y_thisisaverylongapikeyandvalidlengthmorethan20');
+      expect(res.status).toBe(200);
+    }
+  });
+
+  it('does not skip rate limiting when x-groq-api-key header is too short', async () => {
+    for (let i = 0; i < 5; i++) {
+      const res = await request(app).post('/').set('x-groq-api-key', 'shortkey');
+      expect(res.status).toBe(200);
+    }
+    const res = await request(app).post('/').set('x-groq-api-key', 'shortkey');
+    expect(res.status).toBe(429);
+  });
 });

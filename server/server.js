@@ -107,10 +107,12 @@ function unique(values) {
 
 // FIX 2: Parse CORS_ORIGINS and CLIENT_URL independently
 // and merge both — not OR — so neither is silently dropped
-const extraOrigins = unique([
-  ...(process.env.CORS_ORIGINS || '').split(','),
-  ...(process.env.CLIENT_URL   || '').split(','),
-].map((o) => o.trim()));
+const extraOrigins = unique(
+  [
+    ...(process.env.CORS_ORIGINS || '').split(','),
+    ...(process.env.CLIENT_URL || '').split(','),
+  ].map((o) => o.trim())
+);
 
 // FIX 3: Merge defaults + extras so production domains
 // are always present regardless of env var configuration
@@ -241,7 +243,13 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Groq-Api-Key', 'x-admin-token', 'x-security-diagnostics-token'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Groq-Api-Key',
+      'x-admin-token',
+      'x-security-diagnostics-token',
+    ],
     optionsSuccessStatus: 204,
   })
 );
@@ -326,4 +334,3 @@ if (require.main === module) {
 }
 
 module.exports = { app, buildCspDirectives, isValidIp, getClientIp };
-module.exports = { app, buildCspDirectives };
