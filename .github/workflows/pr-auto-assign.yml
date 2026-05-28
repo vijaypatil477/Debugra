@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Assign PR to creator and add gssoc:approved label
+      - name: Assign PR, add label, and post welcome comment
         uses: actions/github-script@v7
         with:
           script: |
@@ -63,4 +63,18 @@ jobs:
               console.log(`🏷  Applied label "${LABEL_NAME}" to PR #${prNum}`);
             } catch (err) {
               console.error(`❌ Failed to add label to PR #${prNum}: ${err.message}`);
+            }
+
+            // ── 4. Post Welcome Comment ─────────────────────────────────────
+            try {
+              const commentBody = `Hi @${author}, thanks for contributing to **Debugra**! 🎉\n\nI have automatically:\n- 👤 Assigned this PR to you.\n- 🏷️ Applied the \`gssoc:approved\` label.\n\nOur workflows will now analyze your changes to classify:\n- 📈 **PR Difficulty:** \`level:*\`\n- 🧩 **PR Type:** \`type:*\`\n- 🌟 **PR Quality:** \`quality:*\`\n\n> [!TIP]\n> Ensure your PR description references the issue it resolves (e.g. \`Closes #123\`). This allows the bot to inherit any additional labels from that issue!\n\nHappy coding! 🚀`;
+
+              await github.rest.issues.createComment({
+                ...repo,
+                issue_number: prNum,
+                body:         commentBody,
+              });
+              console.log(`💬 Posted welcome comment on PR #${prNum}`);
+            } catch (err) {
+              console.error(`❌ Failed to post welcome comment on PR #${prNum}: ${err.message}`);
             }
