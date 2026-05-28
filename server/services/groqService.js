@@ -241,6 +241,32 @@ Respond in this EXACT JSON format:
   );
 }
 
+async function generateDocstringAI(code, language, apiKey = '') {
+  const isPython = String(language).toLowerCase() === 'python';
+  const formatInstructions = isPython
+    ? `Respond in this EXACT JSON format:
+{
+  "docstring": "\"\"\"\nShort description of the function.\\n\\nArgs:\\n    param_name (type): description\\n\\nReturns:\\n    type: description\n\"\"\"` + "\n}"
+    : `Respond in this EXACT JSON format:
+{
+  "docstring": "/**\\n * Short description of the function.\\n * @param {type} param_name - description\\n * @returns {type}\\n */"\n}`;
+
+  return chatCompletion(
+    `You are an expert documentation assistant. Generate standard inline documentation (JSDoc for JavaScript/TypeScript, triple-quote docstrings for Python) for the given function. Always respond in valid JSON.`,
+    `Generate documentation comments for this ${language} function:
+
+${code}
+
+${formatInstructions}
+
+Rules:
+- The generated comment must be syntactically correct and follow the official conventions of the language.
+- Do NOT output any markdown code blocks or conversational text. Return ONLY the JSON object.
+- Keep descriptions clear, concise, and professional.
+- Do NOT include any leading indentation in the JSON string (the client will handle aligning it).`,
+    apiKey
+  );
+}
 module.exports = {
   explainError,
   fixCodeAI,
@@ -250,4 +276,5 @@ module.exports = {
   visualizeAI,
   explainCodeSnippetAI,
   askFollowUpAI,
+  generateDocstringAI,
 };

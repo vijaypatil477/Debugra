@@ -76,4 +76,9 @@ export const aiVisualizeExecution = async (code, language, input = '') => {
   return data;
 };
 
+export const aiGenerateDocstring = async (code, language) => {
+  const { data } = await api.post('/api/ai/generate-docstring', { code, language });
+  return data;
+};
+
 export default api;
