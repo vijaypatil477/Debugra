@@ -4,6 +4,7 @@ import { LANGUAGES } from '../utils/languageConfig';
 import { EXEC_STATUS, OUTPUT_TABS } from '../config/constants';
 import toast from 'react-hot-toast';
 import { showRateLimitToast } from '../utils/rateLimitToast';
+import { addExecutionLog } from '../services/executionLogsDb';
 
 /**
  * useExecution
@@ -87,6 +88,16 @@ export function useExecution({
           execStatus: isSuccess ? EXEC_STATUS.SUCCESS : EXEC_STATUS.ERROR,
         };
 
+        addExecutionLog({
+          code: voteCode,
+          language: voteLanguage,
+          stdin: voteStdin,
+          stdout: result.stdout || '(No output)',
+          stderr: result.stderr || '',
+          status: isSuccess ? EXEC_STATUS.SUCCESS : { type: 'error', text: result.status?.description || 'Error' },
+          execTime: elapsed + 's',
+        }).catch(errLog => console.error('Failed to log executed code', errLog));
+
         // Broadcast compilation results to room (capped inside syncExecutionResult)
         await room.syncExecutionResult(executionResult);
       } catch (err) {
@@ -97,6 +108,17 @@ export function useExecution({
           execTime: null,
           execStatus: EXEC_STATUS.FAILED,
         };
+
+        addExecutionLog({
+          code: voteCode,
+          language: voteLanguage,
+          stdin: voteStdin,
+          stdout: '',
+          stderr: err.message || 'Execution failed',
+          status: EXEC_STATUS.FAILED,
+          execTime: '',
+        }).catch(errLog => console.error('Failed to log executed code', errLog));
+
         await room.syncExecutionResult(executionResult);
       } finally {
         setIsRunning(false);
@@ -142,10 +164,28 @@ export function useExecution({
       if (result.status?.id === 3) {
         setExecStatus(EXEC_STATUS.SUCCESS);
         audioFeedback?.playOutcome?.('success');
+        addExecutionLog({
+          code,
+          language,
+          stdin,
+          stdout: result.stdout || '(No output)',
+          stderr: '',
+          status: EXEC_STATUS.SUCCESS,
+          execTime: elapsed + 's',
+        }).catch((err) => console.error('Failed to log executed code', err));
       } else {
         setExecStatus({ type: 'error', text: result.status?.description || 'Error' });
         audioFeedback?.playOutcome?.('error');
         if (result.stderr) setActiveOutputTab(OUTPUT_TABS.STDERR);
+        addExecutionLog({
+          code,
+          language,
+          stdin,
+          stdout: result.stdout || '',
+          stderr: result.stderr || '',
+          status: { type: 'error', text: result.status?.description || 'Error' },
+          execTime: elapsed + 's',
+        }).catch((err) => console.error('Failed to log executed code', err));
       }
     } catch (err) {
       if (err.status === 429) {
@@ -157,6 +197,15 @@ export function useExecution({
       setExecStatus(EXEC_STATUS.FAILED);
       audioFeedback?.playOutcome?.('error');
       setActiveOutputTab(OUTPUT_TABS.STDERR);
+      addExecutionLog({
+        code,
+        language,
+        stdin,
+        stdout: '',
+        stderr: err.message || 'Execution failed',
+        status: EXEC_STATUS.FAILED,
+        execTime: '',
+      }).catch((err) => console.error('Failed to log executed code', err));
     } finally {
       setIsRunning(false);
     }

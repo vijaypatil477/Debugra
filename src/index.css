@@ -2296,3 +2296,29 @@ body {
   background-color: rgba(20, 20, 20, 0.3) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
+
+/* ===== REAL-TIME CODE SPELL CHECKER SQUIGGLY DECORATOR ===== */
+.spell-error-decorator {
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='6' height='3'><path d='M0,2 Q1.5,0 3,2 T6,2' fill='none' stroke='%23f44747' stroke-width='0.75'/></svg>") repeat-x bottom left !important;
+  border-bottom: 1px transparent;
+}
+
+/* ===== VIM STATUSBAR STYLE ===== */
+.statusbar-vim-status {
+  padding: 0 8px;
+  background: rgba(139, 92, 246, 0.25) !important;
+  color: #c084fc !important;
+  border: 1px solid rgba(139, 92, 246, 0.45) !important;
+  font-weight: 700;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  margin-left: 6px;
+  margin-right: 6px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}

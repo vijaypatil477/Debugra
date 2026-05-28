@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
@@ -15,6 +15,14 @@ import {
   useAudioFeedback,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
+import { initVimMode } from 'monaco-vim';
+import {
+  loadCDNDictionary,
+  spellCheckText,
+  addToUserDictionary,
+  removeFromUserDictionary,
+  getUserDictionary,
+} from '../../utils/spellChecker';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
 import { LANGUAGES } from '../../utils/languageConfig';
 import {
@@ -30,6 +38,7 @@ import AccountSettings from '../Auth/AccountSettings';
 import ChatPanel from '../Chat/ChatPanel';
 import FileIcon from '../Icons/FileIcon';
 import HistoryPanel from './HistoryPanel';
+import ExecutionLogsPanel from './ExecutionLogsPanel';
 import AIResponsePanel from './AIResponsePanel';
 import ApiKeyModal from './ApiKeyModal';
 import CollaborationControls from './CollaborationControls';
@@ -53,11 +62,30 @@ export default function EditorPage({ user }) {
   const navigate = useNavigate();
   const editorRef = useRef(null);
 
+  // ─── Vim Keybindings State & Refs ──────────────────────────────────────────
+  const [vimModeEnabled, setVimModeEnabled] = useState(() => {
+    const stored = localStorage.getItem('debugra-vim-enabled');
+    return stored === 'true';
+  });
+  const [editorInstance, setEditorInstance] = useState(null);
+  const vimModeRef = useRef(null);
+  const vimStatusRef = useRef(null);
+
+  // ─── Spell Checker State & Refs ─────────────────────────────────────────────
+  const [spellCheckEnabled, setSpellCheckEnabled] = useState(() => {
+    const stored = localStorage.getItem('debugra-spellcheck-enabled');
+    return stored === null ? true : stored === 'true';
+  });
+  const [userDict, setUserDict] = useState(() => getUserDictionary());
+  const [activeTypos, setActiveTypos] = useState([]);
+  const spellDecorationsRef = useRef([]);
+
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
+  const [showExecutionLogs, setShowExecutionLogs] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
@@ -146,6 +174,150 @@ export default function EditorPage({ user }) {
     setActiveOutputTab: execution.setActiveOutputTab,
     editorRef,
   });
+
+  // ─── Spell Checker Logic & Effects ─────────────────────────────────────────
+  const runSpellCheck = useCallback(() => {
+    const editorInstance = editorRef.current;
+    if (!editorInstance) return;
+
+    const model = editorInstance.getModel();
+    if (!model) return;
+
+    if (!spellCheckEnabled) {
+      spellDecorationsRef.current = editorInstance.deltaDecorations(spellDecorationsRef.current, []);
+      setActiveTypos([]);
+      return;
+    }
+
+    const text = model.getValue();
+    const rawTypos = spellCheckText(text, userDict);
+
+    const newDecorations = rawTypos.map((typo) => {
+      const startPos = model.getPositionAt(typo.startIndex);
+      const endPos = model.getPositionAt(typo.startIndex + typo.length);
+
+      return {
+        range: {
+          startLineNumber: startPos.lineNumber,
+          startColumn: startPos.column,
+          endLineNumber: endPos.lineNumber,
+          endColumn: endPos.column,
+        },
+        options: {
+          className: 'spell-error-decorator',
+          hoverMessage: { value: `Spelling error: "${typo.word}"` },
+        },
+      };
+    });
+
+    spellDecorationsRef.current = editorInstance.deltaDecorations(
+      spellDecorationsRef.current,
+      newDecorations
+    );
+
+    // Save unique typo words to list in settings panel
+    const uniqueTyposSet = new Set(rawTypos.map((t) => t.word.toLowerCase()));
+    setActiveTypos(Array.from(uniqueTyposSet));
+  }, [spellCheckEnabled, userDict]);
+
+  const handleAddWord = (word) => {
+    addToUserDictionary(word);
+    const updatedDict = getUserDictionary();
+    setUserDict(updatedDict);
+    toast.success(`"${word}" added to custom dictionary`);
+  };
+
+  const handleRemoveWord = (word) => {
+    removeFromUserDictionary(word);
+    const updatedDict = getUserDictionary();
+    setUserDict(updatedDict);
+    toast.success(`"${word}" removed from dictionary`);
+  };
+
+  // Sync state setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('debugra-spellcheck-enabled', String(spellCheckEnabled));
+  }, [spellCheckEnabled]);
+
+  // Load external large dictionary once on mount
+  useEffect(() => {
+    loadCDNDictionary().then(() => {
+      if (editorRef.current && spellCheckEnabled) {
+        runSpellCheck();
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Run real-time check when code, enable state, or user dictionary updates (debounced)
+  useEffect(() => {
+    if (!spellCheckEnabled) {
+      if (editorRef.current) {
+        spellDecorationsRef.current = editorRef.current.deltaDecorations(
+          spellDecorationsRef.current,
+          []
+        );
+      }
+      setActiveTypos([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      runSpellCheck();
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [editor.code, spellCheckEnabled, userDict, runSpellCheck]);
+
+  // Sync Vim Mode setting to localStorage
+  useEffect(() => {
+    localStorage.setItem('debugra-vim-enabled', String(vimModeEnabled));
+  }, [vimModeEnabled]);
+
+  // Handle Vim Keybindings lifecycle
+  useEffect(() => {
+    if (!editorInstance) return;
+
+    // Clean up any existing vim mode
+    if (vimModeRef.current) {
+      try {
+        vimModeRef.current.dispose();
+      } catch (err) {
+        console.error('Error disposing vim mode:', err);
+      }
+      vimModeRef.current = null;
+    }
+
+    let initTimeout = null;
+    const tryInitVim = () => {
+      if (vimModeEnabled) {
+        if (vimStatusRef.current) {
+          try {
+            vimModeRef.current = initVimMode(editorInstance, vimStatusRef.current);
+          } catch (err) {
+            console.error('Failed to initialize Vim mode:', err);
+          }
+        } else {
+          // Retry shortly if the status bar element isn't in DOM yet
+          initTimeout = setTimeout(tryInitVim, 50);
+        }
+      }
+    };
+
+    tryInitVim();
+
+    return () => {
+      if (initTimeout) clearTimeout(initTimeout);
+      if (vimModeRef.current) {
+        try {
+          vimModeRef.current.dispose();
+        } catch (err) {
+          console.error('Error disposing vim mode in cleanup:', err);
+        }
+        vimModeRef.current = null;
+      }
+    };
+  }, [vimModeEnabled, editorInstance]);
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
@@ -258,6 +430,7 @@ export default function EditorPage({ user }) {
 
   const handleEditorMount = (editorInstance) => {
     editorRef.current = editorInstance;
+    setEditorInstance(editorInstance);
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
@@ -687,7 +860,10 @@ export default function EditorPage({ user }) {
               <button
                 className="toolbar-icon-btn"
                 aria-label="Toggle History"
-                onClick={() => setShowHistory(!showHistory)}
+                onClick={() => {
+                  setShowHistory(!showHistory);
+                  setShowExecutionLogs(false);
+                }}
                 title="History"
                 style={
                   showHistory ? { background: 'var(--bg-active)', color: 'var(--accent)' } : {}
@@ -706,6 +882,30 @@ export default function EditorPage({ user }) {
                 </svg>
               </button>
             )}
+            <button
+              className="toolbar-icon-btn"
+              aria-label="Toggle Execution Logs"
+              onClick={() => {
+                setShowExecutionLogs(!showExecutionLogs);
+                setShowHistory(false);
+              }}
+              title="Execution Logs"
+              style={
+                showExecutionLogs ? { background: 'var(--bg-active)', color: 'var(--accent)' } : {}
+              }
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <polyline points="4 17 10 11 4 5" />
+                <line x1="12" y1="19" x2="20" y2="19" />
+              </svg>
+            </button>
             <div className="audio-settings-wrap">
               <button
                 className="toolbar-icon-btn"
@@ -822,6 +1022,144 @@ export default function EditorPage({ user }) {
                   >
                     Test chime
                   </button>
+
+                  {/* ===== SPELL CHECKER ROW ===== */}
+                  <div className="audio-settings-row" style={{ borderTop: '1px solid var(--border)', paddingTop: '10px', marginTop: '10px' }}>
+                    <div className="audio-settings-label">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                        <path d="M8 12l3 3 5-5" />
+                      </svg>
+                      <span>Spell Checker</span>
+                    </div>
+                    <button
+                      className={`audio-toggle ${spellCheckEnabled ? 'active' : ''}`}
+                      aria-pressed={spellCheckEnabled}
+                      onClick={() => setSpellCheckEnabled(!spellCheckEnabled)}
+                    >
+                      {spellCheckEnabled ? 'On' : 'Off'}
+                    </button>
+                  </div>
+
+                  {spellCheckEnabled && (
+                    <div className="spellchecker-panel" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px', background: 'rgba(255,255,255,0.02)', padding: '6px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                      {/* Misspelled words in file */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '0.62rem', color: 'var(--text-1)', fontWeight: 600 }}>
+                          TYPOS IN CURRENT FILE ({activeTypos.length})
+                        </span>
+                        {activeTypos.length > 0 ? (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxHeight: '60px', overflowY: 'auto', padding: '2px' }}>
+                            {activeTypos.map((typoWord) => (
+                              <span
+                                key={typoWord}
+                                className="badge d-flex align-items-center gap-1"
+                                style={{
+                                  fontSize: '0.6rem',
+                                  background: 'rgba(244, 71, 71, 0.15)',
+                                  color: '#ff6b6b',
+                                  border: '1px solid rgba(244, 71, 71, 0.3)',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                }}
+                              >
+                                {typoWord}
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddWord(typoWord)}
+                                  title={`Ignore and add "${typoWord}" to dictionary`}
+                                  style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'var(--text-0)',
+                                    cursor: 'pointer',
+                                    fontSize: '0.7rem',
+                                    padding: '0 2px',
+                                    lineHeight: 1,
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  +
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '0.62rem', color: '#4ec9b0', fontStyle: 'italic' }}>✓ No spelling errors!</span>
+                        )}
+                      </div>
+
+                      {/* Custom User Dictionary */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '6px' }}>
+                        <span style={{ fontSize: '0.62rem', color: 'var(--text-1)', fontWeight: 600 }}>
+                          USER DICTIONARY ({userDict.size})
+                        </span>
+                        {userDict.size > 0 ? (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxHeight: '60px', overflowY: 'auto', padding: '2px' }}>
+                            {Array.from(userDict).map((word) => (
+                              <span
+                                key={word}
+                                className="badge d-flex align-items-center gap-1"
+                                style={{
+                                  fontSize: '0.6rem',
+                                  background: 'rgba(255, 255, 255, 0.05)',
+                                  color: 'var(--text-0)',
+                                  border: '1px solid var(--border)',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                }}
+                              >
+                                {word}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveWord(word)}
+                                  title={`Remove "${word}" from dictionary`}
+                                  style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#ff6b6b',
+                                    cursor: 'pointer',
+                                    fontSize: '0.6rem',
+                                    padding: '0 2px',
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '0.62rem', color: 'var(--text-2)', fontStyle: 'italic' }}>Dictionary is empty</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {/* ===== VIM KEYBINDINGS ROW ===== */}
+                  <div className="audio-settings-row" style={{ borderTop: '1px solid var(--border)', paddingTop: '10px', marginTop: '10px' }}>
+                    <div className="audio-settings-label">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
+                        <line x1="6" y1="8" x2="6" y2="8" />
+                        <line x1="10" y1="8" x2="10" y2="8" />
+                        <line x1="14" y1="8" x2="14" y2="8" />
+                        <line x1="18" y1="8" x2="18" y2="8" />
+                        <line x1="6" y1="12" x2="6" y2="12" />
+                        <line x1="10" y1="12" x2="10" y2="12" />
+                        <line x1="14" y1="12" x2="14" y2="12" />
+                        <line x1="18" y1="12" x2="18" y2="12" />
+                        <line x1="7" y1="16" x2="17" y2="16" />
+                      </svg>
+                      <span>Vim Mode</span>
+                    </div>
+                    <button
+                      className={`audio-toggle ${vimModeEnabled ? 'active' : ''}`}
+                      aria-pressed={vimModeEnabled}
+                      onClick={() => setVimModeEnabled(!vimModeEnabled)}
+                    >
+                      {vimModeEnabled ? 'On' : 'Off'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1017,6 +1355,14 @@ export default function EditorPage({ user }) {
           />
         )}
 
+        {/* Execution Logs Panel (desktop) */}
+        {showExecutionLogs && !isMobile && (
+          <ExecutionLogsPanel
+            onLoadCode={editor.loadCode}
+            onClose={() => setShowExecutionLogs(false)}
+          />
+        )}
+
         {/* OUTPUT PANE */}
         <div
           className="output-pane glass-panel"
@@ -1183,6 +1529,28 @@ export default function EditorPage({ user }) {
         cursorPos={editor.cursorPos}
         room={room}
         user={user}
+        spellCheckEnabled={spellCheckEnabled}
+        typoCount={activeTypos.length}
+        vimModeEnabled={vimModeEnabled}
+        vimStatusRef={vimStatusRef}
+        onTypoClick={() => {
+          if (activeTypos.length > 0 && editorRef.current) {
+            const editorInstance = editorRef.current;
+            const model = editorInstance.getModel();
+            if (model) {
+              const text = model.getValue();
+              const rawTypos = spellCheckText(text, userDict);
+              if (rawTypos.length > 0) {
+                const firstTypo = rawTypos[0];
+                const pos = model.getPositionAt(firstTypo.startIndex);
+                editorInstance.setPosition(pos);
+                editorInstance.revealPositionInCenter(pos);
+                editorInstance.focus();
+                toast.success(`Scrolled to spelling typo: "${firstTypo.word}" ✦`);
+              }
+            }
+          }
+        }}
       />
 
       {/* Chat */}
@@ -1245,6 +1613,56 @@ export default function EditorPage({ user }) {
           <div style={{ flex: 1, overflow: 'hidden' }}>
             <HistoryPanel
               user={user}
+              onLoadCode={(c, l) => {
+                editor.loadCode(c, l);
+                setMobileTab(MOBILE_TABS.CODE);
+              }}
+              onClose={() => setMobileTab(MOBILE_TABS.CODE)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Execution Logs (mobile full-screen) */}
+      {isMobile && mobileTab === MOBILE_TABS.EXEC_LOGS && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 50,
+            background: 'var(--bg-0)',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 16px',
+              borderBottom: '1px solid var(--border)',
+              background: 'var(--bg-1)',
+            }}
+          >
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-0)' }}>
+              Execution Logs
+            </span>
+            <button
+              onClick={() => setMobileTab(MOBILE_TABS.CODE)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-1)',
+                fontSize: '1.2rem',
+                cursor: 'pointer',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <ExecutionLogsPanel
               onLoadCode={(c, l) => {
                 editor.loadCode(c, l);
                 setMobileTab(MOBILE_TABS.CODE);
