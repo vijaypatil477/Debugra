@@ -9,7 +9,16 @@ import { LANG_FILE_NAMES } from '../../config/constants';
  * - Online users count (clickable dropdown)
  * - Wandbox + Debugra labels
  */
-export default function EditorStatusBar({ execStatus, langName, cursorPos, room, user }) {
+export default function EditorStatusBar({
+  execStatus,
+  langName,
+  cursorPos,
+  room,
+  user,
+  spellCheckEnabled = false,
+  typoCount = 0,
+  onTypoClick,
+}) {
   const { roomId, activeUsers, showOnlineDropdown, setShowOnlineDropdown } = room;
 
   return (
@@ -105,6 +114,36 @@ export default function EditorStatusBar({ execStatus, langName, cursorPos, room,
           Ln {cursorPos.line}, Col {cursorPos.col}
         </span>
         <span>Spaces: 4</span>
+        {/* Spell Check Status */}
+        {spellCheckEnabled && (
+          <span
+            onClick={onTypoClick}
+            title={typoCount > 0 ? `${typoCount} spelling typo(s) detected. Click to scroll to first typo!` : 'Spelling: OK'}
+            style={{
+              cursor: typoCount > 0 ? 'pointer' : 'default',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              color: typoCount > 0 ? '#ff8c00' : '#4ec9b0',
+              fontWeight: typoCount > 0 ? 600 : 'normal',
+              transition: 'all 0.2s',
+            }}
+            className="statusbar-spellcheck-btn"
+          >
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+              <path d="M8 12l3 3 5-5" />
+            </svg>
+            <span>Spelling: {typoCount > 0 ? `${typoCount} typos` : 'OK'}</span>
+          </span>
+        )}
       </div>
 
       <div className="statusbar-right">
