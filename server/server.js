@@ -1,5 +1,6 @@
 const logger = require('./utils/logger');
 require('dotenv').config();
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -80,6 +81,20 @@ function requireSecurityDiagnosticsAccess(req, res, next) {
   return next();
 }
 
+function createCspNonce(req, res, next) {
+  res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+  next();
+}
+
+function getStyleNonceSource(req, res) {
+  if (!res.locals?.cspNonce) {
+    res.locals = res.locals || {};
+    res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+  }
+
+  return `'nonce-${res.locals.cspNonce}'`;
+}
+
 // ──────────────────────────────────────────────
 // CORS Origin Configuration
 // ──────────────────────────────────────────────
@@ -99,10 +114,12 @@ function unique(values) {
 
 // FIX 2: Parse CORS_ORIGINS and CLIENT_URL independently
 // and merge both — not OR — so neither is silently dropped
-const extraOrigins = unique([
-  ...(process.env.CORS_ORIGINS || '').split(','),
-  ...(process.env.CLIENT_URL   || '').split(','),
-].map((o) => o.trim()));
+const extraOrigins = unique(
+  [
+    ...(process.env.CORS_ORIGINS || '').split(','),
+    ...(process.env.CLIENT_URL || '').split(','),
+  ].map((o) => o.trim())
+);
 
 // FIX 3: Merge defaults + extras so production domains
 // are always present regardless of env var configuration
@@ -113,6 +130,7 @@ logger.info('[CORS] Allowed origins: ' + allowedOrigins.join(', '));
 
 function buildCspDirectives() {
   const clientOrigins = unique([...allowedOrigins]);
+  const styleSources = unique(["'self'", getStyleNonceSource, 'https://fonts.googleapis.com']);
 
   const directives = {
     defaultSrc: ["'self'"],
@@ -124,7 +142,9 @@ function buildCspDirectives() {
       'https://cdn.jsdelivr.net',
       'https://cdnjs.cloudflare.com',
     ]),
-    styleSrc: unique(["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com']),
+    styleSrc: styleSources,
+    styleSrcElem: styleSources,
+    styleSrcAttr: ["'none'"],
     imgSrc: ["'self'", 'data:', 'blob:', 'https://*.googleusercontent.com'],
     connectSrc: unique([
       "'self'",
@@ -159,6 +179,8 @@ function buildCspDirectives() {
 // ──────────────────────────────────────────────
 // Security Headers (all six required headers)
 // ──────────────────────────────────────────────
+app.use(createCspNonce);
+
 app.use(
   helmet({
     // 1. Strict-Transport-Security — force HTTPS for 1 year (prod only)
@@ -233,7 +255,13 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Groq-Api-Key', 'x-admin-token', 'x-security-diagnostics-token'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Groq-Api-Key',
+      'x-admin-token',
+      'x-security-diagnostics-token',
+    ],
     optionsSuccessStatus: 204,
   })
 );
