@@ -134,6 +134,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         name: `Room ${id}`,
         createdBy: user.uid,
         isPrivate: Boolean(passwordHash),
+        isPublic: !Boolean(passwordHash),
         passwordSalt,
         passwordHash,
         code,
