@@ -58,33 +58,33 @@ export const executeCode = async (sourceCode, languageId, stdin = '') => {
 };
 
 // ─── AI Features ──────────────────────────────────────────────────────────────
-export const aiExplainError = async (code, error, language) => {
-  const { data } = await api.post('/api/ai/explain-error', { code, error, language });
+export const aiExplainError = async (code, error, language, systemPrompt = '') => {
+  const { data } = await api.post('/api/ai/explain-error', { code, error, language, systemPrompt });
   return data;
 };
 
-export const aiFixCode = async (code, error, language) => {
-  const { data } = await api.post('/api/ai/fix-code', { code, error, language });
+export const aiFixCode = async (code, error, language, systemPrompt = '') => {
+  const { data } = await api.post('/api/ai/fix-code', { code, error, language, systemPrompt });
   return data;
 };
 
-export const aiExplainLogic = async (code, language) => {
-  const { data } = await api.post('/api/ai/explain-logic', { code, language });
+export const aiExplainLogic = async (code, language, systemPrompt = '') => {
+  const { data } = await api.post('/api/ai/explain-logic', { code, language, systemPrompt });
   return data;
 };
 
-export const aiGenerateTests = async (code, language) => {
-  const { data } = await api.post('/api/ai/generate-tests', { code, language });
+export const aiGenerateTests = async (code, language, systemPrompt = '') => {
+  const { data } = await api.post('/api/ai/generate-tests', { code, language, systemPrompt });
   return data;
 };
 
-export const aiAuditCode = async (code, language) => {
-  const { data } = await api.post('/api/ai/audit-code', { code, language });
+export const aiAuditCode = async (code, language, systemPrompt = '') => {
+  const { data } = await api.post('/api/ai/audit-code', { code, language, systemPrompt });
   return data;
 };
 
-export const aiVisualizeExecution = async (code, language, input = '') => {
-  const { data } = await api.post('/api/ai/visualize', { code, language, input });
+export const aiVisualizeExecution = async (code, language, input = '', systemPrompt = '') => {
+  const { data } = await api.post('/api/ai/visualize', { code, language, input, systemPrompt });
   return data;
 };
 

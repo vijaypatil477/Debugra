@@ -44,9 +44,12 @@ async function chatCompletionText(systemPrompt, userPrompt, apiKey = '') {
 }
 
 // 1. Error Explanation
-async function explainError(code, error, language, apiKey = '') {
+async function explainError(code, error, language, apiKey = '', customSystemPrompt = '') {
+  const prompt = customSystemPrompt?.trim()
+    ? customSystemPrompt
+    : `You are a coding mentor. Analyze errors and explain them simply. Always respond in valid JSON.`;
   return chatCompletion(
-    `You are a coding mentor. Analyze errors and explain them simply. Always respond in valid JSON.`,
+    prompt,
     `The user wrote code in ${language} and got this error:
 
 Code:
@@ -67,9 +70,12 @@ Respond in this EXACT JSON format:
 }
 
 // 2. Code Fix
-async function fixCodeAI(code, error, language, apiKey = '') {
+async function fixCodeAI(code, error, language, apiKey = '', customSystemPrompt = '') {
+  const prompt = customSystemPrompt?.trim()
+    ? customSystemPrompt
+    : `You are a code repair expert. Fix this code while keeping the user's logic intact. Return ONLY the corrected code. Do NOT wrap it in markdown. Do not say "Here is the code". CRITICAL: Do NOT output any <think> tags, do NOT explain your reasoning. Just output the raw code.`;
   const response = await chatCompletionText(
-    `You are a code repair expert. Fix this code while keeping the user's logic intact. Return ONLY the corrected code. Do NOT wrap it in markdown. Do not say "Here is the code". CRITICAL: Do NOT output any <think> tags, do NOT explain your reasoning. Just output the raw code.`,
+    prompt,
     `Fix this ${language} code:
 
 ${code}
@@ -106,9 +112,12 @@ ${error || 'No specific error, but optimize and fix any issues.'}`,
 }
 
 // 3. Logic Explanation
-async function explainLogicAI(code, language, apiKey = '') {
+async function explainLogicAI(code, language, apiKey = '', customSystemPrompt = '') {
+  const prompt = customSystemPrompt?.trim()
+    ? customSystemPrompt
+    : `You are a CS tutor. Explain code step-by-step. Always respond in valid JSON.`;
   return chatCompletion(
-    `You are a CS tutor. Explain code step-by-step. Always respond in valid JSON.`,
+    prompt,
     `Explain this ${language} code step-by-step:
 
 ${code}
@@ -125,9 +134,12 @@ Respond in JSON:
 }
 
 // 4. Test Case Generation
-async function generateTestsAI(code, language, apiKey = '') {
+async function generateTestsAI(code, language, apiKey = '', customSystemPrompt = '') {
+  const prompt = customSystemPrompt?.trim()
+    ? customSystemPrompt
+    : `You are a QA engineer. Generate test cases. Always respond in valid JSON.`;
   return chatCompletion(
-    `You are a QA engineer. Generate test cases. Always respond in valid JSON.`,
+    prompt,
     `Generate test cases for this ${language} function:
 
 ${code}
@@ -146,9 +158,12 @@ Respond in JSON:
 }
 
 // 5. Security and refactoring audit
-async function auditCodeAI(code, language, apiKey = '') {
+async function auditCodeAI(code, language, apiKey = '', customSystemPrompt = '') {
+  const prompt = customSystemPrompt?.trim()
+    ? customSystemPrompt
+    : `You are a senior application security reviewer and refactoring coach. Audit code for exploitable security risks, reliability hazards, memory/resource leaks, and unsafe architecture. Always respond in valid JSON.`;
   return chatCompletion(
-    `You are a senior application security reviewer and refactoring coach. Audit code for exploitable security risks, reliability hazards, memory/resource leaks, and unsafe architecture. Always respond in valid JSON.`,
+    prompt,
     `Audit this ${language} code:
 
 ${code}
@@ -181,9 +196,12 @@ Rules:
 }
 
 // 6. Execution Visualization
-async function visualizeAI(code, language, input = '', apiKey = '') {
+async function visualizeAI(code, language, input = '', apiKey = '', customSystemPrompt = '') {
+  const prompt = customSystemPrompt?.trim()
+    ? customSystemPrompt
+    : `You are a code tracer. Trace through code step by step showing variable states. Always respond in valid JSON.`;
   return chatCompletion(
-    `You are a code tracer. Trace through code step by step showing variable states. Always respond in valid JSON.`,
+    prompt,
     `Trace through this ${language} code step by step. Show variable states after each line.
 
 ${code}
@@ -202,9 +220,12 @@ Respond in JSON:
 }
 
 // 7. AI Code Explainer — explains a selected code snippet in plain language
-async function explainCodeSnippetAI(code, language, apiKey = '') {
+async function explainCodeSnippetAI(code, language, apiKey = '', customSystemPrompt = '') {
+  const prompt = customSystemPrompt?.trim()
+    ? customSystemPrompt
+    : `You are an expert programming tutor. When a user highlights a snippet of code, explain what it does in simple, beginner-friendly language. Always respond in valid JSON.`;
   return chatCompletion(
-    `You are an expert programming tutor. When a user highlights a snippet of code, explain what it does in simple, beginner-friendly language. Always respond in valid JSON.`,
+    prompt,
     `Explain this ${language} code snippet in simple terms:
 
 ${code}
@@ -221,9 +242,12 @@ Respond in this EXACT JSON format:
 }
 
 // 8. AI Code Explainer — follow-up Q&A on previously explained code
-async function askFollowUpAI(code, language, question, previousExplanation, apiKey = '') {
+async function askFollowUpAI(code, language, question, previousExplanation, apiKey = '', customSystemPrompt = '') {
+  const prompt = customSystemPrompt?.trim()
+    ? customSystemPrompt
+    : `You are an expert programming tutor engaged in an interactive Q&A session. The user previously highlighted code and received an explanation. Now they have a follow-up question. Answer clearly and concisely. Always respond in valid JSON.`;
   return chatCompletion(
-    `You are an expert programming tutor engaged in an interactive Q&A session. The user previously highlighted code and received an explanation. Now they have a follow-up question. Answer clearly and concisely. Always respond in valid JSON.`,
+    prompt,
     `The user is asking about this ${language} code:
 
 ${code}

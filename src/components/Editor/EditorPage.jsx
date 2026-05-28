@@ -16,6 +16,7 @@ import {
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
+import { loadActivePromptId, loadCustomPrompts, findPromptById, PROMPT_PRESETS, DEFAULT_PROMPT_ID } from '../../utils/aiPromptManager';
 import { LANGUAGES } from '../../utils/languageConfig';
 import {
   LANG_FILE_NAMES,
@@ -76,10 +77,22 @@ export default function EditorPage({ user }) {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [activePromptId, setActivePromptId] = useState(DEFAULT_PROMPT_ID);
+  const [activePromptText, setActivePromptText] = useState(PROMPT_PRESETS[0]?.prompt || '');
+  const [activePromptLabel, setActivePromptLabel] = useState(PROMPT_PRESETS[0]?.label || 'Brief');
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
+
+  useEffect(() => {
+    const customPrompts = loadCustomPrompts();
+    const storedPromptId = loadActivePromptId();
+    const selectedPrompt = findPromptById(storedPromptId, customPrompts) || PROMPT_PRESETS[0];
+    setActivePromptId(selectedPrompt.id);
+    setActivePromptText(selectedPrompt.prompt);
+    setActivePromptLabel(selectedPrompt.label);
+  }, []);
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
   const handleCopyOutput = async () => {
@@ -147,6 +160,7 @@ export default function EditorPage({ user }) {
     stderr: execution.stderr,
     setActiveOutputTab: execution.setActiveOutputTab,
     editorRef,
+    systemPrompt: activePromptText,
   });
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
@@ -628,6 +642,14 @@ export default function EditorPage({ user }) {
               Explain
             </button>
           </div>
+          <button
+            className="topbar-link"
+            style={{ whiteSpace: 'nowrap' }}
+            onClick={() => navigate('/prompt-manager')}
+            title="Open AI Prompt Manager"
+          >
+            AI Rules: {activePromptLabel}
+          </button>
           <button
             className="ai-btn fix"
             onClick={ai.fix}
