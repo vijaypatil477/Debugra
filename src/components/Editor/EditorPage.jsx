@@ -13,6 +13,7 @@ import {
   useEditor,
   useIsMobile,
   useAudioFeedback,
+  useInlineCompletion,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
@@ -73,6 +74,8 @@ export default function EditorPage({ user }) {
   const [showMinimap, setShowMinimap] = useState(true); // ✅ CHANGE 1: Added showMinimap state
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [inlineSuggestion, setInlineSuggestion] = useState('');
+  const [editorCode, setEditorCode] = useState('');
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
@@ -146,6 +149,12 @@ export default function EditorPage({ user }) {
     code: editor.code,
     stderr: execution.stderr,
     setActiveOutputTab: execution.setActiveOutputTab,
+    editorRef,
+  });
+
+  const inlineCompletion = useInlineCompletion({
+    language: editor.language,
+    code: editor.code,
     editorRef,
   });
 
@@ -258,15 +267,36 @@ export default function EditorPage({ user }) {
     });
   };
 
-  const handleEditorMount = (editorInstance) => {
+  const handleEditorMount = (editorInstance, monaco) => {
     editorRef.current = editorInstance;
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
+      inlineCompletion.clearSuggestion();
+      inlineCompletion.triggerSuggestion();
     });
+
+    editorInstance.onDidChangeModelContent(() => {
+      inlineCompletion.clearSuggestion();
+      inlineCompletion.triggerSuggestion();
+    });
+
+    editorInstance.onKeyDown((event) => {
+      if (event.keyCode === monaco.KeyCode.Tab && inlineCompletion?.suggestion) {
+        event.preventDefault();
+        inlineCompletion.acceptSuggestion();
+      }
+      if (event.keyCode === monaco.KeyCode.Escape && inlineCompletion?.suggestion) {
+        event.preventDefault();
+        inlineCompletion.clearSuggestion();
+      }
+    });
+
     // Ctrl+Enter → Run
     editorInstance.addCommand(2048 | 3, () => {
       if (executionRunRef.current) executionRunRef.current();
     });
+
+    inlineCompletion.triggerSuggestion();
   };
 
   // ─── Output Pane Resize ───────────────────────────────────────────────────
