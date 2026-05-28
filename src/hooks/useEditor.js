@@ -20,6 +20,7 @@ import {
  */
 export function useEditor({ user, onNeedAuth }) {
   const [code, setCode] = useState(LANGUAGES[DEFAULT_LANGUAGE].template);
+  const [savedCodeSnapshot, setSavedCodeSnapshot] = useState(LANGUAGES[DEFAULT_LANGUAGE].template);
   const [language, setLanguage] = useState(DEFAULT_LANGUAGE);
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
   const [theme, setTheme] = useState(() => localStorage.getItem('debugra-theme') ?? DEFAULT_THEME);
@@ -48,7 +49,9 @@ export function useEditor({ user, onNeedAuth }) {
 
   const changeLanguage = useCallback((newLang) => {
     setLanguage(newLang);
-    setCode(LANGUAGES[newLang].template);
+    const template = LANGUAGES[newLang].template;
+    setCode(template);
+    setSavedCodeSnapshot(template);
   }, []);
 
   const increaseFontSize = useCallback(() => setFontSize((f) => Math.min(f + 1, 28)), []);
@@ -84,6 +87,7 @@ export function useEditor({ user, onNeedAuth }) {
         name: fileName,
         createdAt: serverTimestamp(),
       });
+      setSavedCodeSnapshot(code);
       toast.success('Code saved to cloud! ✦');
     } catch {
       toast.error('Save failed');
@@ -92,12 +96,14 @@ export function useEditor({ user, onNeedAuth }) {
 
   const loadCode = useCallback((newCode, newLang) => {
     setCode(newCode);
+    setSavedCodeSnapshot(newCode);
     if (newLang && LANGUAGES[newLang]) setLanguage(newLang);
   }, []);
 
   return {
     code,
     setCode,
+    savedCodeSnapshot,
     language,
     setLanguage,
     fontSize,

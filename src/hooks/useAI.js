@@ -6,9 +6,11 @@ import {
   aiVisualizeExecution,
   aiGenerateTests,
   aiAuditCode,
+  aiGenerateCommitMessage,
 } from '../services/api';
 import { LANGUAGES } from '../utils/languageConfig';
 import { OUTPUT_TABS } from '../config/constants';
+import { computeSimpleDiff } from '../utils/diffUtils';
 
 /**
  * useAI
@@ -23,6 +25,8 @@ import { OUTPUT_TABS } from '../config/constants';
 export function useAI({ language, code, stderr, setActiveOutputTab, editorRef }) {
   const [aiResponse, setAiResponse] = useState(null);
   const [isAILoading, setIsAILoading] = useState(false);
+  const [commitMessage, setCommitMessage] = useState(null);
+  const [isCommitLoading, setIsCommitLoading] = useState(false);
 
   const withAI = useCallback(
     async (action) => {
@@ -75,16 +79,39 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
     [withAI, code, language]
   );
 
+  const generateCommitMessage = useCallback(
+    async (savedCodeSnapshot) => {
+      setIsCommitLoading(true);
+      try {
+        const diffText = computeSimpleDiff(savedCodeSnapshot, code);
+        const result = await aiGenerateCommitMessage(diffText, LANGUAGES[language].name);
+        const data = result.content || result;
+        setCommitMessage(data);
+        return data;
+      } catch (err) {
+        toast.error(err.message || 'Commit message generation failed');
+      } finally {
+        setIsCommitLoading(false);
+      }
+    },
+    [code, language]
+  );
+
   const clearAI = useCallback(() => setAiResponse(null), []);
+  const clearCommitMessage = useCallback(() => setCommitMessage(null), []);
 
   return {
     aiResponse,
     isAILoading,
+    commitMessage,
+    isCommitLoading,
     fix,
     explain,
     visualize,
     generateTests,
     audit,
+    generateCommitMessage,
     clearAI,
+    clearCommitMessage,
   };
 }

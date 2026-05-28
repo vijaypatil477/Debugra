@@ -30,6 +30,7 @@ import EditorStatusBar from './EditorStatusBar';
 import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
+import CommitMessagePanel from './CommitMessagePanel';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 
 function getApiKeyStatus() {
@@ -59,6 +60,7 @@ export default function EditorPage({ user }) {
   const [minimapSide, setMinimapSide] = useState('right');
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [showCommitMsg, setShowCommitMsg] = useState(false);
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -567,6 +569,28 @@ export default function EditorPage({ user }) {
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
               Explain
+            </button>
+            <button
+              className="ai-btn"
+              onClick={() => {
+                setShowCommitMsg(true);
+                ai.generateCommitMessage(editor.savedCodeSnapshot);
+              }}
+              disabled={ai.isCommitLoading}
+              title="Generate clean Conventional Commit messages based on code diff"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+              Commit Msg
             </button>
           </div>
           <button
@@ -1177,9 +1201,19 @@ export default function EditorPage({ user }) {
           onClose={() => setShowVideoCall(false)}
         />
       )}
-
       {/* Real-time Democratic Vote Popup */}
       <VotePopup room={room} user={user} />
+      {showCommitMsg && (
+        <CommitMessagePanel
+          commitMessage={ai.commitMessage}
+          isLoading={ai.isCommitLoading}
+          onRegenerate={() => ai.generateCommitMessage(editor.savedCodeSnapshot)}
+          onClose={() => {
+            setShowCommitMsg(false);
+            ai.clearCommitMessage();
+          }}
+        />
+      )}
     </div>
   );
 }
