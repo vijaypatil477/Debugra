@@ -2401,6 +2401,60 @@ body {
   gap: 12px;
 }
 
+/* Auth Buttons */
+.drawer-auth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+}
+
+.drawer-auth-btn {
+  padding: 10px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.drawer-signin-btn {
+  background: var(--bg-1);
+  color: var(--text-0);
+  border: 1px solid var(--accent);
+}
+
+.drawer-signin-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--accent-hover);
+  color: var(--accent);
+}
+
+.drawer-signin-btn:active {
+  transform: scale(0.98);
+}
+
+.drawer-signup-btn {
+  background: #8b5cf6;
+  color: white;
+  border: 1px solid #8b5cf6;
+}
+
+.drawer-signup-btn:hover {
+  background: #a78bfa;
+  border-color: #a78bfa;
+}
+
+.drawer-signup-btn:active {
+  transform: scale(0.98);
+}
+
 /* Settings Group */
 .drawer-settings-group {
   display: flex;

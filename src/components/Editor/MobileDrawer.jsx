@@ -11,7 +11,6 @@ import HistoryPanel from './HistoryPanel';
 export default function MobileDrawer({
   isMobile,
   isOpen,
-  onOpen,
   onClose,
   user,
   editor,
@@ -19,6 +18,8 @@ export default function MobileDrawer({
   showHistory,
   setShowHistory,
   onLoadCode,
+  onSignIn,
+  onSignUp,
 }) {
   const [activeTab, setActiveTab] = useState('menu'); // 'menu' or 'history'
 
@@ -83,6 +84,24 @@ export default function MobileDrawer({
           {/* Settings Tab */}
           {activeTab === 'menu' && (
             <div className="drawer-panel-content">
+              {/* Auth Buttons (if not logged in) */}
+              {!user && (
+                <div className="drawer-auth-buttons">
+                  <button
+                    className="drawer-auth-btn drawer-signin-btn"
+                    onClick={onSignIn}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    className="drawer-auth-btn drawer-signup-btn"
+                    onClick={onSignUp}
+                  >
+                    Sign Up
+                  </button>
+                </div>
+              )}
+
               {/* Theme Setting */}
               <div className="drawer-settings-group">
                 <label className="drawer-settings-label">

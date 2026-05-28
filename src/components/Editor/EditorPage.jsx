@@ -633,7 +633,7 @@ export default function EditorPage({ user }) {
               </span>
             </div>
           ) : (
-            <div className="d-flex gap-2">
+            <div className="d-none d-md-flex gap-2">
               <button
                 className="topbar-link"
                 onClick={() => {
@@ -1515,6 +1515,16 @@ export default function EditorPage({ user }) {
         setShowHistory={setShowHistory}
         onLoadCode={(code, language) => {
           editor.loadCode(code, language);
+        }}
+        onSignIn={() => {
+          setAuthMode('login');
+          setShowAuth(true);
+          setDrawerOpen(false);
+        }}
+        onSignUp={() => {
+          setAuthMode('signup');
+          setShowAuth(true);
+          setDrawerOpen(false);
         }}
       />
     </div>
