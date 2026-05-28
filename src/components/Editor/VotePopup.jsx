@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './VotePopup.css';
 
 /**
@@ -11,6 +11,7 @@ export default function VotePopup({ room, user }) {
   const { roomData, activeUsers, castVote, clearVote } = room;
   const activeVote = roomData?.activeVote;
   const [showCode, setShowCode] = useState(false);
+  const containerRef = useRef(null);
 
   const totalUsers = activeUsers?.length || 1;
   const approvalsCount = activeVote?.approvals?.length || 0;
@@ -36,6 +37,71 @@ export default function VotePopup({ room, user }) {
     };
   }, [activeVote]);
 
+  // Focus trap and focus restoration effect (WCAG 2.4.3 compliance)
+  useEffect(() => {
+    if (!activeVote) return;
+
+    const previousActiveElement = document.activeElement;
+    const focusableSelector =
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+    // Focus first element after a brief timeout to let DOM render
+    const timer = setTimeout(() => {
+      if (containerRef.current) {
+        const focusableElements = containerRef.current.querySelectorAll(focusableSelector);
+        if (focusableElements.length > 0) {
+          focusableElements[0].focus();
+        } else {
+          containerRef.current.focus();
+        }
+      }
+    }, 50);
+
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Tab') return;
+      if (!containerRef.current) return;
+
+      const focusableElements = Array.from(
+        containerRef.current.querySelectorAll(focusableSelector)
+      ).filter((el) => !el.disabled && el.tabIndex !== -1);
+
+      if (focusableElements.length === 0) {
+        e.preventDefault();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey) {
+        // Shift + Tab (backward navigation)
+        if (
+          document.activeElement === firstElement ||
+          document.activeElement === containerRef.current
+        ) {
+          lastElement.focus();
+          e.preventDefault();
+        }
+      } else {
+        // Tab (forward navigation)
+        if (document.activeElement === lastElement) {
+          firstElement.focus();
+          e.preventDefault();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+      if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
+        previousActiveElement.focus();
+      }
+    };
+  }, [activeVote]);
+
   // Escape key handler for closing the vote (initiator only)
   useEffect(() => {
     if (!activeVote || !isInitiator) return;
@@ -54,7 +120,14 @@ export default function VotePopup({ room, user }) {
 
   return (
     <div className="vp-overlay">
-      <div className="vp-container" role="dialog" aria-modal="true" aria-labelledby="vp-title">
+      <div
+        className="vp-container"
+        ref={containerRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="vp-title"
+      >
         {/* Header */}
         <div className="vp-header">
           <div className="vp-header-title" id="vp-title">
