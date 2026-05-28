@@ -3,10 +3,17 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './services/firebase';
 import { Toaster } from 'react-hot-toast';
+
+// 1. Import the PWA service worker registration
+import { registerSW } from 'virtual:pwa-register';
+
 import LandingPage from './components/Landing/LandingPage';
 import EditorPage from './components/Editor/EditorPage';
 import VideoCall from './components/Editor/VideoCall';
 import OfflineBanner from './components/Editor/OfflineBanner';
+
+// 2. Start the service worker immediately when the app loads
+registerSW({ immediate: true });
 
 export default function App() {
   const [user, setUser] = useState(null);
