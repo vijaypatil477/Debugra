@@ -170,6 +170,8 @@ DEBUGRA_ADMIN_TOKEN=choose_a_long_random_admin_token
 
 ### 4. Start development servers
 
+#### Option A: Using NPM
+
 ```bash
 # Terminal 1 — Frontend
 npm run dev
@@ -177,6 +179,14 @@ npm run dev
 # Terminal 2 — Backend
 cd server
 npm run dev
+```
+
+#### Option B: Using Docker (Recommended for quick setup)
+
+Make sure Docker Desktop is running, then use Docker Compose to spin up both the frontend and backend with hot-reloading:
+
+```bash
+docker-compose up --build
 ```
 
 Frontend runs at `http://localhost:5173`, backend at `http://localhost:3001`.

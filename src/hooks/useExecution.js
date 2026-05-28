@@ -3,6 +3,7 @@ import { executeCode } from '../services/api';
 import { LANGUAGES } from '../utils/languageConfig';
 import { EXEC_STATUS, OUTPUT_TABS } from '../config/constants';
 import toast from 'react-hot-toast';
+import { showRateLimitToast } from '../utils/rateLimitToast';
 
 /**
  * useExecution
@@ -147,6 +148,11 @@ export function useExecution({
         if (result.stderr) setActiveOutputTab(OUTPUT_TABS.STDERR);
       }
     } catch (err) {
+      if (err.status === 429) {
+        showRateLimitToast(err.message, err.retryAfter);
+        setExecStatus(EXEC_STATUS.IDLE);
+        return;
+      }
       setStderr(err.message || 'Execution failed');
       setExecStatus(EXEC_STATUS.FAILED);
       audioFeedback?.playOutcome?.('error');

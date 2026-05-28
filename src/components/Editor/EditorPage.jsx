@@ -15,8 +15,15 @@ import {
   useAudioFeedback,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
+import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
 import { LANGUAGES } from '../../utils/languageConfig';
-import { LANG_FILE_NAMES, MOBILE_TABS, OUTPUT_TABS, EDITOR_THEMES } from '../../config/constants';
+import {
+  LANG_FILE_NAMES,
+  MOBILE_TABS,
+  OUTPUT_TABS,
+  EDITOR_THEMES,
+  EDITOR_FONTS,
+} from '../../config/constants';
 
 import AuthModal from '../Auth/AuthModal';
 import ChatPanel from '../Chat/ChatPanel';
@@ -63,6 +70,7 @@ export default function EditorPage({ user }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
+  const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -122,6 +130,10 @@ export default function EditorPage({ user }) {
   useEffect(() => {
     executionRunRef.current = execution.run;
   }, [execution.run]);
+
+  useEffect(() => {
+    ensureEditorFontLoaded(editor.fontFamily);
+  }, [editor.fontFamily]);
 
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
@@ -275,7 +287,7 @@ export default function EditorPage({ user }) {
   const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
 
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', '--blur-intensity': `${blurIntensity}px` }}>
       {/* ===== TOP BAR ===== */}
       <div className="topbar px-2 px-md-3">
         <div className="topbar-left d-flex align-items-center">
@@ -688,7 +700,7 @@ export default function EditorPage({ user }) {
                 <Settings size={14} />
               </button>
               {showSettings && (
-                <div className="audio-settings-popover" role="dialog" aria-label="Settings">
+                <div className="audio-settings-popover custom-layout-popover" role="dialog" aria-label="Settings">
                   <div className="audio-settings-head">
                     <span>Settings</span>
                     <button
@@ -698,6 +710,25 @@ export default function EditorPage({ user }) {
                     >
                       <i className="bi bi-x" />
                     </button>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-type" style={{ fontSize: '14px' }} />
+                      <span>Editor font</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.fontFamily}
+                      onChange={(e) => editor.setFontFamily(e.target.value)}
+                      aria-label="Editor font"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {EDITOR_FONTS.map((font) => (
+                        <option key={font.id} value={font.id}>
+                          {font.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="audio-settings-row">
                     <div className="audio-settings-label">
@@ -717,6 +748,27 @@ export default function EditorPage({ user }) {
                         </option>
                       ))}
                     </select>
+                  </div>
+                  {/* ===== WALLPAPER BLUR SETTING ROW ===== */}
+                  <div className="audio-settings-row" style={{ marginTop: '12px' }}>
+                    <div className="audio-settings-label">
+                      <i className="bi bi-sliders" style={{ fontSize: '14px' }} />
+                      <span>Wallpaper Blur</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        step="1"
+                        value={blurIntensity}
+                        onChange={(e) => setBlurIntensity(Number(e.target.value))}
+                        style={{ flex: 1, accentColor: '#00bcd4' }} 
+                      />
+                      <span style={{ fontSize: '12px', minWidth: '30px', textAlign: 'right' }}>
+                        {blurIntensity}px
+                      </span>
+                    </div>
                   </div>
                   <div className="audio-settings-row">
                     <div className="audio-settings-label">
@@ -790,7 +842,7 @@ export default function EditorPage({ user }) {
       <div className="main-split">
         {/* EDITOR PANE */}
         <div
-          className="editor-pane"
+          className="editor-pane glass-panel"
           style={isMobile && mobileTab !== MOBILE_TABS.CODE ? { display: 'none' } : {}}
         >
           <div className="editor-tab-bar">
@@ -848,7 +900,7 @@ export default function EditorPage({ user }) {
               options={{
                 readOnly: room.isReadOnly,
                 fontSize: editor.fontSize,
-                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                fontFamily: getEditorFontFamily(editor.fontFamily),
                 minimap: {
                   enabled: true,
                   side: minimapSide,
@@ -947,7 +999,7 @@ export default function EditorPage({ user }) {
 
         {/* OUTPUT PANE */}
         <div
-          className="output-pane"
+          className="output-pane glass-panel"
           style={
             isMobile
               ? mobileTab === MOBILE_TABS.OUTPUT
