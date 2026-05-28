@@ -138,6 +138,25 @@ export default function EditorPage({ user }) {
     ensureEditorFontLoaded(editor.fontFamily);
   }, [editor.fontFamily]);
 
+  useEffect(() => {
+  const editorInstance = editorRef.current;
+  const monaco = monacoRef.current;
+  if (!editorInstance || !monaco) return;
+
+  const modelCache = editor.getModelCache();
+  const lang = langConfig.monacoLang;
+  const currentCode = LANGUAGES[editor.language]?.template || '';
+
+  // Reuse existing model or create a new one
+  if (!modelCache.has(editor.language)) {
+    const newModel = monaco.editor.createModel(currentCode, lang);
+    modelCache.set(editor.language, newModel);
+  }
+
+  const model = modelCache.get(editor.language);
+  editorInstance.setModel(model); // swap model, undo history intact
+
+  }, [editor.language]); // runs only when language changes
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
     language: editor.language,
@@ -255,17 +274,22 @@ export default function EditorPage({ user }) {
       },
     });
   };
+  
+  const monacoRef = useRef(null);
+  const handleEditorMount = (editorInstance, monaco) => {  // add monaco param
+  editorRef.current = editorInstance;
 
-  const handleEditorMount = (editorInstance) => {
-    editorRef.current = editorInstance;
-    editorInstance.onDidChangeCursorPosition((e) => {
-      editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
-    });
-    // Ctrl+Enter → Run
-    editorInstance.addCommand(2048 | 3, () => {
-      if (executionRunRef.current) executionRunRef.current();
-    });
-  };
+  editorInstance.onDidChangeCursorPosition((e) => {
+    editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
+  });
+
+  editorInstance.addCommand(2048 | 3, () => {
+    if (executionRunRef.current) executionRunRef.current();
+  });
+
+  // Store monaco instance for model swapping
+  monacoRef.current = monaco;
+ };
 
   // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
@@ -910,7 +934,7 @@ export default function EditorPage({ user }) {
             <Editor
               height="100%"
               language={langConfig.monacoLang}
-              value={editor.code}
+              defaultValue={editor.code}  
               onChange={(val) => {
                 if (!room.isReadOnly) editor.setCode(val || '');
               }}

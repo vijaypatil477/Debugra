@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { LANGUAGES } from '../utils/languageConfig';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   LANG_FILE_NAMES,
   INPUT_PATTERNS,
@@ -19,12 +20,23 @@ import {
  *   - stdin detection and management
  *   - save to cloud and download as file
  */
+
 export function useEditor({ user, onNeedAuth }) {
+  // Per-file Monaco model cache — keyed by language
+  // Preserves undo/redo history when switching languages
+  const modelCacheRef = useRef(new Map());
+  const getModelCache = useCallback(() => modelCacheRef.current, []);
+  const disposeModel = useCallback((lang) => {
+  const model = modelCacheRef.current.get(lang);
+  if (model && !model.isDisposed()) {
+    model.dispose();
+  }
+  modelCacheRef.current.delete(lang);
+  }, []);
   const [code, setCode] = useState(LANGUAGES[DEFAULT_LANGUAGE].template);
   const [language, setLanguage] = useState(DEFAULT_LANGUAGE);
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
-  const [fontFamily, setFontFamily] = useState(
-    () => localStorage.getItem('debugra-editor-font') ?? DEFAULT_EDITOR_FONT
+  const [fontFamily, setFontFamily] = useState(() => localStorage.getItem('debugra-editor-font') ?? DEFAULT_EDITOR_FONT
   );
   const [theme, setTheme] = useState(() => localStorage.getItem('debugra-theme') ?? DEFAULT_THEME);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
@@ -55,8 +67,10 @@ export function useEditor({ user, onNeedAuth }) {
   }, [needsInput]);
 
   const changeLanguage = useCallback((newLang) => {
-    setLanguage(newLang);
+  setLanguage(newLang);
+  if (!modelCacheRef.current.has(newLang)) {
     setCode(LANGUAGES[newLang].template);
+  }
   }, []);
 
   const increaseFontSize = useCallback(() => setFontSize((f) => Math.min(f + 1, 28)), []);
@@ -127,5 +141,7 @@ export function useEditor({ user, onNeedAuth }) {
     downloadCode,
     saveToCloud,
     loadCode,
+    getModelCache,
+    disposeModel,
   };
 }
