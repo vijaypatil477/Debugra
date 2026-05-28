@@ -102,4 +102,9 @@ export const aiInlineComplete = async (prefix, suffix, language) => {
   return data;
 };
 
+export const aiChat = async (messages, activeCode, language) => {
+  const { data } = await api.post('/api/ai/chat', { messages, activeCode, language });
+  return data;
+};
+
 export default api;
