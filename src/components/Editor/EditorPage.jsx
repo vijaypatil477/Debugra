@@ -37,6 +37,7 @@ import AccountSettings from '../Auth/AccountSettings';
 import ChatPanel from '../Chat/ChatPanel';
 import FileIcon from '../Icons/FileIcon';
 import HistoryPanel from './HistoryPanel';
+import ExecutionLogsPanel from './ExecutionLogsPanel';
 import AIResponsePanel from './AIResponsePanel';
 import ApiKeyModal from './ApiKeyModal';
 import CollaborationControls from './CollaborationControls';
@@ -71,6 +72,7 @@ export default function EditorPage({ user }) {
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
+  const [showExecutionLogs, setShowExecutionLogs] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
@@ -765,7 +767,10 @@ export default function EditorPage({ user }) {
               <button
                 className="toolbar-icon-btn"
                 aria-label="Toggle History"
-                onClick={() => setShowHistory(!showHistory)}
+                onClick={() => {
+                  setShowHistory(!showHistory);
+                  setShowExecutionLogs(false);
+                }}
                 title="History"
                 style={
                   showHistory ? { background: 'var(--bg-active)', color: 'var(--accent)' } : {}
@@ -784,6 +789,30 @@ export default function EditorPage({ user }) {
                 </svg>
               </button>
             )}
+            <button
+              className="toolbar-icon-btn"
+              aria-label="Toggle Execution Logs"
+              onClick={() => {
+                setShowExecutionLogs(!showExecutionLogs);
+                setShowHistory(false);
+              }}
+              title="Execution Logs"
+              style={
+                showExecutionLogs ? { background: 'var(--bg-active)', color: 'var(--accent)' } : {}
+              }
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <polyline points="4 17 10 11 4 5" />
+                <line x1="12" y1="19" x2="20" y2="19" />
+              </svg>
+            </button>
             <div className="audio-settings-wrap">
               <button
                 className="toolbar-icon-btn"
@@ -1208,6 +1237,14 @@ export default function EditorPage({ user }) {
           />
         )}
 
+        {/* Execution Logs Panel (desktop) */}
+        {showExecutionLogs && !isMobile && (
+          <ExecutionLogsPanel
+            onLoadCode={editor.loadCode}
+            onClose={() => setShowExecutionLogs(false)}
+          />
+        )}
+
         {/* OUTPUT PANE */}
         <div
           className="output-pane glass-panel"
@@ -1456,6 +1493,56 @@ export default function EditorPage({ user }) {
           <div style={{ flex: 1, overflow: 'hidden' }}>
             <HistoryPanel
               user={user}
+              onLoadCode={(c, l) => {
+                editor.loadCode(c, l);
+                setMobileTab(MOBILE_TABS.CODE);
+              }}
+              onClose={() => setMobileTab(MOBILE_TABS.CODE)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Execution Logs (mobile full-screen) */}
+      {isMobile && mobileTab === MOBILE_TABS.EXEC_LOGS && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 50,
+            background: 'var(--bg-0)',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 16px',
+              borderBottom: '1px solid var(--border)',
+              background: 'var(--bg-1)',
+            }}
+          >
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-0)' }}>
+              Execution Logs
+            </span>
+            <button
+              onClick={() => setMobileTab(MOBILE_TABS.CODE)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-1)',
+                fontSize: '1.2rem',
+                cursor: 'pointer',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <ExecutionLogsPanel
               onLoadCode={(c, l) => {
                 editor.loadCode(c, l);
                 setMobileTab(MOBILE_TABS.CODE);

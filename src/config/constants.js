@@ -126,6 +126,7 @@ export const MOBILE_TABS = {
   OUTPUT: 'output',
   CHAT: 'chat',
   SAVED: 'saved',
+  EXEC_LOGS: 'exec_logs',
 };
 
 // ─── Output Tab Keys ──────────────────────────────────────────────────────────

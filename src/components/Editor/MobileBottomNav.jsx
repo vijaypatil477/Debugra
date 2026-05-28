@@ -57,6 +57,14 @@ export default function MobileBottomNav({
         </button>
       )}
 
+      <button
+        className={`mobile-nav-btn ${mobileTab === MOBILE_TABS.EXEC_LOGS ? 'active' : ''}`}
+        onClick={() => setMobileTab(MOBILE_TABS.EXEC_LOGS)}
+      >
+        <i className="bi bi-activity" />
+        <span>Logs</span>
+      </button>
+
       {roomId && (
         <button
           className={`mobile-nav-btn ${mobileTab === MOBILE_TABS.CHAT ? 'active' : ''}`}
