@@ -39,6 +39,7 @@ import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
+import DebugOverlay from './DebugOverlay';
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -75,6 +76,7 @@ export default function EditorPage({ user }) {
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
+  const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -257,6 +259,81 @@ export default function EditorPage({ user }) {
     });
   };
 
+  // Exposed formatting function for tests and fallback usage
+  const runFormatter = async (editorInstanceParam) => {
+    try {
+      const instance = editorInstanceParam || editorRef.current;
+      const monaco = monacoRef.current;
+      if (!instance || !monaco) return;
+      const model = instance.getModel();
+      if (!model) return;
+
+      const selection = instance.getSelection();
+      const startOffset = model.getOffsetAt(selection.getStartPosition());
+      const endOffset = model.getOffsetAt(selection.getEndPosition());
+
+      const prettierModule = await import('prettier/standalone');
+      const prettier =
+        prettierModule && prettierModule.default ? prettierModule.default : prettierModule;
+      const parserBabelModule = await import('prettier/parser-babel');
+      const parserBabel =
+        parserBabelModule && parserBabelModule.default
+          ? parserBabelModule.default
+          : parserBabelModule;
+      const parserTSModule = await import('prettier/parser-typescript');
+      const parserTS =
+        parserTSModule && parserTSModule.default ? parserTSModule.default : parserTSModule;
+
+      const langKey = editor.language || 'javascript';
+      let plugins = [parserBabel];
+      let parserName = 'babel';
+      if (langKey === 'typescript') {
+        plugins = [parserTS];
+        parserName = 'typescript';
+      }
+
+      const original = model.getValue();
+      const formatted = prettier.format(original, {
+        parser: parserName,
+        plugins,
+        semi: true,
+        singleQuote: true,
+        tabWidth: editor.tabSize || 2,
+      });
+
+      model.pushEditOperations(
+        [],
+        [
+          {
+            range: model.getFullModelRange(),
+            text: formatted,
+          },
+        ],
+        () => null
+      );
+
+      const newStartPos = model.getPositionAt(Math.min(startOffset, formatted.length));
+      const newEndPos = model.getPositionAt(Math.min(endOffset, formatted.length));
+      const Range = monaco.Range;
+      instance.setSelection(
+        new Range(
+          newStartPos.lineNumber,
+          newStartPos.column,
+          newEndPos.lineNumber,
+          newEndPos.column
+        )
+      );
+
+      editor.setCode(formatted);
+      toast.success('Formatted');
+    } catch (err) {
+      console.error('Formatting error', err);
+      try {
+        toast.error('Formatting failed');
+      } catch {}
+    }
+  };
+
   const handleEditorMount = (editorInstance) => {
     editorRef.current = editorInstance;
     window.__DEBUGRA_EDITOR__ = editorInstance;
@@ -309,21 +386,173 @@ export default function EditorPage({ user }) {
       if (executionRunRef.current) executionRunRef.current();
     });
 
-    const monaco = monacoRef.current;
-    if (monaco) {
-      editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, () => {
-        void formatCurrentModel();
-      });
-    }
+    // Ctrl/Cmd+S → Format (Prettier)
+    try {
+      const monaco = monacoRef.current;
+      if (monaco) {
+        const SAVE_KEYBIND = monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S;
+        editorInstance.addCommand(SAVE_KEYBIND, async () => {
+          // Preserve selection offsets
+          const model = editorInstance.getModel();
+          if (!model) return;
+          const selection = editorInstance.getSelection();
+          const startOffset = model.getOffsetAt(selection.getStartPosition());
+          const endOffset = model.getOffsetAt(selection.getEndPosition());
 
+          try {
+            // Dynamically import Prettier and parsers to avoid bundling unless used
+            const prettierModule = await import('prettier/standalone');
+            const prettier =
+              prettierModule && prettierModule.default ? prettierModule.default : prettierModule;
+            const parserBabelModule = await import('prettier/parser-babel');
+            const parserBabel =
+              parserBabelModule && parserBabelModule.default
+                ? parserBabelModule.default
+                : parserBabelModule;
+            const parserTSModule = await import('prettier/parser-typescript');
+            const parserTS =
+              parserTSModule && parserTSModule.default ? parserTSModule.default : parserTSModule;
+
+            const langKey = editor.language || 'javascript';
+            let plugins = [parserBabel];
+            let parserName = 'babel';
+            if (langKey === 'typescript') {
+              plugins = [parserTS];
+              parserName = 'typescript';
+            }
+
+            // Use editor's code value
+            const original = model.getValue();
+            const formatted = prettier.format(original, {
+              parser: parserName,
+              plugins,
+              semi: true,
+              singleQuote: true,
+              tabWidth: editor.tabSize || 2,
+            });
+
+            // Apply full-model edit (keeps undo stack) and attempt to restore selection by offsets
+            model.pushEditOperations(
+              [],
+              [
+                {
+                  range: model.getFullModelRange(),
+                  text: formatted,
+                },
+              ],
+              () => null
+            );
+
+            // Ensure model/view are updated before test assertions
+            await new Promise((r) => setTimeout(r, 250));
+
+            const newStartPos = model.getPositionAt(Math.min(startOffset, formatted.length));
+            const newEndPos = model.getPositionAt(Math.min(endOffset, formatted.length));
+            // Create a Range using Monaco API
+            const Range = monaco.Range;
+            editorInstance.setSelection(
+              new Range(
+                newStartPos.lineNumber,
+                newStartPos.column,
+                newEndPos.lineNumber,
+                newEndPos.column
+              )
+            );
+
+            // Update internal state
+            editor.setCode(formatted);
+            toast.success('Formatted');
+          } catch (err) {
+            // If formatting fails, do not disrupt save flow
+            console.error('Formatting error', err);
+            toast.error('Formatting failed');
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('Could not register save formatter', err);
+    }
+    // Also intercept keydown on the Monaco editor to prevent the browser's
+    // default Save dialog (Cmd/Ctrl+S) and trigger formatting instead.
     editorInstance.onKeyDown((e) => {
-      if (room.isReadOnly) return;
-      const monacoInstance = monacoRef.current;
-      if (!monacoInstance) return;
-      if ((e.ctrlKey || e.metaKey) && e.keyCode === monacoInstance.KeyCode.KEY_S) {
-        e.preventDefault();
-        e.stopPropagation();
-        void formatCurrentModel();
+      try {
+        const monaco = monacoRef.current;
+        if (!monaco) return;
+        const isSave = (e.ctrlKey || e.metaKey) && e.keyCode === monaco.KeyCode.KEY_S;
+        if (isSave) {
+          e.preventDefault();
+          e.stopPropagation();
+          // Reuse the same command by triggering the Monaco command we registered.
+          // Some Monaco builds don't expose the command id, so call the formatter directly.
+          (async () => {
+            const model = editorInstance.getModel();
+            if (!model) return;
+            try {
+              const prettierModule = await import('prettier/standalone');
+              const prettier =
+                prettierModule && prettierModule.default ? prettierModule.default : prettierModule;
+              const parserBabelModule = await import('prettier/parser-babel');
+              const parserBabel =
+                parserBabelModule && parserBabelModule.default
+                  ? parserBabelModule.default
+                  : parserBabelModule;
+              const parserTSModule = await import('prettier/parser-typescript');
+              const parserTS =
+                parserTSModule && parserTSModule.default ? parserTSModule.default : parserTSModule;
+
+              const langKey = editor.language || 'javascript';
+              let plugins = [parserBabel];
+              let parserName = 'babel';
+              if (langKey === 'typescript') {
+                plugins = [parserTS];
+                parserName = 'typescript';
+              }
+
+              const selection = editorInstance.getSelection();
+              const startOffset = model.getOffsetAt(selection.getStartPosition());
+              const endOffset = model.getOffsetAt(selection.getEndPosition());
+
+              const original = model.getValue();
+              const formatted = prettier.format(original, {
+                parser: parserName,
+                plugins,
+                semi: true,
+                singleQuote: true,
+                tabWidth: editor.tabSize || 2,
+              });
+
+              model.pushEditOperations(
+                [],
+                [
+                  {
+                    range: model.getFullModelRange(),
+                    text: formatted,
+                  },
+                ],
+                () => null
+              );
+
+              const newStartPos = model.getPositionAt(Math.min(startOffset, formatted.length));
+              const newEndPos = model.getPositionAt(Math.min(endOffset, formatted.length));
+              const Range = monacoRef.current.Range;
+              editorInstance.setSelection(
+                new Range(
+                  newStartPos.lineNumber,
+                  newStartPos.column,
+                  newEndPos.lineNumber,
+                  newEndPos.column
+                )
+              );
+              editor.setCode(formatted);
+              toast.success('Formatted');
+            } catch (err) {
+              console.error('Formatting error', err);
+              toast.error('Formatting failed');
+            }
+          })();
+        }
+      } catch (err) {
+        // swallow
       }
     });
   };
@@ -1091,6 +1320,123 @@ export default function EditorPage({ user }) {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Resize Handle (desktop only) */}
+        {!isMobile && <div className="resize-handle" onMouseDown={handleResizeStart} />}
+
+        {/* History Panel (desktop) */}
+        {showHistory && user && !isMobile && (
+          <HistoryPanel
+            user={user}
+            onLoadCode={editor.loadCode}
+            onClose={() => setShowHistory(false)}
+          />
+        )}
+
+        {/* OUTPUT PANE */}
+        <div
+          className="output-pane glass-panel"
+          style={
+            isMobile
+              ? mobileTab === MOBILE_TABS.OUTPUT
+                ? { display: 'flex', width: '100%' }
+                : { display: 'none' }
+              : { width: outputWidth + 'px' }
+          }
+        >
+          <div className="output-tabs">
+            {/* copy */}
+             <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <button
+                className={`output-tab ${
+                  execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''
+                }`}
+                onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDOUT)}
+              >
+                Output
+              </button>
+
+              {execution.stdout && (
+                <button
+                  onClick={handleCopyOutput}
+                  title="Copy Output"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#aaa',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  {copied ? '✓' : '📋'}
+                </button>
+              )}
+             </div>
+            {execution.stderr && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <button
+                  className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDERR ? 'active' : ''}`}
+                  onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDERR)}
+                >
+                  <span
+                    style={{
+                      color: execution.activeOutputTab === OUTPUT_TABS.STDERR ? '#f44747' : undefined,
+                    }}
+                  >
+                    ✦ Errors
+                  </span>
+                </button>
+                {/* ── Debug with AI inline button ── */}
+                <button
+                  id="debug-with-ai-btn"
+                  className="debug-ai-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    execution.setActiveOutputTab(OUTPUT_TABS.STDERR);
+                    ai.debugError();
+                    setShowDebugOverlay(true);
+                  }}
+                  title="Explain this error in plain English"
+                  aria-label="Debug with AI"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  Debug with AI
+                </button>
+              </div>
+            )}
+            {(ai.aiResponse || ai.isAILoading) && (
+              <button
+                className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.AI ? 'active' : ''}`}
+                onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.AI)}
+              >
+                AI{' '}
+                {ai.isAILoading && (
+                  <span
+                    className="spinner"
+                    style={{ width: '8px', height: '8px', borderWidth: '1.5px', marginLeft: '4px' }}
+                  />
+                )}
+              </button>
+            )}
+          </div>
 
           <div className="output-content">
             <div
@@ -1278,6 +1624,21 @@ export default function EditorPage({ user }) {
         />
       )}
       {showAccount && user && <AccountSettings onClose={() => setShowAccount(false)} user={user} />}
+
+      {/* Debug Overlay */}
+      <DebugOverlay
+        isOpen={showDebugOverlay}
+        isLoading={ai.isDebugLoading}
+        response={ai.debugResponse}
+        stderr={execution.stderr}
+        onClose={() => {
+          setShowDebugOverlay(false);
+          ai.clearDebug();
+        }}
+        onApplyFix={() => {
+          ai.fix();
+        }}
+      />
 
       {/* Video Call Overlay */}
       {showVideoCall && room.roomId && (
