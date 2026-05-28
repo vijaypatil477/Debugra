@@ -27,7 +27,7 @@ services:
       - NODE_ENV=development
       - PORT=8080
       # Provide dummy values for local development if .env is missing
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-dummy_key}
+      - GROQ_API_KEY=${GROQ_API_KEY:-dummy_key}
       - CORS_ORIGINS=http://localhost:5173
     volumes:
       - ./server:/app
