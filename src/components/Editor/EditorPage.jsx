@@ -911,6 +911,7 @@ export default function EditorPage({ user }) {
               <AIResponsePanel
                 isLoading={ai.isAILoading}
                 response={ai.aiResponse}
+                language={editor.language}
                 onApplyFix={(code) => {
                   editor.setCode(code);
                   toast.success('Solution applied!');
