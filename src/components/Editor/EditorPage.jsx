@@ -237,8 +237,10 @@ export default function EditorPage({ user }) {
     });
   };
 
-  const handleEditorMount = (editorInstance) => {
+  const handleEditorMount = (editorInstance, monacoInstance) => {
     editorRef.current = editorInstance;
+    window.editor = editorInstance;
+    window.monaco = monacoInstance;
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
