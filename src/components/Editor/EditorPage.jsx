@@ -39,6 +39,7 @@ import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
+import DebugOverlay from './DebugOverlay';
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -75,6 +76,7 @@ export default function EditorPage({ user }) {
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
+  const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -1374,14 +1376,33 @@ export default function EditorPage({ user }) {
       )}
       {showAccount && user && <AccountSettings onClose={() => setShowAccount(false)} user={user} />}
 
-      {/* Video Call Overlay */}
-      {showVideoCall && room.roomId && (
-        <VideoCall
-          roomId={room.roomId}
-          userName={user?.displayName || user?.email?.split('@')[0] || 'Guest'}
-          onClose={() => setShowVideoCall(false)}
-        />
-      )}
+      {/* Debug Overlay */}
+      <DebugOverlay
+        isOpen={showDebugOverlay}
+        isLoading={ai.isDebugLoading}
+        response={ai.debugResponse}
+        stderr={execution.stderr}
+        onClose={() => {
+          setShowDebugOverlay(false);
+          ai.clearDebug();
+        }}
+        onApplyFix={() => {
+          ai.fix();
+        }}
+      />
+
+{/* Video Call Overlay */}
+{showVideoCall && room.roomId && (
+  <VideoCall
+    roomId={room.roomId}
+    userName={
+      user?.displayName ||
+      user?.email?.split('@')[0] ||
+      'Guest'
+    }
+    onClose={() => setShowVideoCall(false)}
+  />
+)}
 
       {/* Real-time Democratic Vote Popup */}
       <VotePopup room={room} user={user} />
