@@ -81,4 +81,9 @@ export const aiOptimizeNames = async (code, language) => {
   return data;
 };
 
+export const aiGenerateDocstring = async (code, language) => {
+  const { data } = await api.post('/api/ai/generate-docstring', { code, language });
+  return data;
+};
+
 export default api;
