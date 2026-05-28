@@ -78,22 +78,41 @@ function requireSecurityDiagnosticsAccess(req, res, next) {
   return next();
 }
 
+// ──────────────────────────────────────────────
+// CORS Origin Configuration
+// ──────────────────────────────────────────────
+
+// unique() defined first before any usage
+function unique(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
 const defaultDevOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'https://debugra.tech',
   'https://www.debugra.tech',
 ];
-const extraOrigins = (process.env.CORS_ORIGINS || process.env.CLIENT_URL || '')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
 
+// Explicit localhost origins allowed in dev mode even without Origin header
+const devOnlyOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+];
+
+// Parse CORS_ORIGINS and CLIENT_URL independently and merge both
+const extraOrigins = unique([
+  ...(process.env.CORS_ORIGINS || '').split(','),
+  ...(process.env.CLIENT_URL   || '').split(','),
+].map((o) => o.trim()));
+
+// Merge defaults + extras so production domains are always present
 const allowedOrigins = unique([...defaultDevOrigins, ...extraOrigins]);
 
-function unique(values) {
-  return [...new Set(values.filter(Boolean))];
-}
+// Log on startup to verify active origins
+logger.info('[CORS] Allowed origins: ' + allowedOrigins.join(', '));
 
 function buildCspDirectives() {
   const clientOrigins = unique([...allowedOrigins]);
@@ -202,12 +221,32 @@ app.post(
 app.use(
   cors({
     origin(origin, callback) {
-      // Allow no-Origin header only in dev (curl / server-to-server testing).
-      // In production every request must come from an explicitly allowed origin.
-      if ((!origin && !isProd) || allowedOrigins.includes(origin)) {
+      // Handle requests with no Origin header (curl, Postman, server-to-server)
+      if (!origin) {
+        if (!isProd) {
+          // Dev only: allow but log a warning so developers are aware
+          logger.warn('[CORS] Request with no Origin header allowed in dev mode');
+          return callback(null, true);
+        }
+        // Production: always reject missing Origin header
+        logger.warn('[CORS] Blocked: missing Origin header in production');
+        const corsError = new Error('Not allowed by CORS');
+        corsError.status = 403;
+        return callback(corsError);
+      }
+
+      // Allow any explicitly whitelisted origin
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
+      // Dev only: also allow explicit localhost origins as a safety net
+      if (!isProd && devOnlyOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Block everything else and log it
+      logger.warn(`[CORS] Blocked origin: ${origin}`);
       const corsError = new Error('Not allowed by CORS');
       corsError.status = 403;
       return callback(corsError);
