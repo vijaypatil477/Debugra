@@ -9,6 +9,7 @@ const {
   generateTestsAI,
   auditCodeAI,
   visualizeAI,
+  inlineCompleteAI,
   explainCodeSnippetAI,
   askFollowUpAI,
 } = require('../services/groqService');
@@ -87,6 +88,12 @@ router.post('/audit-code', handleCachedRequest(async (body, apiKey) => {
 router.post('/visualize', handleCachedRequest(async (body, apiKey) => {
   const { code, language, input } = body;
   return await visualizeAI(code, language, input, apiKey);
+}));
+
+// Low-latency inline completion
+router.post('/inline-complete', handleCachedRequest(async (body, apiKey) => {
+  const { prefix, suffix, language } = body;
+  return await inlineCompleteAI(prefix, suffix, language, apiKey);
 }));
 
 // AI Code Explainer — explain selected snippet

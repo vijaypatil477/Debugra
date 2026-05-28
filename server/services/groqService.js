@@ -1,6 +1,7 @@
 const Groq = require('groq-sdk');
 
 const MODEL = 'llama-3.3-70b-versatile';
+const INLINE_MODEL = process.env.GROQ_INLINE_MODEL || MODEL;
 
 function getGroqClient(apiKey) {
   return new Groq({ apiKey: apiKey || process.env.GROQ_API_KEY || 'missing_key' });
@@ -25,9 +26,9 @@ async function chatCompletion(systemPrompt, userPrompt, apiKey = '') {
     return { content: aiMessage, usage: tokenUsage };
 }
 
-async function chatCompletionText(systemPrompt, userPrompt, apiKey = '') {
+async function chatCompletionText(systemPrompt, userPrompt, apiKey = '', model = MODEL) {
   const response = await getGroqClient(apiKey).chat.completions.create({
-    model: MODEL,
+    model,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -201,7 +202,37 @@ Respond in JSON:
   );
 }
 
-// 7. AI Code Explainer — explains a selected code snippet in plain language
+// 7. Low-latency inline completion
+async function inlineCompleteAI(prefix, suffix, language, apiKey = '') {
+  const response = await chatCompletionText(
+    `You are an inline code completion expert. Continue the user's code from the cursor using the provided prefix and suffix context. Return only the completion text, with no markdown, no explanation, and no extra commentary. Do not repeat the prefix or suffix.`,
+    `Prefix:
+${prefix}
+
+Suffix:
+${suffix}
+
+Provide only the text that should be inserted at the cursor position. If no completion is appropriate, return an empty string.`,
+    apiKey,
+    INLINE_MODEL
+  );
+
+  let completion = response.content;
+
+  // Strip markdown fences or accidental chat artifacts
+  if (completion.includes('```')) {
+    const match = completion.match(/```[a-z]*\n([\s\S]*?)```/);
+    if (match) {
+      completion = match[1];
+    } else {
+      completion = completion.replace(/```[a-z]*\n?/g, '').replace(/```/g, '');
+    }
+  }
+
+  return { completion: completion.trim(), usage: response.usage };
+}
+
+// 8. AI Code Explainer — explains a selected code snippet in plain language
 async function explainCodeSnippetAI(code, language, apiKey = '') {
   return chatCompletion(
     `You are an expert programming tutor. When a user highlights a snippet of code, explain what it does in simple, beginner-friendly language. Always respond in valid JSON.`,
@@ -248,6 +279,7 @@ module.exports = {
   generateTestsAI,
   auditCodeAI,
   visualizeAI,
+  inlineCompleteAI,
   explainCodeSnippetAI,
   askFollowUpAI,
 };
