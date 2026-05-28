@@ -5,8 +5,17 @@ export const APP_VERSION = '1.0.0';
 // ─── Editor Defaults ──────────────────────────────────────────────────────────
 export const DEFAULT_LANGUAGE = 'python';
 export const DEFAULT_FONT_SIZE = 14;
+export const DEFAULT_EDITOR_FONT = 'JetBrains Mono';
 export const MIN_FONT_SIZE = 10;
 export const MAX_FONT_SIZE = 28;
+
+// ─── Editor Fonts ───────────────────────────────────────────────────────────
+export const EDITOR_FONTS = [
+  { id: 'JetBrains Mono', label: 'JetBrains Mono' },
+  { id: 'Fira Code', label: 'Fira Code' },
+  { id: 'Source Code Pro', label: 'Source Code Pro' },
+  { id: 'Roboto Mono', label: 'Roboto Mono' },
+];
 
 // ─── Editor Themes ────────────────────────────────────────────────────────────
 export const DEFAULT_THEME = 'debugra-dark';

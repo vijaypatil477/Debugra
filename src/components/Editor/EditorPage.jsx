@@ -15,8 +15,15 @@ import {
   useAudioFeedback,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
+import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
 import { LANGUAGES } from '../../utils/languageConfig';
-import { LANG_FILE_NAMES, MOBILE_TABS, OUTPUT_TABS, EDITOR_THEMES } from '../../config/constants';
+import {
+  LANG_FILE_NAMES,
+  MOBILE_TABS,
+  OUTPUT_TABS,
+  EDITOR_THEMES,
+  EDITOR_FONTS,
+} from '../../config/constants';
 
 import AuthModal from '../Auth/AuthModal';
 import ChatPanel from '../Chat/ChatPanel';
@@ -62,6 +69,7 @@ export default function EditorPage({ user }) {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsTab, setSettingsTab] = useState('general');
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -116,6 +124,10 @@ export default function EditorPage({ user }) {
   useEffect(() => {
     executionRunRef.current = execution.run;
   }, [execution.run]);
+
+  useEffect(() => {
+    ensureEditorFontLoaded(editor.fontFamily);
+  }, [editor.fontFamily]);
 
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
@@ -271,7 +283,7 @@ export default function EditorPage({ user }) {
   const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
 
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', '--blur-intensity': `${blurIntensity}px` }}>
       {/* ===== TOP BAR ===== */}
       <div className="topbar px-2 px-md-3">
         <div className="topbar-left d-flex align-items-center">
@@ -305,9 +317,13 @@ export default function EditorPage({ user }) {
                 className="topbar-link ms-2"
                 onClick={() => setShowVideoCall(!showVideoCall)}
                 style={{
-                  background: showVideoCall ? 'rgba(239, 68, 68, 0.15)' : 'rgba(139, 92, 246, 0.15)',
+                  background: showVideoCall
+                    ? 'rgba(239, 68, 68, 0.15)'
+                    : 'rgba(139, 92, 246, 0.15)',
                   color: showVideoCall ? '#ff6b6b' : '#a78bfa',
-                  border: showVideoCall ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(139, 92, 246, 0.3)',
+                  border: showVideoCall
+                    ? '1px solid rgba(239, 68, 68, 0.3)'
+                    : '1px solid rgba(139, 92, 246, 0.3)',
                   padding: '3px 10px',
                   borderRadius: '6px',
                   fontWeight: 600,
@@ -664,7 +680,7 @@ export default function EditorPage({ user }) {
               </button>
               {/* ===== SETTINGS POPOVER WITH TABS ===== */}
               {showSettings && (
-                <div className="audio-settings-popover" role="dialog" aria-label="Settings">
+                <div className="audio-settings-popover custom-layout-popover" role="dialog" aria-label="Settings">
                   <div className="audio-settings-head">
                     <span>Settings</span>
                     <button
@@ -675,29 +691,77 @@ export default function EditorPage({ user }) {
                       <i className="bi bi-x" />
                     </button>
                   </div>
-
-                  {/* Tabs */}
-                  <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 8 }}>
-                    {['general', 'snippets'].map((tab) => (
-                      <button
-                        key={tab}
-                        onClick={() => setSettingsTab(tab)}
-                        style={{
-                          flex: 1,
-                          fontSize: '0.68rem',
-                          fontWeight: settingsTab === tab ? 700 : 400,
-                          color: settingsTab === tab ? 'var(--accent)' : 'var(--text-2)',
-                          background: 'none',
-                          border: 'none',
-                          borderBottom: settingsTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
-                          padding: '4px 0',
-                          cursor: 'pointer',
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {tab}
-                      </button>
-                    ))}
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-type" style={{ fontSize: '14px' }} />
+                      <span>Editor font</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.fontFamily}
+                      onChange={(e) => editor.setFontFamily(e.target.value)}
+                      aria-label="Editor font"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {EDITOR_FONTS.map((font) => (
+                        <option key={font.id} value={font.id}>
+                          {font.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-palette" style={{ fontSize: '14px' }} />
+                      <span>Theme</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.theme}
+                      onChange={(e) => editor.setTheme(e.target.value)}
+                      aria-label="Editor theme"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {EDITOR_THEMES.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* ===== WALLPAPER BLUR SETTING ROW ===== */}
+                  <div className="audio-settings-row" style={{ marginTop: '12px' }}>
+                    <div className="audio-settings-label">
+                      <i className="bi bi-sliders" style={{ fontSize: '14px' }} />
+                      <span>Wallpaper Blur</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        step="1"
+                        value={blurIntensity}
+                        onChange={(e) => setBlurIntensity(Number(e.target.value))}
+                        style={{ flex: 1, accentColor: '#00bcd4' }} 
+                      />
+                      <span style={{ fontSize: '12px', minWidth: '30px', textAlign: 'right' }}>
+                        {blurIntensity}px
+                      </span>
+                    </div>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      {audioFeedback.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                      <span>Audio feedback</span>
+                    </div>
+                    <button
+                      className={`audio-toggle ${audioFeedback.muted ? '' : 'active'}`}
+                      aria-pressed={!audioFeedback.muted}
+                      onClick={() => audioFeedback.setMuted(!audioFeedback.muted)}
+                    >
+                      {audioFeedback.muted ? 'Muted' : 'On'}
+                    </button>
                   </div>
 
                   {/* General Tab */}
@@ -805,7 +869,7 @@ export default function EditorPage({ user }) {
       <div className="main-split">
         {/* EDITOR PANE */}
         <div
-          className="editor-pane"
+          className="editor-pane glass-panel"
           style={isMobile && mobileTab !== MOBILE_TABS.CODE ? { display: 'none' } : {}}
         >
           <div className="editor-tab-bar">
@@ -863,7 +927,7 @@ export default function EditorPage({ user }) {
               options={{
                 readOnly: room.isReadOnly,
                 fontSize: editor.fontSize,
-                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                fontFamily: getEditorFontFamily(editor.fontFamily),
                 minimap: {
                   enabled: true,
                   side: minimapSide,
@@ -962,7 +1026,7 @@ export default function EditorPage({ user }) {
 
         {/* OUTPUT PANE */}
         <div
-          className="output-pane"
+          className="output-pane glass-panel"
           style={
             isMobile
               ? mobileTab === MOBILE_TABS.OUTPUT
@@ -1046,14 +1110,27 @@ export default function EditorPage({ user }) {
                 <>
                   <button
                     className="toolbar-icon-btn"
-                    style={{ position: 'absolute', top: '8px', right: '8px', background: 'var(--bg-1)', zIndex: 10 }}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      background: 'var(--bg-1)',
+                      zIndex: 10,
+                    }}
                     onClick={() => {
                       navigator.clipboard.writeText(execution.stdout);
                       toast.success('Output copied!');
                     }}
                     title="Copy output"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                     </svg>
