@@ -6,10 +6,15 @@ import { MOBILE_TABS } from '../../config/constants';
  * Provides tab navigation, a floating "Run" button, and quick-access icons.
  */
 export default function MobileBottomNav({
-  mobileTab, setMobileTab,
-  onRun, onSave,
-  isRunning, user, roomId,
-  hasError, isReadOnly,
+  mobileTab,
+  setMobileTab,
+  onRun,
+  onSave,
+  isRunning,
+  user,
+  roomId,
+  hasError,
+  isReadOnly,
 }) {
   return (
     <div className="mobile-bottom-nav">
@@ -23,10 +28,7 @@ export default function MobileBottomNav({
 
       {/* Floating run button */}
       <button className="mobile-nav-run" onClick={onRun} disabled={isRunning}>
-        {isRunning
-          ? <span className="spinner" />
-          : <i className="bi bi-play-fill" />
-        }
+        {isRunning ? <span className="spinner" /> : <i className="bi bi-play-fill" />}
       </button>
 
       <button

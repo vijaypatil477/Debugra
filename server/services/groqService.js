@@ -1,10 +1,13 @@
 const Groq = require('groq-sdk');
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || 'missing_key' });
 const MODEL = 'llama-3.3-70b-versatile';
 
-async function chatCompletion(systemPrompt, userPrompt) {
-  const response = await groq.chat.completions.create({
+function getGroqClient(apiKey) {
+  return new Groq({ apiKey: apiKey || process.env.GROQ_API_KEY || 'missing_key' });
+}
+
+async function chatCompletion(systemPrompt, userPrompt, apiKey = '') {
+  const response = await getGroqClient(apiKey).chat.completions.create({
     model: MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
@@ -14,11 +17,16 @@ async function chatCompletion(systemPrompt, userPrompt) {
     max_tokens: 2000,
     response_format: { type: 'json_object' },
   });
-  return JSON.parse(response.choices[0].message.content);
+  const aiMessage = JSON.parse(response.choices[0].message.content);
+    const tokenUsage = response.usage;
+    
+    console.log("Metadata caught: ", tokenUsage);
+
+    return { content: aiMessage, usage: tokenUsage };
 }
 
-async function chatCompletionText(systemPrompt, userPrompt) {
-  const response = await groq.chat.completions.create({
+async function chatCompletionText(systemPrompt, userPrompt, apiKey = '') {
+  const response = await getGroqClient(apiKey).chat.completions.create({
     model: MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
@@ -27,11 +35,16 @@ async function chatCompletionText(systemPrompt, userPrompt) {
     temperature: 0.2,
     max_tokens: 2000,
   });
-  return response.choices[0].message.content;
+  const aiMessage = response.choices[0].message.content;
+    const tokenUsage = response.usage;
+    
+    console.log("Text Metadata caught: ", tokenUsage);
+
+    return { content: aiMessage, usage: tokenUsage };
 }
 
 // 1. Error Explanation
-async function explainError(code, error, language) {
+async function explainError(code, error, language, apiKey = '') {
   return chatCompletion(
     `You are a coding mentor. Analyze errors and explain them simply. Always respond in valid JSON.`,
     `The user wrote code in ${language} and got this error:
@@ -48,21 +61,25 @@ Respond in this EXACT JSON format:
   "explanation": "simple 2-3 sentence explanation a beginner would understand",
   "fix": "the specific code change needed",
   "bestPractice": "one tip to avoid this in future"
-}`
+}`,
+    apiKey
   );
 }
 
 // 2. Code Fix
-async function fixCodeAI(code, error, language) {
-  let fixedCode = await chatCompletionText(
+async function fixCodeAI(code, error, language, apiKey = '') {
+  const response = await chatCompletionText(
     `You are a code repair expert. Fix this code while keeping the user's logic intact. Return ONLY the corrected code. Do NOT wrap it in markdown. Do not say "Here is the code". CRITICAL: Do NOT output any <think> tags, do NOT explain your reasoning. Just output the raw code.`,
     `Fix this ${language} code:
 
 ${code}
 
 Error (if any):
-${error || 'No specific error, but optimize and fix any issues.'}`
+${error || 'No specific error, but optimize and fix any issues.'}`,
+    apiKey
   );
+
+  let fixedCode = response.content;
 
   // Strip reasoning tags robustly (even if unclosed)
   const thinkStart = fixedCode.indexOf('<think>');
@@ -85,11 +102,11 @@ ${error || 'No specific error, but optimize and fix any issues.'}`
     }
   }
 
-  return { fixedCode: fixedCode.trim() };
+  return { content: { fixedCode: fixedCode.trim() }, usage: response.usage };
 }
 
 // 3. Logic Explanation
-async function explainLogicAI(code, language) {
+async function explainLogicAI(code, language, apiKey = '') {
   return chatCompletion(
     `You are a CS tutor. Explain code step-by-step. Always respond in valid JSON.`,
     `Explain this ${language} code step-by-step:
@@ -102,12 +119,13 @@ Respond in JSON:
   "timeComplexity": "O(n)",
   "spaceComplexity": "O(1)",
   "summary": "one-line summary"
-}`
+}`,
+    apiKey
   );
 }
 
 // 4. Test Case Generation
-async function generateTestsAI(code, language) {
+async function generateTestsAI(code, language, apiKey = '') {
   return chatCompletion(
     `You are a QA engineer. Generate test cases. Always respond in valid JSON.`,
     `Generate test cases for this ${language} function:
@@ -122,12 +140,48 @@ Respond in JSON:
     { "input": "...", "expected": "...", "type": "edge" },
     { "input": "...", "expected": "...", "type": "edge" }
   ]
-}`
+}`,
+    apiKey
   );
 }
 
-// 5. Execution Visualization
-async function visualizeAI(code, language, input = '') {
+// 5. Security and refactoring audit
+async function auditCodeAI(code, language, apiKey = '') {
+  return chatCompletion(
+    `You are a senior application security reviewer and refactoring coach. Audit code for exploitable security risks, reliability hazards, memory/resource leaks, and unsafe architecture. Always respond in valid JSON.`,
+    `Audit this ${language} code:
+
+${code}
+
+Respond in this EXACT JSON format:
+{
+  "summary": "one-line audit summary",
+  "riskScore": 0,
+  "findings": [
+    {
+      "severity": "High",
+      "title": "short finding title",
+      "explanation": "why this is risky in 1-2 sentences",
+      "evidence": "specific code pattern or line reference if obvious",
+      "suggestion": "specific mitigation",
+      "refactor": "cleaner architecture or safer pattern"
+    }
+  ],
+  "remediationSteps": ["highest priority next step", "second priority next step"]
+}
+
+Rules:
+- Use severity values High, Medium, or Low.
+- Use riskScore as an integer from 0 to 100.
+- Include an empty findings array when no meaningful risk is found.
+- Do not invent line numbers when they are not obvious from the snippet.
+- Prefer concrete secure-coding guidance over generic advice.`,
+    apiKey
+  );
+}
+
+// 6. Execution Visualization
+async function visualizeAI(code, language, input = '', apiKey = '') {
   return chatCompletion(
     `You are a code tracer. Trace through code step by step showing variable states. Always respond in valid JSON.`,
     `Trace through this ${language} code step by step. Show variable states after each line.
@@ -142,8 +196,58 @@ Respond in JSON:
     { "line": 1, "code": "x = 0", "variables": {"x": 0}, "explanation": "Initialize x" },
     { "line": 2, "code": "x += 1", "variables": {"x": 1}, "explanation": "Increment x" }
   ]
-}`
+}`,
+    apiKey
   );
 }
 
-module.exports = { explainError, fixCodeAI, explainLogicAI, generateTestsAI, visualizeAI };
+// 7. AI Code Explainer — explains a selected code snippet in plain language
+async function explainCodeSnippetAI(code, language, apiKey = '') {
+  return chatCompletion(
+    `You are an expert programming tutor. When a user highlights a snippet of code, explain what it does in simple, beginner-friendly language. Always respond in valid JSON.`,
+    `Explain this ${language} code snippet in simple terms:
+
+${code}
+
+Respond in this EXACT JSON format:
+{
+  "title": "Short 3-5 word title of what this code does",
+  "explanation": "A clear 2-4 sentence explanation a beginner would understand",
+  "concepts": ["concept1", "concept2"],
+  "tip": "One practical tip related to this code"
+}`,
+    apiKey
+  );
+}
+
+// 8. AI Code Explainer — follow-up Q&A on previously explained code
+async function askFollowUpAI(code, language, question, previousExplanation, apiKey = '') {
+  return chatCompletion(
+    `You are an expert programming tutor engaged in an interactive Q&A session. The user previously highlighted code and received an explanation. Now they have a follow-up question. Answer clearly and concisely. Always respond in valid JSON.`,
+    `The user is asking about this ${language} code:
+
+${code}
+
+Previous explanation: ${previousExplanation}
+
+User's follow-up question: ${question}
+
+Respond in this EXACT JSON format:
+{
+  "answer": "A clear, concise answer to their question",
+  "codeExample": "Optional: a small code example if it helps clarify (or empty string if not needed)"
+}`,
+    apiKey
+  );
+}
+
+module.exports = {
+  explainError,
+  fixCodeAI,
+  explainLogicAI,
+  generateTestsAI,
+  auditCodeAI,
+  visualizeAI,
+  explainCodeSnippetAI,
+  askFollowUpAI,
+};

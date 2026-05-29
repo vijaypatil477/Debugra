@@ -1,13 +1,13 @@
 /* ============ LANDING PAGE — Clean Teal, Zero Glows ============ */
 
 :root {
-  --brand: #4ec9b0;          /* VS Code teal — already in the editor */
-  --brand-dim: rgba(78,201,176,0.12);
-  --brand-border: rgba(78,201,176,0.2);
-  --surface: rgba(255,255,255,0.025);
-  --surface-hover: rgba(255,255,255,0.045);
-  --border-subtle: rgba(255,255,255,0.07);
-  --border-hover: rgba(255,255,255,0.14);
+  --brand: #4ec9b0; /* VS Code teal — already in the editor */
+  --brand-dim: rgba(78, 201, 176, 0.12);
+  --brand-border: rgba(78, 201, 176, 0.2);
+  --surface: rgba(255, 255, 255, 0.025);
+  --surface-hover: rgba(255, 255, 255, 0.045);
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-hover: rgba(255, 255, 255, 0.14);
   --text-hi: #f4f4f5;
   --text-mid: #a1a1aa;
   --text-lo: #52525b;
@@ -16,12 +16,14 @@
 /* ─── Kill every glow blob — no exceptions ───────────────────────── */
 .hero-glow,
 .cta-glow,
-.bento-glow { display: none !important; }
+.bento-glow {
+  display: none !important;
+}
 
 /* ─── Buttons ─────────────────────────────────────────────────────── */
 .landing-btn-primary {
   background: var(--brand) !important;
-  color: #09090b !important;         /* dark text on teal — readable */
+  color: #09090b !important; /* dark text on teal — readable */
   border: none !important;
   font-weight: 700 !important;
   display: inline-flex !important;
@@ -31,39 +33,68 @@
 .landing-btn-primary:hover {
   background: #3ab89d !important;
   transform: translateY(-1px) !important;
-  box-shadow: none !important;       /* no glow on button either */
+  box-shadow: none !important; /* no glow on button either */
 }
 
 .landing-btn-ghost {
-  padding: 8px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 500;
-  background: transparent; color: var(--text-mid);
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: transparent;
+  color: var(--text-mid);
   border: 1px solid var(--border-subtle);
-  cursor: pointer; transition: all 0.2s; font-family: inherit;
-  display: inline-flex; align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
 }
-.landing-btn-ghost:hover { color: var(--text-hi); border-color: var(--border-hover); }
+.landing-btn-ghost:hover {
+  color: var(--text-hi);
+  border-color: var(--border-hover);
+}
 
 /* ─── Nav link underline ──────────────────────────────────────────── */
-.landing-nav-link::after { background: var(--brand) !important; }
-.landing-nav-link:hover { color: var(--text-hi) !important; }
+.landing-nav-link::after {
+  background: var(--brand) !important;
+}
+.landing-nav-link:hover {
+  color: var(--text-hi) !important;
+}
 
 /* ─── Hero ────────────────────────────────────────────────────────── */
 .hero-eyebrow {
-  display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px;
-  border-radius: 4px; margin-bottom: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: 4px;
+  margin-bottom: 32px;
   background: transparent;
   border: 1px solid var(--border-subtle);
-  font-size: 0.68rem; color: var(--text-lo); font-weight: 500;
-  letter-spacing: 0.08em; text-transform: uppercase;
+  font-size: 0.68rem;
+  color: var(--text-lo);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 .hero-eyebrow-dot {
-  width: 5px; height: 5px; border-radius: 50%; background: var(--brand);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brand);
   animation: pulse-dot 2s ease-in-out infinite;
-  box-shadow: none;                   /* no glow on dot either */
+  box-shadow: none; /* no glow on dot either */
 }
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 /* Hero title: underline instead of gradient */
@@ -79,31 +110,57 @@
 
 /* ─── Stats row ───────────────────────────────────────────────────── */
 .hero-stats {
-  display: flex; justify-content: center; gap: 0; margin-top: 64px;
-  border-top: 1px solid var(--border-subtle); padding-top: 40px; flex-wrap: wrap;
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  margin-top: 64px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 40px;
+  flex-wrap: wrap;
 }
 .hero-stat {
-  display: flex; flex-direction: column; align-items: center; padding: 8px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 48px;
   border-right: 1px solid var(--border-subtle);
 }
-.hero-stat:last-child { border-right: none; }
+.hero-stat:last-child {
+  border-right: none;
+}
 .hero-stat-value {
-  font-size: 2rem; font-weight: 800; color: var(--text-hi);
-  letter-spacing: -0.05em; line-height: 1;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-hi);
+  letter-spacing: -0.05em;
+  line-height: 1;
 }
 .hero-stat-label {
-  font-size: 0.67rem; color: var(--text-lo); margin-top: 6px; font-weight: 500;
-  letter-spacing: 0.06em; text-transform: uppercase;
+  font-size: 0.67rem;
+  color: var(--text-lo);
+  margin-top: 6px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 /* ─── Section eyebrow ─────────────────────────────────────────────── */
-.section-header { text-align: center; margin-bottom: 52px; }
+.section-header {
+  text-align: center;
+  margin-bottom: 52px;
+}
 .section-eyebrow {
-  display: inline-block; font-size: 0.65rem; font-weight: 700;
-  letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--brand); margin-bottom: 14px;
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand);
+  margin-bottom: 14px;
   /* no background pill — just the word in teal */
-  background: none !important; border: none !important; padding: 0 !important;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
 }
 
 /* ─── Bento grid — hairline border grid, all one surface ─────────── */
@@ -116,39 +173,64 @@
   gap: 0;
 }
 .bento-card {
-  position: relative; overflow: hidden;
+  position: relative;
+  overflow: hidden;
   padding: 32px 28px;
   background: #0c0c0e;
   border: none;
   border-right: 1px solid var(--border-subtle);
   border-bottom: 1px solid var(--border-subtle);
-  transition: background 0.2s; cursor: default; border-radius: 0;
+  transition: background 0.2s;
+  cursor: default;
+  border-radius: 0;
 }
 /* remove right border on last in each row */
-.bento-card:nth-child(3n) { border-right: none; }
+.bento-card:nth-child(3n) {
+  border-right: none;
+}
 /* remove bottom on last row - approximate via last 3 */
-.bento-card:nth-last-child(-n+3) { border-bottom: none; }
+.bento-card:nth-last-child(-n + 3) {
+  border-bottom: none;
+}
 
-.bento-card:hover { background: #111115; }
+.bento-card:hover {
+  background: #111115;
+}
 /* teal left stripe on hover — the ONLY color on hover */
 .bento-card::before {
-  content: ''; position: absolute;
-  left: 0; top: 24px; bottom: 24px; width: 2px;
-  background: var(--brand); border-radius: 2px;
-  transform: scaleY(0); transform-origin: bottom;
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 24px;
+  bottom: 24px;
+  width: 2px;
+  background: var(--brand);
+  border-radius: 2px;
+  transform: scaleY(0);
+  transform-origin: bottom;
   transition: transform 0.22s ease;
 }
-.bento-card:hover::before { transform: scaleY(1); }
-.bento-large { grid-column: span 2; }
+.bento-card:hover::before {
+  transform: scaleY(1);
+}
+.bento-large {
+  grid-column: span 2;
+}
 
 /* Icon: same dim white for all cards, teal only on hover */
 .bento-icon {
-  width: 36px; height: 36px; border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 18px;
-  background: rgba(255,255,255,0.04) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
   color: var(--text-lo) !important;
-  transition: color 0.2s, background 0.2s;
+  transition:
+    color 0.2s,
+    background 0.2s;
 }
 .bento-card:hover .bento-icon {
   color: var(--brand) !important;
@@ -157,25 +239,49 @@
 
 /* Tag: same neutral for all */
 .bento-tag {
-  display: inline-block; font-size: 0.57rem; font-weight: 700;
-  letter-spacing: 0.1em; text-transform: uppercase;
-  padding: 2px 6px; border-radius: 3px; margin-bottom: 12px;
-  background: rgba(255,255,255,0.04) !important;
+  display: inline-block;
+  font-size: 0.57rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.04) !important;
   color: var(--text-lo) !important;
   border: 1px solid var(--border-subtle) !important;
 }
 .bento-title {
-  font-size: 0.93rem; font-weight: 700; margin-bottom: 8px;
-  color: var(--text-hi); letter-spacing: -0.02em;
+  font-size: 0.93rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text-hi);
+  letter-spacing: -0.02em;
 }
-.bento-desc { font-size: 0.81rem; color: var(--text-mid); line-height: 1.65; }
+.bento-desc {
+  font-size: 0.81rem;
+  color: var(--text-mid);
+  line-height: 1.65;
+}
 
 /* ─── Languages ────────────────────────────────────────────────────── */
-.lang-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 700px; margin: 0 auto; }
+.lang-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  max-width: 700px;
+  margin: 0 auto;
+}
 .lang-chip {
-  padding: 6px 16px; border-radius: 6px; font-size: 0.78rem; font-weight: 500;
-  background: var(--surface); border: 1px solid var(--border-subtle);
-  color: var(--text-mid); transition: all 0.18s;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-mid);
+  transition: all 0.18s;
   font-family: 'JetBrains Mono', monospace;
 }
 .lang-chip:hover {
@@ -186,34 +292,72 @@
 
 /* ─── CTA ──────────────────────────────────────────────────────────── */
 .landing-cta-section {
-  padding: 100px 24px; text-align: center;
+  padding: 100px 24px;
+  text-align: center;
   border-top: 1px solid var(--border-subtle);
 }
 
 /* ─── Editor preview ───────────────────────────────────────────────── */
 .ln {
-  display: inline-block; width: 24px; color: #3f3f46;
-  user-select: none; margin-right: 18px; text-align: right; font-size: 0.75rem;
+  display: inline-block;
+  width: 24px;
+  color: #3f3f46;
+  user-select: none;
+  margin-right: 18px;
+  text-align: right;
+  font-size: 0.75rem;
 }
-.highlight-ln { color: var(--brand); }
-.preview-chrome-label { font-size: 0.72rem; color: #52525b; margin-left: 10px; }
+.highlight-ln {
+  color: var(--brand);
+}
+.preview-chrome-label {
+  font-size: 0.72rem;
+  color: #52525b;
+  margin-left: 10px;
+}
 .editor-preview {
-  box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06) !important;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.06) !important;
 }
 
 /* ─── Responsive ────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
-  .bento-grid { grid-template-columns: repeat(2, 1fr); }
-  .bento-card:nth-child(3n) { border-right: 1px solid var(--border-subtle); }
-  .bento-card:nth-child(2n) { border-right: none; }
-  .bento-large { grid-column: span 2; }
+  .bento-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .bento-card:nth-child(3n) {
+    border-right: 1px solid var(--border-subtle);
+  }
+  .bento-card:nth-child(2n) {
+    border-right: none;
+  }
+  .bento-large {
+    grid-column: span 2;
+  }
 }
 @media (max-width: 768px) {
-  .bento-grid { grid-template-columns: 1fr; }
-  .bento-card { border-right: none !important; }
-  .bento-large { grid-column: span 1; }
-  .hero-stats { gap: 0; }
-  .hero-stat { padding: 14px 24px; border-right: none; border-bottom: 1px solid var(--border-subtle); }
-  .hero-stat:last-child { border-bottom: none; }
-  .landing-cta-section { padding: 64px 24px; }
+  .bento-grid {
+    grid-template-columns: 1fr;
+  }
+  .bento-card {
+    border-right: none !important;
+  }
+  .bento-large {
+    grid-column: span 1;
+  }
+  .hero-stats {
+    gap: 0;
+  }
+  .hero-stat {
+    padding: 14px 24px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .hero-stat:last-child {
+    border-bottom: none;
+  }
+  .landing-cta-section {
+    padding: 64px 24px;
+  }
 }

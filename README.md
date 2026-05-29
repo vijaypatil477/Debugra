@@ -11,7 +11,6 @@ A professional, real-time collaborative code editor for developers and CS studen
 
 ---
 
-
 ## Features
 
 - **VS Code-Like UI** — Professional dark-mode interface with status bar, tab bar, and keyboard shortcuts (`Ctrl+Enter` to run)
@@ -19,6 +18,7 @@ A professional, real-time collaborative code editor for developers and CS studen
 - **Monaco Editor** — Syntax highlighting, autocomplete, bracket matching, snippets, and code formatting
 - **AI Time-Travel Debugger** — Step-by-step execution visualization, error explanations, logic breakdown, and test case generation
 - **AI Fix with "Apply Solution"** — Click "Fix" to generate an AI solution, review it in the AI panel, and apply it to the editor with a single click
+- **Encrypted Personal Groq Keys** — Optional user-provided Groq keys are encrypted locally with AES-GCM and unlocked only for the current browser session
 - **Real-Time Collaboration** — Create rooms, share a Room ID, and code together with live Firebase sync
 - **Persistent Rooms & Easy Exit** — Auto-rejoin rooms on page refresh, and easily leave a room with the "Exit Room" button
 - **Access Control & Presence** — Author-managed edit permissions with request/approve/deny/revoke flow, displaying real user names
@@ -36,15 +36,15 @@ A professional, real-time collaborative code editor for developers and CS studen
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | React 18, Vite, Monaco Editor |
-| Styling | Vanilla CSS + Bootstrap 5 (dark VS Code theme) |
-| Auth & Database | Firebase Auth, Cloud Firestore |
-| Code Execution | Wandbox API (free, serverless) |
-| AI Features | Groq SDK — `llama-3.3-70b-versatile` + node-cache |
-| Backend | Express.js (Node.js) with Rate Limiting & Helmet |
-| Icons | Bootstrap Icons |
+| Layer           | Technology                                        |
+| --------------- | ------------------------------------------------- |
+| Frontend        | React 18, Vite, Monaco Editor                     |
+| Styling         | Vanilla CSS + Bootstrap 5 (dark VS Code theme)    |
+| Auth & Database | Firebase Auth, Cloud Firestore                    |
+| Code Execution  | Wandbox API (free, serverless)                    |
+| AI Features     | Groq SDK — `llama-3.3-70b-versatile` + node-cache |
+| Backend         | Express.js (Node.js) with Rate Limiting & Helmet  |
+| Icons           | Bootstrap Icons                                   |
 
 ---
 
@@ -54,13 +54,13 @@ Debugra follows an **industry-level** component architecture — business logic 
 
 ### Custom Hooks (`src/hooks/`)
 
-| Hook | Responsibility |
-|---|---|
-| `useEditor` | Code, language, font size, stdin, save to cloud, download |
-| `useExecution` | Run code via Wandbox, stdout/stderr, execution timing |
-| `useAI` | Fix, Explain, Visualize, Generate Tests via Groq |
-| `useRoom` | Firebase room sync, create/join, access control, presence |
-| `useIsMobile` | Reactive viewport detection for responsive layout |
+| Hook           | Responsibility                                            |
+| -------------- | --------------------------------------------------------- |
+| `useEditor`    | Code, language, font size, stdin, save to cloud, download |
+| `useExecution` | Run code via Wandbox, stdout/stderr, execution timing     |
+| `useAI`        | Fix, Explain, Visualize, Generate Tests via Groq          |
+| `useRoom`      | Firebase room sync, create/join, access control, presence |
+| `useIsMobile`  | Reactive viewport detection for responsive layout         |
 
 ### Project Structure
 
@@ -153,16 +153,27 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 VITE_API_URL=http://localhost:3001
 ```
+> ⚠️ **`VITE_API_URL` is required.** If not set, the app falls back to
+> `http://localhost:3001` in development and logs a browser console warning.
+> Code execution and AI features will fail if the backend is unreachable.
 
 **Backend** — create `.env` in `server/`:
 
 ```env
 PORT=3001
 CLIENT_URL=http://localhost:5173
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+CSP_REPORT_URI=/api/security/csp-report
 GROQ_API_KEY=your_groq_api_key
+DEBUGRA_ADMIN_TOKEN=choose_a_long_random_admin_token
 ```
 
+`CORS_ORIGINS` accepts a comma-separated list of trusted frontend origins. `CSP_REPORT_URI` enables browser CSP violation reports through `/api/security/csp-report`.
+`DEBUGRA_ADMIN_TOKEN` is required for `/api/admin/memory-profile` diagnostic endpoints. Send it as either `Authorization: Bearer <token>` or `x-admin-token: <token>`.
+
 ### 4. Start development servers
+
+#### Option A: Using NPM
 
 ```bash
 # Terminal 1 — Frontend
@@ -171,6 +182,14 @@ npm run dev
 # Terminal 2 — Backend
 cd server
 npm run dev
+```
+
+#### Option B: Using Docker (Recommended for quick setup)
+
+Make sure Docker Desktop is running, then use Docker Compose to spin up both the frontend and backend with hot-reloading:
+
+```bash
+docker-compose up --build
 ```
 
 Frontend runs at `http://localhost:5173`, backend at `http://localhost:3001`.
@@ -189,15 +208,14 @@ Frontend runs at `http://localhost:5173`, backend at `http://localhost:3001`.
 6. Go to **Settings → Domains** → add `debugra.tech` and `www.debugra.tech`.
 7. Add these DNS records at your domain registrar:
 
-| Type | Name | Value |
-|------|------|-------|
-| `A` | `@` | `76.76.21.21` |
+| Type    | Name  | Value                |
+| ------- | ----- | -------------------- |
+| `A`     | `@`   | `76.76.21.21`        |
 | `CNAME` | `www` | `cns.vercel-dns.com` |
 
 > Vercel automatically provisions a free SSL certificate once DNS propagates (5 min – 48 hrs).
 
 > **Firebase** → Authentication → Settings → Authorized Domains → add `debugra.tech` and `www.debugra.tech` to prevent sign-in errors on the live domain.
-
 
 ### Backend — Google Cloud Run
 
@@ -208,7 +226,7 @@ gcloud run deploy debugra-api \
   --source . \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars "GROQ_API_KEY=your_key,CLIENT_URL=https://your-app.vercel.app"
+  --set-env-vars "GROQ_API_KEY=your_key,CLIENT_URL=https://your-app.vercel.app,CORS_ORIGINS=https://your-app.vercel.app,CSP_REPORT_URI=/api/security/csp-report"
 ```
 
 After deploying, update your frontend `.env`:

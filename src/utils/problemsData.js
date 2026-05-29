@@ -47,10 +47,7 @@ You must do this by modifying the input array **in-place** with O(1) extra memor
         explanation: 'The string is reversed in-place.',
       },
     ],
-    constraints: [
-      '1 ≤ s.length ≤ 10⁵',
-      's[i] is a printable ASCII character.',
-    ],
+    constraints: ['1 ≤ s.length ≤ 10⁵', 's[i] is a printable ASCII character.'],
     tags: ['Two Pointers', 'String'],
   },
   {

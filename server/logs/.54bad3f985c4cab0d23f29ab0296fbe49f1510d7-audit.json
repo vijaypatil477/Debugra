@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "/Users/apple/Debugra/server/logs/.54bad3f985c4cab0d23f29ab0296fbe49f1510d7-audit.json",
+    "files": [
+        {
+            "date": 1779883850462,
+            "name": "/Users/apple/Debugra/server/logs/error-2026-05-27.log",
+            "hash": "fe7d18812e443bc6b586b816fb71b58334f7793d4ff603c1e160b0f84d7dcca7"
+        }
+    ],
+    "hashType": "sha256"
+}

@@ -1,68 +1,107 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { aiFixCode, aiExplainLogic, aiVisualizeExecution, aiGenerateTests } from '../services/api';
+import {
+  aiFixCode,
+  aiExplainLogic,
+  aiVisualizeExecution,
+  aiGenerateTests,
+  aiAuditCode,
+  aiExplainError,
+} from '../services/api';
+import { showRateLimitToast } from '../utils/rateLimitToast';
 import { LANGUAGES } from '../utils/languageConfig';
 import { OUTPUT_TABS } from '../config/constants';
 
 /**
  * useAI
- * Encapsulates all Groq AI feature logic: Fix, Explain, Visualize, Tests.
+ * Encapsulates all Groq AI feature logic: Fix, Explain, Visualize, Tests, Audit.
  *
  * @param {string} language - current language key
  * @param {string} code     - current editor code
  * @param {string} stderr   - last stderr output (for Fix)
- * @param {Function} setCode - to apply AI-fixed code to the editor
  * @param {Function} setActiveOutputTab - to auto-switch to AI tab
  * @param {React.RefObject} editorRef - Monaco editor ref (for selection)
  */
-export function useAI({ language, code, stderr, setCode, setActiveOutputTab, editorRef }) {
+export function useAI({ language, code, stderr, setActiveOutputTab, editorRef }) {
   const [aiResponse, setAiResponse] = useState(null);
   const [isAILoading, setIsAILoading] = useState(false);
 
-  const withAI = useCallback(async (action) => {
-    setIsAILoading(true);
-    setActiveOutputTab(OUTPUT_TABS.AI);
-    try {
-      const result = await action();
-      setAiResponse(result);
-    } catch (err) {
-      toast.error(err.message || 'AI request failed');
-    } finally {
-      setIsAILoading(false);
-    }
-  }, [setActiveOutputTab]);
+  // ─── Debug Error (inline button on Errors tab) ─────────────────────────────
+  const [debugResponse, setDebugResponse] = useState(null);
+  const [isDebugLoading, setIsDebugLoading] = useState(false);
 
-  const fix = useCallback(() =>
-    withAI(async () => {
-      const result = await aiFixCode(code, stderr, LANGUAGES[language].name);
-      return result;
-    }),
+  const withAI = useCallback(
+    async (action) => {
+      setIsAILoading(true);
+      setActiveOutputTab(OUTPUT_TABS.AI);
+      try {
+        const result = await action();
+        setAiResponse(result);
+      } catch (err) {
+        if (err.status === 429) {
+          showRateLimitToast(err.message, err.retryAfter);
+        } else {
+          toast.error(err.message || 'AI request failed');
+        }
+      } finally {
+        setIsAILoading(false);
+      }
+    },
+    [setActiveOutputTab]
+  );
+
+  const fix = useCallback(
+    () =>
+      withAI(async () => {
+        const result = await aiFixCode(code, stderr, LANGUAGES[language].name);
+        return result;
+      }),
     [withAI, code, stderr, language]
   );
 
-  const explain = useCallback(() =>
-    withAI(async () => {
-      const sel = editorRef?.current?.getSelection();
-      const selectedCode =
-        sel && !sel.isEmpty()
-          ? editorRef.current.getModel().getValueInRange(sel)
-          : code;
-      return await aiExplainLogic(selectedCode, LANGUAGES[language].name);
-    }),
+  const explain = useCallback(
+    () =>
+      withAI(async () => {
+        const sel = editorRef?.current?.getSelection();
+        const selectedCode =
+          sel && !sel.isEmpty() ? editorRef.current.getModel().getValueInRange(sel) : code;
+        return await aiExplainLogic(selectedCode, LANGUAGES[language].name);
+      }),
     [withAI, code, language, editorRef]
   );
 
-  const visualize = useCallback(() =>
-    withAI(() => aiVisualizeExecution(code, LANGUAGES[language].name)),
+  const visualize = useCallback(
+    () => withAI(() => aiVisualizeExecution(code, LANGUAGES[language].name)),
     [withAI, code, language]
   );
 
-  const generateTests = useCallback(() =>
-    withAI(() => aiGenerateTests(code, LANGUAGES[language].name)),
+  const generateTests = useCallback(
+    () => withAI(() => aiGenerateTests(code, LANGUAGES[language].name)),
+    [withAI, code, language]
+  );
+
+  const audit = useCallback(
+    () => withAI(() => aiAuditCode(code, LANGUAGES[language].name)),
     [withAI, code, language]
   );
 
   const clearAI = useCallback(() => setAiResponse(null), []);
+
+  const debugError = useCallback(async () => {
+    if (!stderr) return;
+    setIsDebugLoading(true);
+    setDebugResponse(null);
+    try {
+      const result = await aiExplainError(code, stderr, LANGUAGES[language].name);
+      setDebugResponse(result);
+    } catch (err) {
+      toast.error(err.message || 'AI debug request failed');
+    } finally {
+      setIsDebugLoading(false);
+    }
+  }, [code, stderr, language]);
+
+  const clearDebug = useCallback(() => setDebugResponse(null), []);
 
   return {
     aiResponse,
@@ -71,6 +110,11 @@ export function useAI({ language, code, stderr, setCode, setActiveOutputTab, edi
     explain,
     visualize,
     generateTests,
+    audit,
     clearAI,
+    debugResponse,
+    isDebugLoading,
+    debugError,
+    clearDebug,
   };
 }

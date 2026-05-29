@@ -6,3 +6,4 @@ export { useAI } from './useAI';
 export { useExecution } from './useExecution';
 export { useEditor } from './useEditor';
 export { useIsMobile } from './useIsMobile';
+export { useAudioFeedback } from './useAudioFeedback';
