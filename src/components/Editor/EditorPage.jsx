@@ -39,8 +39,10 @@ import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
+import CodeDiffPanel from './CodeDiffPanel';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import { useCodeDiff } from '../../hooks/useCodeDiff';
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -82,6 +84,16 @@ export default function EditorPage({ user }) {
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
+  const {
+    takeSnapshot,
+    openDiff,
+    closeDiff,
+    isDiffOpen,
+    diffResult,
+    isDiffLoading,
+    diffError,
+    hasSnapshot,
+  } = useCodeDiff(import.meta.env.VITE_API_URL || 'http://localhost:3001');
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
   const handleCopyOutput = async () => {
@@ -877,6 +889,22 @@ export default function EditorPage({ user }) {
             Clear
           </button>
           <button
+            className="toolbar-btn"
+            onClick={() => takeSnapshot(editor.code)}
+            title="Take snapshot of current code"
+            aria-label="Save code snapshot for diff"
+          >
+            📸 Snapshot
+          </button>
+          <button
+            className="toolbar-btn"
+            onClick={() => openDiff(editor.code, editor.language)}
+            title={hasSnapshot ? 'See what changed since last snapshot' : 'Take a snapshot first'}
+            aria-label="Open diff explainer"
+          >
+            ⟡ What Changed?
+          </button>
+          <button
             className="run-btn d-none d-sm-flex align-items-center"
             onClick={execution.run}
             disabled={execution.isRunning}
@@ -1485,6 +1513,26 @@ export default function EditorPage({ user }) {
           onClose={() => setShowVideoCall(false)}
         />
       )}
+      <CodeDiffPanel
+        isOpen={isDiffOpen}
+        onClose={closeDiff}
+        isDiffLoading={isDiffLoading}
+        diffResult={diffResult}
+        diffError={diffError}
+      />
+
+{/* Video Call Overlay */}
+{showVideoCall && room.roomId && (
+  <VideoCall
+    roomId={room.roomId}
+    userName={
+      user?.displayName ||
+      user?.email?.split('@')[0] ||
+      'Guest'
+    }
+    onClose={() => setShowVideoCall(false)}
+  />
+)}
 
       {/* Real-time Democratic Vote Popup */}
       <VotePopup room={room} user={user} />
