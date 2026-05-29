@@ -274,8 +274,6 @@ export default function EditorPage({ user }) {
       },
     });
   };
-  
-  const monacoRef = useRef(null);
   const handleEditorMount = (editorInstance, monaco) => {  // add monaco param
   editorRef.current = editorInstance;
 
