@@ -12,6 +12,7 @@
     "format:fix": "prettier --write \"src/**/*.{js,jsx,css,json}\""
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@firebase/rules-unit-testing": "^5.0.1",
     "@playwright/test": "^1.60.0",
     "eslint": "^8.57.0",
