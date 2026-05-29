@@ -75,7 +75,7 @@ async function fixCodeAI(code, error, language, apiKey = '') {
 ${code}
 
 Error (if any):
-${error || 'No specific error, but optimize and fix any issues.'}`,
+${error || 'No specific error, but optimize and fix any issues.'}</error>`,
     apiKey
   );
 
@@ -109,9 +109,11 @@ ${error || 'No specific error, but optimize and fix any issues.'}`,
 async function explainLogicAI(code, language, apiKey = '') {
   return chatCompletion(
     `You are a CS tutor. Explain code step-by-step. Always respond in valid JSON.`,
-    `Explain this ${language} code step-by-step:
+    `Explain this <language>${language}</language> code step-by-step:
 
+<code>
 ${code}
+</code>
 
 Respond in JSON:
 {
@@ -128,9 +130,11 @@ Respond in JSON:
 async function generateTestsAI(code, language, apiKey = '') {
   return chatCompletion(
     `You are a QA engineer. Generate test cases. Always respond in valid JSON.`,
-    `Generate test cases for this ${language} function:
+    `Generate test cases for this <language>${language}</language> function:
 
+<code>
 ${code}
+</code>
 
 Respond in JSON:
 {
@@ -149,9 +153,11 @@ Respond in JSON:
 async function auditCodeAI(code, language, apiKey = '') {
   return chatCompletion(
     `You are a senior application security reviewer and refactoring coach. Audit code for exploitable security risks, reliability hazards, memory/resource leaks, and unsafe architecture. Always respond in valid JSON.`,
-    `Audit this ${language} code:
+    `Audit this <language>${language}</language> code:
 
+<code>
 ${code}
+</code>
 
 Respond in this EXACT JSON format:
 {
@@ -184,11 +190,15 @@ Rules:
 async function visualizeAI(code, language, input = '', apiKey = '') {
   return chatCompletion(
     `You are a code tracer. Trace through code step by step showing variable states. Always respond in valid JSON.`,
-    `Trace through this ${language} code step by step. Show variable states after each line.
+    `Trace through this <language>${language}</language> code step by step. Show variable states after each line.
 
+<code>
 ${code}
+</code>
 
-${input ? `Input: ${input}` : ''}
+${input ? `<input>
+${input}
+</input>` : ''}
 
 Respond in JSON:
 {
@@ -205,9 +215,11 @@ Respond in JSON:
 async function explainCodeSnippetAI(code, language, apiKey = '') {
   return chatCompletion(
     `You are an expert programming tutor. When a user highlights a snippet of code, explain what it does in simple, beginner-friendly language. Always respond in valid JSON.`,
-    `Explain this ${language} code snippet in simple terms:
+    `Explain this <language>${language}</language> code snippet in simple terms:
 
+<code>
 ${code}
+</code>
 
 Respond in this EXACT JSON format:
 {
@@ -228,9 +240,13 @@ async function askFollowUpAI(code, language, question, previousExplanation, apiK
 
 ${code}
 
-Previous explanation: ${previousExplanation}
+<previous_explanation>
+${previousExplanation}
+</previous_explanation>
 
-User's follow-up question: ${question}
+<question>
+${question}
+</question>
 
 Respond in this EXACT JSON format:
 {
