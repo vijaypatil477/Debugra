@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { Mic, MicOff, PhoneCall, PhoneOff } from 'lucide-react';
 
@@ -6,12 +6,12 @@ const AudioPeer = ({ stream }) => {
   const audioRef = useRef();
 
   useEffect(() => {
-    if (audioRef.current && stream) {
-      audioRef.current.srcObject = stream;
+    if (audioRef.current) {
+      audioRef.current.srcObject = stream || null;
     }
   }, [stream]);
 
-  return <audio ref={audioRef} autoPlay playsInline />;
+  return <audio ref={audioRef} autoPlay />;
 };
 
 export default function AudioChannel({ room, user }) {
@@ -22,8 +22,8 @@ export default function AudioChannel({ room, user }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '16px' }}>
-      {peers.map((peer, idx) => (
-        <AudioPeer key={idx} stream={peer.stream} />
+      {peers.map((peer) => (
+        <AudioPeer key={peer.peerId} stream={peer.stream} />
       ))}
       
       {!inCall ? (
@@ -84,7 +84,7 @@ export default function AudioChannel({ room, user }) {
           >
             <PhoneOff size={12} />
           </button>
-        </  >
+        </>
       )}
     </div>
   );
