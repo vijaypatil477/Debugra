@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const { rateLimit } = require('express-rate-limit');
+const net = require('net');
 const executeRoutes = require('./routes/execute');
 const aiRoutes = require('./routes/ai');
 const memoryRoutes = require('./routes/memory');
@@ -15,7 +16,8 @@ const webhookRoutes = require('./routes/webhooks');
 const { executeLimiter, aiLimiter } = require('./middleware/rateLimiters');
 
 const app = express();
-app.set('trust proxy', 1);
+const trustProxyHops = Number.parseInt(process.env.TRUST_PROXY || '0', 10);
+app.set('trust proxy', trustProxyHops);
 const PORT = process.env.PORT || 3001;
 const isProd = process.env.NODE_ENV === 'production';
 const cspReportUri = (process.env.CSP_REPORT_URI || '').trim();
@@ -26,12 +28,14 @@ const rateLimitEventBufferSize = Number.parseInt(
 const securityDiagnosticsToken = (process.env.SECURITY_DIAGNOSTICS_TOKEN || '').trim();
 const rateLimitEvents = [];
 
+function isValidIp(value) {
+  if (!value || typeof value !== 'string') return false;
+  return net.isIPv4(value) || net.isIPv6(value);
+}
+
 function getClientIp(req) {
-  const forwardedFor = req.headers['x-forwarded-for'];
-  if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
-    return forwardedFor.split(',')[0].trim();
-  }
-  return req.ip || req.socket?.remoteAddress || 'unknown';
+  const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+  return isValidIp(ip) ? ip : 'unknown';
 }
 
 function recordRateLimitEvent(req) {
@@ -322,4 +326,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, buildCspDirectives };
+module.exports = { app, buildCspDirectives, isValidIp, getClientIp, trustProxyHops };
