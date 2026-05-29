@@ -1,0 +1,15 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package configuration
+COPY package.json package-lock.json ./
+
+# Install dependencies
+RUN npm install --no-audit --no-fund
+
+EXPOSE 3001
+
+# Start the Express server using the dev script (requires nodemon/watch)
+# We use npm run dev to enable hot-reloading
+CMD ["npm", "run", "dev"]

@@ -1,0 +1,17 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package configuration
+COPY package.json package-lock.json ./
+
+# Install dependencies (ignoring audit for speed in dev)
+RUN npm install --no-audit --no-fund
+
+# Don't copy source files here, as they will be mounted via docker-compose
+# for hot-reloading.
+
+EXPOSE 5173
+
+# Start the Vite dev server, binding to all interfaces
+CMD ["npm", "run", "dev", "--", "--host"]

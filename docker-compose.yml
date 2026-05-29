@@ -4,7 +4,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "5173:5173"
     environment:
@@ -20,16 +20,18 @@ services:
   backend:
     build:
       context: ./server
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "3001:8080"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    env_file:
+      - ./server/.env
     environment:
       - NODE_ENV=development
       - PORT=8080
       # Provide dummy values for local development if .env is missing
       - GEMINI_API_KEY=${GEMINI_API_KEY:-dummy_key}
       - CORS_ORIGINS=http://localhost:5173
-    volumes:
-      - ./server:/app
-      - /app/node_modules
     restart: unless-stopped
