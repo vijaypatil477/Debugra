@@ -15,6 +15,7 @@ export default function MobileBottomNav({
   roomId,
   hasError,
   isReadOnly,
+  isOnline,
 }) {
   return (
     <div className="mobile-bottom-nav">
@@ -27,7 +28,12 @@ export default function MobileBottomNav({
       </button>
 
       {/* Floating run button */}
-      <button className="mobile-nav-run" onClick={onRun} disabled={isRunning}>
+      <button
+        className="mobile-nav-run"
+        onClick={onRun}
+        disabled={isRunning || !isOnline}
+        title={!isOnline ? 'You are offline' : undefined}
+      >
         {isRunning ? <span className="spinner" /> : <i className="bi bi-play-fill" />}
       </button>
 
@@ -41,7 +47,12 @@ export default function MobileBottomNav({
       </button>
 
       {user && (
-        <button className="mobile-nav-btn" onClick={onSave} disabled={isReadOnly}>
+        <button
+          className="mobile-nav-btn"
+          onClick={onSave}
+          disabled={isReadOnly || !isOnline}
+          title={!isOnline ? 'You are offline' : undefined}
+        >
           <i className="bi bi-cloud-arrow-up" />
           <span>Save</span>
         </button>

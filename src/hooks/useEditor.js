@@ -11,6 +11,7 @@ import {
   DEFAULT_EDITOR_FONT,
   DEFAULT_THEME,
 } from '../config/constants';
+import { useNetworkStatus } from './useNetworkStatus';
 
 const TAB_SIZE_VALUES = [2, 4];
 const RULER_VALUES = [80, 120];
@@ -49,6 +50,7 @@ function getStoredDraft() {
  *   - save to cloud and download as file
  */
 export function useEditor({ user, onNeedAuth }) {
+  const { isOnline } = useNetworkStatus();
   const initialDraft = getStoredDraft();
   const initialLanguage =
     initialDraft?.language && LANGUAGES[initialDraft.language]
@@ -181,6 +183,11 @@ export function useEditor({ user, onNeedAuth }) {
       return;
     }
 
+    if (!isOnline) {
+      toast.error('You are offline. Reconnect to save code to the cloud.');
+      return;
+    }
+
     const defaultName = LANG_FILE_NAMES[language] || 'code.txt';
     const fileName = window.prompt('Enter a name for this file:', defaultName);
     if (!fileName) return; // User cancelled
@@ -196,7 +203,7 @@ export function useEditor({ user, onNeedAuth }) {
     } catch {
       toast.error('Save failed');
     }
-  }, [user, code, language, onNeedAuth]);
+  }, [user, code, language, onNeedAuth, isOnline]);
 
   const loadCode = useCallback((newCode, newLang) => {
     setCode(newCode);
