@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const {
   explainError,
   fixCodeAI,
+  refactorCodeAI,
   explainLogicAI,
   generateTestsAI,
   auditCodeAI,
@@ -87,6 +88,18 @@ router.post('/audit-code', handleCachedRequest(async (body, apiKey) => {
 router.post('/visualize', handleCachedRequest(async (body, apiKey) => {
   const { code, language, input } = body;
   return await visualizeAI(code, language, input, apiKey);
+}));
+
+// Code refactor
+router.post('/refactor-code', handleCachedRequest(async (body, apiKey) => {
+  const { code, language } = body;
+  if (!code || typeof code !== 'string' || !code.trim()) {
+    throw Object.assign(new Error('code is required'), { status: 400 });
+  }
+  if (!language || typeof language !== 'string' || !language.trim()) {
+    throw Object.assign(new Error('language is required'), { status: 400 });
+  }
+  return await refactorCodeAI(code.trim(), language.trim(), apiKey);
 }));
 
 // AI Code Explainer — explain selected snippet

@@ -40,6 +40,7 @@ import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import DiffViewer from './DiffViewer';
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -717,6 +718,38 @@ export default function EditorPage({ user }) {
               title="Groq API key settings"
             >
               Key
+            </button>
+            <button
+              className="ai-btn"
+              onClick={ai.refactor}
+              disabled={ai.isRefactorLoading || ai.isAILoading || room.isReadOnly}
+            >
+              {ai.isRefactorLoading ? (
+                <>
+                  <span
+                    className="spinner"
+                    style={{ width: '10px', height: '10px', borderWidth: '1.5px' }}
+                  />
+                  Refactoring...
+                </>
+              ) : (
+                <>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <polyline points="16 3 21 3 21 8" />
+                    <line x1="4" y1="20" x2="21" y2="3" />
+                    <polyline points="21 16 21 21 16 21" />
+                    <line x1="15" y1="15" x2="21" y2="21" />
+                  </svg>
+                  Refactor
+                </>
+              )}
             </button>
             <button
               className="ai-btn"
@@ -1459,6 +1492,20 @@ export default function EditorPage({ user }) {
         />
       )}
       {showAccount && user && <AccountSettings onClose={() => setShowAccount(false)} user={user} />}
+
+      {/* Diff Viewer */}
+      {ai.refactorDiff && (
+        <DiffViewer
+          original={ai.refactorDiff.original}
+          refactored={ai.refactorDiff.refactored}
+          onApply={() => {
+            editor.setCode(ai.refactorDiff.refactored);
+            ai.clearRefactorDiff();
+            toast.success('Refactor applied!');
+          }}
+          onDiscard={ai.clearRefactorDiff}
+        />
+      )}
 
       {/* Debug Overlay */}
       <DebugOverlay

@@ -220,6 +220,54 @@ Respond in this EXACT JSON format:
   );
 }
 
+// 9. AI Code Refactor
+async function refactorCodeAI(code, language, apiKey = '') {
+  const response = await getGroqClient(apiKey).chat.completions.create({
+    model: MODEL,
+    messages: [
+      {
+        role: 'system',
+        content:
+          `You are a senior software engineer. Refactor the given code for readability, performance, and best practices. Return ONLY the refactored code. Do NOT wrap it in markdown. Do not explain. CRITICAL: Do NOT output any <think> tags.`,
+      },
+      {
+        role: 'user',
+        content: `Refactor this ${language} code:\n\n${code}`,
+      },
+    ],
+    temperature: 0.2,
+    max_tokens: 4096,
+  });
+
+  let refactoredCode = response.choices[0].message.content ?? '';
+
+  // Strip <think> reasoning tags (some models emit them)
+  const thinkStart = refactoredCode.indexOf('<think>');
+  if (thinkStart !== -1) {
+    const thinkEnd = refactoredCode.indexOf('</think>');
+    refactoredCode =
+      thinkEnd !== -1
+        ? refactoredCode.substring(0, thinkStart) + refactoredCode.substring(thinkEnd + 8)
+        : refactoredCode.substring(0, thinkStart);
+  }
+
+  // Strip markdown code fences
+  if (refactoredCode.includes('```')) {
+    const match = refactoredCode.match(/```[a-z]*\n([\s\S]*?)```/);
+    refactoredCode = match
+      ? match[1]
+      : refactoredCode.replace(/```[a-z]*\n?/g, '').replace(/```/g, '');
+  }
+
+  refactoredCode = refactoredCode.trim();
+
+  if (!refactoredCode) {
+    throw new Error('Refactor returned empty code. Please try again.');
+  }
+
+  return { content: { refactoredCode }, usage: response.usage };
+}
+
 // 8. AI Code Explainer — follow-up Q&A on previously explained code
 async function askFollowUpAI(code, language, question, previousExplanation, apiKey = '') {
   return chatCompletion(
@@ -244,6 +292,7 @@ Respond in this EXACT JSON format:
 module.exports = {
   explainError,
   fixCodeAI,
+  refactorCodeAI,
   explainLogicAI,
   generateTestsAI,
   auditCodeAI,

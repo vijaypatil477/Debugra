@@ -97,4 +97,9 @@ export const aiVisualizeExecution = async (code, language, input = '') => {
   return data;
 };
 
+export const aiRefactorCode = async (code, language) => {
+  const { data } = await api.post('/api/ai/refactor-code', { code, language });
+  return data;
+};
+
 export default api;

@@ -7,6 +7,7 @@ import {
   aiGenerateTests,
   aiAuditCode,
   aiExplainError,
+  aiRefactorCode,
 } from '../services/api';
 import { showRateLimitToast } from '../utils/rateLimitToast';
 import { LANGUAGES } from '../utils/languageConfig';
@@ -25,6 +26,10 @@ import { OUTPUT_TABS } from '../config/constants';
 export function useAI({ language, code, stderr, setActiveOutputTab, editorRef }) {
   const [aiResponse, setAiResponse] = useState(null);
   const [isAILoading, setIsAILoading] = useState(false);
+
+  // ─── Refactor diff state ────────────────────────────────────────────────────
+  const [refactorDiff, setRefactorDiff] = useState(null); // { original, refactored }
+  const [isRefactorLoading, setIsRefactorLoading] = useState(false);
 
   // ─── Debug Error (inline button on Errors tab) ─────────────────────────────
   const [debugResponse, setDebugResponse] = useState(null);
@@ -49,6 +54,33 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
     },
     [setActiveOutputTab]
   );
+
+  const refactor = useCallback(async () => {
+    if (!code?.trim()) {
+      toast.error('Nothing to refactor — editor is empty.');
+      return;
+    }
+    setIsRefactorLoading(true);
+    try {
+      const result = await aiRefactorCode(code, LANGUAGES[language].name);
+      const refactoredCode = result?.content?.refactoredCode;
+      if (refactoredCode) {
+        setRefactorDiff({ original: code, refactored: refactoredCode });
+      } else {
+        toast.error('Refactor returned no code. Try again.');
+      }
+    } catch (err) {
+      if (err.status === 429) {
+        showRateLimitToast(err.message, err.retryAfter);
+      } else {
+        toast.error(err.message || 'Refactor request failed');
+      }
+    } finally {
+      setIsRefactorLoading(false);
+    }
+  }, [code, language]);
+
+  const clearRefactorDiff = useCallback(() => setRefactorDiff(null), []);
 
   const fix = useCallback(
     () =>
@@ -111,6 +143,10 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
     visualize,
     generateTests,
     audit,
+    refactor,
+    isRefactorLoading,
+    refactorDiff,
+    clearRefactorDiff,
     clearAI,
     debugResponse,
     isDebugLoading,
