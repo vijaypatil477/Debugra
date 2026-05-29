@@ -29,6 +29,7 @@ import AuthModal from '../Auth/AuthModal';
 import AccountSettings from '../Auth/AccountSettings';
 import ChatPanel from '../Chat/ChatPanel';
 import FileIcon from '../Icons/FileIcon';
+import LanguageSelector from './LanguageSelector';
 import HistoryPanel from './HistoryPanel';
 import AIResponsePanel from './AIResponsePanel';
 import ApiKeyModal from './ApiKeyModal';
@@ -647,18 +648,11 @@ export default function EditorPage({ user }) {
       {/* ===== TOOLBAR ===== */}
       <div className="toolbar px-2 py-1">
         <div className="toolbar-left d-flex align-items-center gap-2">
-          <select
-            className="lang-select"
+          <LanguageSelector
             value={editor.language}
-            onChange={(e) => editor.changeLanguage(e.target.value)}
+            onChange={editor.changeLanguage}
             disabled={room.isReadOnly}
-          >
-            {Object.entries(LANGUAGES).map(([key, lang]) => (
-              <option key={key} value={key}>
-                {lang.name}
-              </option>
-            ))}
-          </select>
+          />
           <select
             className="lang-select d-none d-sm-block"
             value={editor.theme}
