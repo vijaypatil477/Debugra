@@ -39,6 +39,8 @@ import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
+import FocusMode from './FocusMode';
+import { useFocusMode } from '../../hooks/useFocusMode';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
 
@@ -82,6 +84,19 @@ export default function EditorPage({ user }) {
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
+
+  // ─── Focus Mode ────────────────────────────────────────────────────────────
+  const {
+    isFocusMode,
+    toggleFocusMode,
+    timerEnabled,
+    toggleTimerPanel,
+    timerRunning,
+    toggleTimer,
+    secondsLeft,
+    isBreak,
+    formatTime,
+  } = useFocusMode();
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
   const handleCopyOutput = async () => {
@@ -877,6 +892,15 @@ export default function EditorPage({ user }) {
             Clear
           </button>
           <button
+            className="toolbar-btn"
+            onClick={toggleFocusMode}
+            title="Focus Mode (Ctrl/Cmd+Shift+F)"
+            aria-label="Toggle focus mode"
+            aria-pressed={isFocusMode}
+          >
+            🎯 Focus
+          </button>
+          <button
             className="run-btn d-none d-sm-flex align-items-center"
             onClick={execution.run}
             disabled={execution.isRunning}
@@ -1488,6 +1512,21 @@ export default function EditorPage({ user }) {
 
       {/* Real-time Democratic Vote Popup */}
       <VotePopup room={room} user={user} />
+{/* Real-time Democratic Vote Popup */}
+<VotePopup room={room} user={user} />
+
+{/* Focus Mode HUD */}
+<FocusMode
+  isFocusMode={isFocusMode}
+  toggleFocusMode={toggleFocusMode}
+  timerEnabled={timerEnabled}
+  toggleTimerPanel={toggleTimerPanel}
+  timerRunning={timerRunning}
+  toggleTimer={toggleTimer}
+  secondsLeft={secondsLeft}
+  isBreak={isBreak}
+  formatTime={formatTime}
+/>
     </div>
   );
 }
