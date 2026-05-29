@@ -163,6 +163,9 @@ CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 CSP_REPORT_URI=/api/security/csp-report
 GROQ_API_KEY=your_groq_api_key
 DEBUGRA_ADMIN_TOKEN=choose_a_long_random_admin_token
+> ⚠️ **All backend env vars are required.** The server validates them at startup
+> and exits with a clear error if any are missing or malformed.
+> Copy `server/.env.example` to `server/.env` before starting.
 ```
 
 `CORS_ORIGINS` accepts a comma-separated list of trusted frontend origins. `CSP_REPORT_URI` enables browser CSP violation reports through `/api/security/csp-report`.
