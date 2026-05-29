@@ -1,0 +1,136 @@
+{
+  "categories": [
+    {
+      "id": "python",
+      "label": "Python",
+      "badge": "PY",
+      "templates": [
+        {
+          "id": "py-main",
+          "name": "Main Entry Point",
+          "tags": ["main", "boilerplate"],
+          "code": "def main():\n    pass\n\nif __name__ == \"__main__\":\n    main()\n"
+        },
+        {
+          "id": "py-binary-search",
+          "name": "Binary Search",
+          "tags": ["algorithm", "search", "binary search"],
+          "code": "def binary_search(arr, target):\n    left, right = 0, len(arr) - 1\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1\n"
+        },
+        {
+          "id": "py-linked-list",
+          "name": "Linked List",
+          "tags": ["data structure", "linked list"],
+          "code": "class Node:\n    def __init__(self, data):\n        self.data = data\n        self.next = None\n\nclass LinkedList:\n    def __init__(self):\n        self.head = None\n\n    def append(self, data):\n        new_node = Node(data)\n        if not self.head:\n            self.head = new_node\n            return\n        current = self.head\n        while current.next:\n            current = current.next\n        current.next = new_node\n"
+        },
+        {
+          "id": "py-class",
+          "name": "Class Template",
+          "tags": ["oop", "class"],
+          "code": "class MyClass:\n    def __init__(self, value):\n        self.value = value\n\n    def __repr__(self):\n        return f\"MyClass({{self.value}})\"\n\n    def get_value(self):\n        return self.value\n"
+        }
+      ]
+    },
+    {
+      "id": "javascript",
+      "label": "JavaScript",
+      "badge": "JS",
+      "templates": [
+        {
+          "id": "js-async-fetch",
+          "name": "Async Fetch",
+          "tags": ["async", "fetch", "api"],
+          "code": "async function fetchData(url) {\n  try {\n    const response = await fetch(url);\n    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);\n    const data = await response.json();\n    return data;\n  } catch (error) {\n    console.error('Fetch error:', error);\n  }\n}\n"
+        },
+        {
+          "id": "js-debounce",
+          "name": "Debounce",
+          "tags": ["utility", "debounce", "performance"],
+          "code": "function debounce(fn, delay) {\n  let timer;\n  return function (...args) {\n    clearTimeout(timer);\n    timer = setTimeout(() => fn.apply(this, args), delay);\n  };\n}\n"
+        },
+        {
+          "id": "js-binary-search",
+          "name": "Binary Search",
+          "tags": ["algorithm", "search"],
+          "code": "function binarySearch(arr, target) {\n  let left = 0, right = arr.length - 1;\n  while (left <= right) {\n    const mid = Math.floor((left + right) / 2);\n    if (arr[mid] === target) return mid;\n    else if (arr[mid] < target) left = mid + 1;\n    else right = mid - 1;\n  }\n  return -1;\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "cpp",
+      "label": "C++",
+      "badge": "C++",
+      "templates": [
+        {
+          "id": "cpp-main",
+          "name": "Main Template",
+          "tags": ["main", "boilerplate"],
+          "code": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    // your code here\n\n    return 0;\n}\n"
+        },
+        {
+          "id": "cpp-binary-search",
+          "name": "Binary Search",
+          "tags": ["algorithm", "search"],
+          "code": "int binarySearch(vector<int>& arr, int target) {\n    int left = 0, right = arr.size() - 1;\n    while (left <= right) {\n        int mid = left + (right - left) / 2;\n        if (arr[mid] == target) return mid;\n        else if (arr[mid] < target) left = mid + 1;\n        else right = mid - 1;\n    }\n    return -1;\n}\n"
+        },
+        {
+          "id": "cpp-graph-bfs",
+          "name": "Graph BFS",
+          "tags": ["graph", "bfs", "algorithm"],
+          "code": "void bfs(int start, vector<vector<int>>& adj, int n) {\n    vector<bool> visited(n, false);\n    queue<int> q;\n    visited[start] = true;\n    q.push(start);\n    while (!q.empty()) {\n        int node = q.front(); q.pop();\n        cout << node << \" \";\n        for (int neighbor : adj[node]) {\n            if (!visited[neighbor]) {\n                visited[neighbor] = true;\n                q.push(neighbor);\n            }\n        }\n    }\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "java",
+      "label": "Java",
+      "badge": "JV",
+      "templates": [
+        {
+          "id": "java-main",
+          "name": "Main Class",
+          "tags": ["main", "boilerplate"],
+          "code": "public class Main {\n    public static void main(String[] args) {\n        // your code here\n    }\n}\n"
+        },
+        {
+          "id": "java-arraylist",
+          "name": "ArrayList Usage",
+          "tags": ["data structure", "list", "arraylist"],
+          "code": "import java.util.ArrayList;\nimport java.util.Collections;\n\npublic class Main {\n    public static void main(String[] args) {\n        ArrayList<Integer> list = new ArrayList<>();\n        list.add(3); list.add(1); list.add(2);\n        Collections.sort(list);\n        System.out.println(list);\n    }\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "react",
+      "label": "React",
+      "badge": "RX",
+      "templates": [
+        {
+          "id": "react-component",
+          "name": "Functional Component",
+          "tags": ["react", "component", "functional"],
+          "code": "import React, { useState } from 'react';\n\nfunction MyComponent({ title }) {\n  const [count, setCount] = useState(0);\n\n  return (\n    <div>\n      <h2>{title}</h2>\n      <p>Count: {count}</p>\n      <button onClick={() => setCount(c => c + 1)}>Increment</button>\n    </div>\n  );\n}\n\nexport default MyComponent;\n"
+        },
+        {
+          "id": "react-custom-hook",
+          "name": "Custom Hook",
+          "tags": ["react", "hook", "custom"],
+          "code": "import { useState, useEffect } from 'react';\n\nfunction useCustomHook(initialValue) {\n  const [value, setValue] = useState(initialValue);\n\n  useEffect(() => {\n    // side effect logic here\n    return () => {\n      // cleanup\n    };\n  }, [value]);\n\n  return [value, setValue];\n}\n\nexport default useCustomHook;\n"
+        }
+      ]
+    },
+    {
+      "id": "web",
+      "label": "Web / JS",
+      "badge": "WB",
+      "templates": [
+        {
+          "id": "web-express",
+          "name": "Express Server",
+          "tags": ["node", "express", "server", "backend"],
+          "code": "const express = require('express');\nconst app = express();\nconst PORT = process.env.PORT || 3000;\n\napp.use(express.json());\n\napp.get('/', (req, res) => {\n  res.json({ message: 'Hello World' });\n});\n\napp.listen(PORT, () => {\n  console.log(`Server running on port ${PORT}`);\n});\n"
+        }
+      ]
+    }
+  ]
+}

@@ -41,6 +41,7 @@ import VotePopup from './VotePopup';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import TemplateLibrary from './TemplateLibrary';
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -78,6 +79,7 @@ export default function EditorPage({ user }) {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [isTemplateLibraryOpen, setIsTemplateLibraryOpen] = useState(false);
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -877,6 +879,14 @@ export default function EditorPage({ user }) {
             Clear
           </button>
           <button
+            className="toolbar-btn"
+            onClick={() => setIsTemplateLibraryOpen(true)}
+            title="Template Library"
+            aria-label="Open template library"
+          >
+            ✦ Templates
+          </button>
+          <button
             className="run-btn d-none d-sm-flex align-items-center"
             onClick={execution.run}
             disabled={execution.isRunning}
@@ -1485,6 +1495,46 @@ export default function EditorPage({ user }) {
           onClose={() => setShowVideoCall(false)}
         />
       )}
+      <TemplateLibrary
+        isOpen={isTemplateLibraryOpen}
+        onClose={() => setIsTemplateLibraryOpen(false)}
+        onInsert={(code) => {
+          try {
+            if (editorRef?.current) {
+              const ed = editorRef.current;
+              const selection = ed.getSelection();
+              ed.executeEdits('template-insert', [
+                {
+                  range: selection,
+                  text: code,
+                  forceMoveMarkers: true,
+                },
+              ]);
+              ed.focus();
+            } else {
+              editor.setCode(code);
+            }
+          } catch (err) {
+            console.error('Template insert failed', err);
+            editor.setCode(code);
+          }
+        }
+        }
+        currentLanguage={editor.language}
+      />
+
+{/* Video Call Overlay */}
+{showVideoCall && room.roomId && (
+  <VideoCall
+    roomId={room.roomId}
+    userName={
+      user?.displayName ||
+      user?.email?.split('@')[0] ||
+      'Guest'
+    }
+    onClose={() => setShowVideoCall(false)}
+  />
+)}
 
       {/* Real-time Democratic Vote Popup */}
       <VotePopup room={room} user={user} />
