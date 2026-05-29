@@ -4,7 +4,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import SidebarOutliner from './SidebarOutliner';
 import { parseCodeToOutline } from '../../utils/codeParser';
 
