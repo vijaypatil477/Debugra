@@ -28,6 +28,7 @@ export function useExecution({
   audioFeedback,
   user,
   room,
+  addSnippet,
 }) {
   const [stdout, setStdout] = useState('');
   const [stderr, setStderr] = useState('');
@@ -79,6 +80,11 @@ export function useExecution({
         const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
 
         const isSuccess = result.status?.id === 3;
+        
+        if (isSuccess) {
+          addSnippet?.(voteCode, voteLanguage);
+        }
+
         const executionResult = {
           executionId: generateUUID(),
           stdout: result.stdout || '(No output)',
@@ -104,7 +110,7 @@ export function useExecution({
         await room.clearVote();
       }
     },
-    [audioFeedback, isMobile, setMobileTab, room]
+    [audioFeedback, isMobile, setMobileTab, room, addSnippet]
   );
 
   const run = useCallback(async () => {
@@ -142,6 +148,7 @@ export function useExecution({
       if (result.status?.id === 3) {
         setExecStatus(EXEC_STATUS.SUCCESS);
         audioFeedback?.playOutcome?.('success');
+        addSnippet?.(code, language);
       } else {
         setExecStatus({ type: 'error', text: result.status?.description || 'Error' });
         audioFeedback?.playOutcome?.('error');
@@ -160,7 +167,7 @@ export function useExecution({
     } finally {
       setIsRunning(false);
     }
-  }, [audioFeedback, code, language, isRunning, stdin, isMobile, setMobileTab, room]);
+  }, [audioFeedback, code, language, isRunning, stdin, isMobile, setMobileTab, room, addSnippet]);
 
   const clear = useCallback(() => {
     setStdout('');

@@ -13,6 +13,7 @@ import {
   useEditor,
   useIsMobile,
   useAudioFeedback,
+  useLocalHistory,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
@@ -122,6 +123,8 @@ export default function EditorPage({ user }) {
     setStdinValue: editor.setStdinValue,
   });
 
+  const { localHistory, addSnippet, deleteSnippet, clearHistory } = useLocalHistory();
+
   const execution = useExecution({
     language: editor.language,
     code: editor.code,
@@ -131,6 +134,7 @@ export default function EditorPage({ user }) {
     audioFeedback,
     user,
     room,
+    addSnippet,
   });
 
   const executionRunRef = useRef(execution.run);
@@ -1152,12 +1156,17 @@ export default function EditorPage({ user }) {
         {!isMobile && <div className="resize-handle" onMouseDown={handleResizeStart} />}
 
         {/* History Panel (desktop) */}
-        {showHistory && user && !isMobile && (
-          <HistoryPanel
-            user={user}
-            onLoadCode={editor.loadCode}
-            onClose={() => setShowHistory(false)}
-          />
+        {showHistory && !isMobile && (
+          <div style={{ width: '260px', overflow: 'hidden', flexShrink: 0, borderRight: '1px solid var(--border)' }}>
+            <HistoryPanel
+              user={user}
+              onLoadCode={editor.loadCode}
+              onClose={() => setShowHistory(false)}
+              localHistory={localHistory}
+              deleteLocalSnippet={deleteSnippet}
+              clearLocalHistory={clearHistory}
+            />
+          </div>
         )}
 
         {/* OUTPUT PANE */}
