@@ -2222,6 +2222,320 @@ body {
   box-shadow: none;
 }
 
+/* ============ CODE OUTLINER SIDEBAR ============ */
+.outliner-sidebar {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-1);
+  border-right: 1px solid var(--border);
+  min-width: 160px;
+  max-width: 450px;
+  overflow: hidden;
+  flex-shrink: 0;
+  height: 100%;
+}
+
+.resize-handle-left {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background-color 0.2s ease;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.resize-handle-left:hover,
+.resize-handle-left:active {
+  background: var(--accent);
+}
+
+.outline-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-1);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.outline-toggle-btn:hover {
+  color: var(--text-0);
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+
+.outline-toggle-btn.active {
+  background: rgba(0, 120, 212, 0.15);
+  color: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 0 6px rgba(0, 120, 212, 0.25);
+}
+
+.outliner-sidebar-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: var(--text-0);
+  font-family: 'Inter', sans-serif;
+}
+
+.outliner-header {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.outliner-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-1);
+}
+
+.outliner-actions {
+  display: flex;
+  align-items: center;
+}
+
+.outliner-action-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-2);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.outliner-action-btn:hover {
+  color: var(--text-0);
+  background: var(--bg-3);
+}
+
+.outliner-search-wrap {
+  position: relative;
+  padding: 6px 8px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.outliner-search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--text-2);
+  pointer-events: none;
+}
+
+.outliner-search-input {
+  width: 100%;
+  height: 24px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-0);
+  padding: 2px 24px 2px 24px;
+  font-size: 0.72rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.outliner-search-input:focus {
+  border-color: var(--accent);
+}
+
+.outliner-search-clear {
+  position: absolute;
+  right: 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-2);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.outliner-search-clear:hover {
+  color: var(--text-0);
+}
+
+.outliner-tree-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+  background: var(--bg-0);
+}
+
+.outliner-node-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.outliner-node {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.75rem;
+  color: var(--text-1);
+  transition: all 0.1s ease;
+  position: relative;
+  padding-right: 10px;
+}
+
+.outliner-node:hover {
+  background: var(--bg-hover);
+  color: var(--text-0);
+}
+
+.outliner-node.active {
+  background: rgba(0, 120, 212, 0.12);
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.outliner-node.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+}
+
+.outliner-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-2);
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-right: 2px;
+  border-radius: 3px;
+}
+
+.outliner-toggle-btn:hover {
+  color: var(--text-0);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.outliner-toggle-spacer {
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.outliner-type-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-right: 6px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.outliner-type-icon.icon-class {
+  background: #3b82f6; /* Royal Blue */
+}
+
+.outliner-type-icon.icon-interface {
+  background: #10b981; /* Emerald Green */
+}
+
+.outliner-type-icon.icon-type {
+  background: #8b5cf6; /* Royal Purple */
+}
+
+.outliner-type-icon.icon-function {
+  background: #eab308; /* Yellow/Gold */
+  color: #1e1e1e;
+}
+
+.outliner-type-icon.icon-method {
+  background: #ec4899; /* Deep Pink/Magenta */
+}
+
+.outliner-node-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.outliner-node-line {
+  font-size: 0.65rem;
+  color: var(--text-2);
+  margin-left: 6px;
+  opacity: 0.6;
+}
+
+.outliner-node:hover .outliner-node-line {
+  opacity: 1;
+}
+
+.outliner-children-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.outliner-empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-2);
+  font-size: 0.72rem;
+  font-style: italic;
+}
+
+/* Monaco line highlight pulsing style */
+.editor-line-highlight-pulse {
+  background: rgba(0, 120, 212, 0.15) !important;
+  border-left: 3px solid var(--accent) !important;
+  box-shadow: inset 5px 0 15px rgba(0, 120, 212, 0.05);
+  animation: line-pulse-fade 2s ease-out forwards;
+}
+
+@keyframes line-pulse-fade {
+  0% {
+    background: rgba(0, 120, 212, 0.25);
+  }
+  100% {
+    background: rgba(0, 120, 212, 0.05);
+  }
+}
+
 /* ============ MOBILE OVERRIDES ============ */
 @media (max-width: 768px) {
   .topbar-right .room-controls {
