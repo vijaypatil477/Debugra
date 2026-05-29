@@ -5,22 +5,58 @@ import toast from 'react-hot-toast';
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
 
-async function hashRoomPassword(password, salt) {
-  const encoded = new TextEncoder().encode(`${salt}:${password}`);
-  const digest = await crypto.subtle.digest('SHA-256', encoded);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+async function verifyRoomPassword(roomId, password) {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  const res = await fetch(`${apiUrl}/api/rooms/verify-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roomId, password }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.error || 'Password verification failed.');
+  }
+
+  sessionStorage.setItem(
+    `${ROOM_AUTH_PREFIX}${roomId}`,
+    JSON.stringify({
+      accessToken: data.accessToken,
+      expiresAt: data.expiresAt,
+    })
+  );
+
+  return true;
 }
 
-function createRoomSalt() {
-  return crypto.randomUUID().replace(/-/g, '');
-}
+async function hasValidRoomAccess(roomId) {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const stored = sessionStorage.getItem(`${ROOM_AUTH_PREFIX}${roomId}`);
 
-function rememberRoomAccess(roomId) {
-  sessionStorage.setItem(`${ROOM_AUTH_PREFIX}${roomId}`, 'true');
-}
+  if (!stored) return false;
 
-function hasRememberedRoomAccess(roomId) {
-  return sessionStorage.getItem(`${ROOM_AUTH_PREFIX}${roomId}`) === 'true';
+  try {
+    const { accessToken, expiresAt } = JSON.parse(stored);
+    if (Date.now() >= expiresAt) {
+      sessionStorage.removeItem(`${ROOM_AUTH_PREFIX}${roomId}`);
+      return false;
+    }
+
+    const res = await fetch(`${apiUrl}/api/rooms/validate-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId, accessToken }),
+    });
+
+    if (res.ok) return true;
+  } catch {
+    // corrupted storage or network issue; fall through to remove token
+  }
+
+  sessionStorage.removeItem(`${ROOM_AUTH_PREFIX}${roomId}`);
+  return false;
 }
 
 /**
@@ -125,17 +161,13 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       const id = crypto.randomUUID().slice(0, 8);
       const displayName = user.displayName || user.email?.split('@')[0] || 'Guest';
       const trimmedPassword = roomPassword.trim();
-      const passwordSalt = trimmedPassword ? createRoomSalt() : null;
-      const passwordHash = trimmedPassword
-        ? await hashRoomPassword(trimmedPassword, passwordSalt)
-        : null;
+      const passwordProtected = Boolean(trimmedPassword);
 
       await setDoc(doc(db, 'rooms', id), {
         name: `Room ${id}`,
         createdBy: user.uid,
-        isPrivate: Boolean(passwordHash),
-        passwordSalt,
-        passwordHash,
+        isPrivate: passwordProtected,
+        passwordProtected,
         code,
         language,
         activeUsers: [{ uid: user.uid, displayName }],
@@ -145,7 +177,6 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       });
       setRoomId(id);
       localStorage.setItem('debugra_roomId', id);
-      rememberRoomAccess(id);
       toast.success(`Room created! ID: ${id}`);
       navigator.clipboard.writeText(id);
 
@@ -157,7 +188,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
           event: 'room_created',
           roomId: id,
           userName: displayName,
-          passwordProtected: Boolean(passwordHash)
+          passwordProtected
         })
       }).catch(console.error);
 
@@ -182,20 +213,18 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         const currentUsers = data.activeUsers || [];
         const isCreator = data.createdBy === user.uid;
         const isAllowed = data.allowedEditors?.includes(user.uid);
-        const needsPassword =
-          data.passwordHash && !isCreator && !isAllowed && !hasRememberedRoomAccess(newRoomId);
+        const requiresPassword = Boolean(data.passwordProtected || data.isPrivate) && !isCreator && !isAllowed;
 
-        if (needsPassword) {
-          const suppliedPassword = roomPassword.trim();
-          if (!suppliedPassword) {
-            toast.error('Room passcode required');
-            return false;
-          }
+        if (requiresPassword) {
+          const alreadyAuthorized = await hasValidRoomAccess(newRoomId);
+          if (!alreadyAuthorized) {
+            const suppliedPassword = roomPassword.trim();
+            if (!suppliedPassword) {
+              toast.error('Room passcode required');
+              return false;
+            }
 
-          const suppliedHash = await hashRoomPassword(suppliedPassword, data.passwordSalt);
-          if (suppliedHash !== data.passwordHash) {
-            toast.error('Invalid room passcode');
-            return false;
+            await verifyRoomPassword(newRoomId, suppliedPassword);
           }
         }
 
@@ -213,7 +242,6 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         }
         setRoomId(newRoomId);
         localStorage.setItem('debugra_roomId', newRoomId);
-        rememberRoomAccess(newRoomId);
         toast.success(`Joined room: ${newRoomId}`);
 
         // Trigger Webhook via Backend API
@@ -228,8 +256,8 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         }).catch(console.error);
 
         return true;
-      } catch {
-        toast.error('Failed to join room');
+      } catch (err) {
+        toast.error(err?.message || 'Failed to join room');
         return false;
       }
     },
