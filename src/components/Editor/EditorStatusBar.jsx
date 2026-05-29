@@ -9,7 +9,7 @@ import { LANG_FILE_NAMES } from '../../config/constants';
  * - Online users count (clickable dropdown)
  * - Wandbox + Debugra labels
  */
-export default function EditorStatusBar({ execStatus, langName, cursorPos, room, user }) {
+export default function EditorStatusBar({ execStatus, langName, cursorPos, selectedSize, room, user }) {
   const { roomId, activeUsers, showOnlineDropdown, setShowOnlineDropdown } = room;
 
   return (
@@ -103,6 +103,7 @@ export default function EditorStatusBar({ execStatus, langName, cursorPos, room,
         {/* Cursor */}
         <span>
           Ln {cursorPos.line}, Col {cursorPos.col}
+          {selectedSize > 0 && ` (${selectedSize} selected)`}
         </span>
         <span>Spaces: 4</span>
       </div>

@@ -77,6 +77,7 @@ export default function EditorPage({ user }) {
   const [showMinimap, setShowMinimap] = useState(true); // ✅ CHANGE 1: Added showMinimap state
   const [showSettings, setShowSettings] = useState(false);
   const [editorReady, setEditorReady] = useState(false);
+  const [selectedSize, setSelectedSize] = useState(0);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
@@ -270,6 +271,16 @@ export default function EditorPage({ user }) {
     setEditorReady(true);
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
+    });
+    editorInstance.onDidChangeCursorSelection(() => {
+      const selection = editorInstance.getSelection();
+      if (selection && !selection.isEmpty()) {
+        const model = editorInstance.getModel();
+        const selectedText = model.getValueInRange(selection);
+        setSelectedSize(selectedText.length);
+      } else {
+        setSelectedSize(0);
+      }
     });
     // Ctrl+Enter → Run
     editorInstance.addCommand(2048 | 3, () => {
@@ -1279,6 +1290,7 @@ export default function EditorPage({ user }) {
         execStatus={execution.execStatus}
         langName={langConfig.name}
         cursorPos={editor.cursorPos}
+        selectedSize={selectedSize}
         room={room}
         user={user}
       />
