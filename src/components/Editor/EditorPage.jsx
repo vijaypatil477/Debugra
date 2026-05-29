@@ -38,6 +38,8 @@ function getApiKeyStatus() {
   return 'empty';
 }
 
+import FileTreePanel from './FileTreePanel';
+
 export default function EditorPage({ user }) {
   const navigate = useNavigate();
   const editorRef = useRef(null);
@@ -59,6 +61,7 @@ export default function EditorPage({ user }) {
   const [minimapSide, setMinimapSide] = useState('right');
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [activeFileId, setActiveFileId] = useState('main');
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -268,7 +271,8 @@ export default function EditorPage({ user }) {
   };
 
   const langConfig = LANGUAGES[editor.language];
-  const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
+  const activeFile = room.roomData?.files?.find(f => f.id === activeFileId);
+  const editorFileName = activeFile ? activeFile.name : (LANG_FILE_NAMES[editor.language] || 'main.txt');
 
   return (
     <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
@@ -762,11 +766,27 @@ export default function EditorPage({ user }) {
       </div>
 
       {/* ===== MAIN SPLIT ===== */}
-      <div className="main-split">
+      <div className="main-split" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        {room.roomId && !isMobile && (
+          <FileTreePanel 
+            room={room} 
+            activeFileId={activeFileId} 
+            onSelectFile={(id) => {
+              setActiveFileId(id);
+              const file = room.roomData?.files?.find(f => f.id === id);
+              if (file) {
+                editor.setCode(file.content);
+                editor.changeLanguage(file.language);
+              }
+            }}
+            isReadOnly={room.isReadOnly}
+          />
+        )}
+        
         {/* EDITOR PANE */}
         <div
           className="editor-pane"
-          style={isMobile && mobileTab !== MOBILE_TABS.CODE ? { display: 'none' } : {}}
+          style={{ flex: 1, display: isMobile && mobileTab !== MOBILE_TABS.CODE ? 'none' : 'flex', flexDirection: 'column', minWidth: 0 }}
         >
           <div className="editor-tab-bar">
             <div className="editor-tab">

@@ -39,7 +39,7 @@ function hasRememberedRoomAccess(roomId) {
  * @param {Function} setLanguage - to apply remote language changes
  * @param {Function} setStdinValue - to apply remote stdin changes
  */
-export function useRoom({ user, code, language, stdinValue, setCode, setLanguage, setStdinValue }) {
+export function useRoom({ user, code, language, stdinValue, setCode, setLanguage, setStdinValue, activeFileId = 'main' }) {
   const [roomId, setRoomId] = useState(null);
   const [roomData, setRoomData] = useState(null);
   const [activeUsers, setActiveUsers] = useState([]);
@@ -60,29 +60,41 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       if (!snap.exists()) return;
       const data = snap.data();
       setRoomData(data);
-      if (data.code !== undefined && data._lastEditor !== user?.uid) setCode(data.code);
-      if (data.language) setLanguage(data.language);
+      
+      // If the current file changed remotely, update local editor
+      if (data.files && data._lastEditor !== user?.uid) {
+        const activeFile = data.files.find(f => f.id === activeFileId);
+        if (activeFile) {
+          setCode(activeFile.content);
+          setLanguage(activeFile.language);
+        }
+      }
+      
       if (data.stdin !== undefined && data._lastEditor !== user?.uid) setStdinValue(data.stdin);
       setActiveUsers(data.activeUsers || []);
     });
     return unsub;
-  }, [roomId, user]);
+  }, [roomId, user, activeFileId]);
 
   // ─── Push local changes (debounced, editor-gated) ──────────────────────────
   useEffect(() => {
     if (!roomId || !user || !roomData) return;
     if (!isEditor) return;
     const timer = setTimeout(() => {
+      const currentFiles = roomData.files || [];
+      const updatedFiles = currentFiles.map(f => 
+        f.id === activeFileId ? { ...f, content: code, language } : f
+      );
+      
       updateDoc(doc(db, 'rooms', roomId), {
-        code,
-        language,
+        files: updatedFiles,
         stdin: stdinValue,
         _lastEditor: user.uid,
         updatedAt: serverTimestamp(),
       }).catch(() => {});
     }, 300);
     return () => clearTimeout(timer);
-  }, [code, language, stdinValue, roomId, user, isEditor]);
+  }, [code, language, stdinValue, roomId, user, isEditor, activeFileId]);
 
   // ─── Sync active file (language) for presence ───────────────────────────────
   useEffect(() => {
@@ -138,6 +150,16 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         passwordHash,
         code,
         language,
+        files: [
+          {
+            id: 'main',
+            name: `main.${language === 'python' ? 'py' : language === 'javascript' ? 'js' : language === 'cpp' ? 'cpp' : 'txt'}`,
+            content: code,
+            language,
+            isFolder: false,
+            parentId: null,
+          }
+        ],
         activeUsers: [{ uid: user.uid, displayName }],
         roles: { [user.uid]: 'host' },
         createdAt: serverTimestamp(),
@@ -440,6 +462,39 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     clearExecutionResult,
     fetchFullVotePayload,
     transitionVoteToExecuting,
+    
+    // File tree operations
+    createFile: async (file) => {
+      if (!roomId || !user || !isEditor) return;
+      const newFiles = [...(roomData?.files || []), {
+        id: crypto.randomUUID().slice(0, 8),
+        ...file,
+      }];
+      await updateDoc(doc(db, 'rooms', roomId), { files: newFiles });
+    },
+    updateFileContent: async (fileId, content) => {
+      if (!roomId || !user || !isEditor) return;
+      const files = [...(roomData?.files || [])];
+      const idx = files.findIndex(f => f.id === fileId);
+      if (idx !== -1) {
+        files[idx] = { ...files[idx], content };
+        await updateDoc(doc(db, 'rooms', roomId), { files });
+      }
+    },
+    renameFile: async (fileId, newName) => {
+      if (!roomId || !user || !isEditor) return;
+      const files = [...(roomData?.files || [])];
+      const idx = files.findIndex(f => f.id === fileId);
+      if (idx !== -1) {
+        files[idx] = { ...files[idx], name: newName };
+        await updateDoc(doc(db, 'rooms', roomId), { files });
+      }
+    },
+    deleteFile: async (fileId) => {
+      if (!roomId || !user || !isEditor) return;
+      const files = (roomData?.files || []).filter(f => f.id !== fileId && f.parentId !== fileId);
+      await updateDoc(doc(db, 'rooms', roomId), { files });
+    }
   };
 }
 
