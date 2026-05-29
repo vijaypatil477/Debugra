@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import LandingPage from './components/Landing/LandingPage';
 import EditorPage from './components/Editor/EditorPage';
 import OfflineBanner from "./components/Editor/OfflineBanner";
+import { ThemeProvider } from './context/ThemeContext';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -15,15 +16,16 @@ export default function App() {
   }, []);
 
   return (
+    <ThemeProvider>
     <BrowserRouter>
     <OfflineBanner />
       <Toaster
         position="top-right"
         toastOptions={{
           style: {
-            background: '#1e1e3a',
-            color: '#e2e8f0',
-            border: '1px solid #2a2a4a',
+             background: 'var(--bg-1)',
+              color: 'var(--text-0)',
+              border: '1px solid var(--border)',
           },
         }}
       />
@@ -32,5 +34,5 @@ export default function App() {
         <Route path="/editor" element={<EditorPage user={user} />} />
       </Routes>
     </BrowserRouter>
-  );
+  </ThemeProvider>);
 }

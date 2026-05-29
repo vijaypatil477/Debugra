@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider } from '../../services/firebase';
 import toast from 'react-hot-toast';
+import ThemeToggle from '../ThemeToggle';
 import './LandingPage.css';
 
 // ─── Inline SVG Icons ─────────────────────────────────────────────────────────
@@ -309,7 +310,7 @@ export default function LandingPage() {
           <span
             style={{
               fontSize: '0.6rem',
-              color: '#6a6a6a',
+              color: 'var(--text-2)',
               fontFamily: 'JetBrains Mono, monospace',
               marginLeft: '4px',
               paddingBottom: '1px',
@@ -325,6 +326,7 @@ export default function LandingPage() {
           <a href="#languages" className="landing-nav-link">
             Languages
           </a>
+            <ThemeToggle />
           <button onClick={() => setShowLogin(true)} className="landing-btn-outline">
             Log In
           </button>
@@ -343,13 +345,14 @@ export default function LandingPage() {
           aria-label="Toggle mobile menu"
           aria-expanded={mobileMenu}
           onClick={() => setMobileMenu(!mobileMenu)}
+          style={{ color: 'var(--text-0)' }}
         >
           <svg
             width="22"
             height="22"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#e2e8f0"
+            stroke="currentColor"
             strokeWidth="2"
             strokeLinecap="round"
           >
@@ -381,6 +384,7 @@ export default function LandingPage() {
           >
             Languages
           </a>
+          <ThemeToggle />
           <button
             onClick={() => {
               setShowLogin(true);
@@ -473,7 +477,7 @@ export default function LandingPage() {
                   <span className="preview-tag">Python 3</span>
                   <span
                     className="d-none d-sm-inline"
-                    style={{ fontSize: '0.65rem', color: '#6a6a6a' }}
+                    style={{ fontSize: '0.65rem', color: 'var(--text-2)' }}
                   >
                     14px
                   </span>
@@ -540,7 +544,7 @@ export default function LandingPage() {
                   >
                     <div className="preview-success-badge">✓ SUCCESS</div>
                     <div className="text-light mt-2">[0, 1]</div>
-                    <div className="mt-2" style={{ color: '#6a6a6a', fontSize: '0.68rem' }}>
+                    <div className="mt-2" style={{ color: 'var(--text-2)', fontSize: '0.68rem' }}>
                       Time: 0.03s
                     </div>
                   </div>
@@ -663,7 +667,7 @@ export default function LandingPage() {
               Create free account
             </button>
           </div>
-          <p style={{ marginTop: '20px', fontSize: '0.75rem', color: '#4a4a6a' }}>
+          <p style={{ marginTop: '20px', fontSize: '0.75rem', color: 'var(--text-2)' }}>
             debugra.tech · Free · Open Source
           </p>
         </div>
@@ -673,13 +677,13 @@ export default function LandingPage() {
       <footer className="landing-footer">
         <div className="d-flex align-items-center gap-2 justify-content-center mb-1">
           <img src="/icon-dark.svg" height="14" alt="Debugra Logo" />
-          <span style={{ fontWeight: 600, color: '#e2e8f0' }}>Debugra</span>
+          <span style={{ fontWeight: 600, color:'var(--text-0)'  }}>Debugra</span>
         </div>
-        <p style={{ margin: 0, fontSize: '0.72rem', color: '#4a4a6a' }}>
+        <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--text-2)' }}>
           Built for Hackathon SVKM 2026 ·{' '}
           <a
             href="https://github.com/omkhandare55/Debugra"
-            style={{ color: '#6a6a8a', textDecoration: 'none' }}
+            style={{ color: 'var(--accent)', textDecoration: 'none' }}
           >
             GitHub
           </a>

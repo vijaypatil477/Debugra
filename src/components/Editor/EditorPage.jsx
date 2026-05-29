@@ -4,7 +4,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX } from 'lucide-react';
+import { Moon, Settings, Sun, Volume2, VolumeX } from 'lucide-react';
 
 import {
   useRoom,
@@ -31,7 +31,7 @@ import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
-
+import { useTheme } from '../../context/ThemeContext';
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
   if (isSecureApiKeyStored()) return 'locked';
@@ -41,6 +41,7 @@ function getApiKeyStatus() {
 export default function EditorPage({ user }) {
   const navigate = useNavigate();
   const editorRef = useRef(null);
+  const { isLight, toggleTheme } = useTheme();
 
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
@@ -166,6 +167,38 @@ export default function EditorPage({ user }) {
         'editorBracketHighlight.foreground6': '#b5cea8',
         'editorBracketMatch.background': '#4ec9b033',
         'editorBracketMatch.border': '#4ec9b0',
+      },
+    });
+        monaco.editor.defineTheme('debugra-light', {
+      base: 'vs',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '008000', fontStyle: 'italic' },
+        { token: 'keyword', foreground: '0000ff' },
+        { token: 'string', foreground: 'a31515' },
+        { token: 'number', foreground: '098658' },
+        { token: 'type', foreground: '267f99' },
+        { token: 'function', foreground: '795e26' },
+        { token: 'operator', foreground: '111827' },
+      ],
+      colors: {
+        'editor.background': '#ffffff',
+        'editor.foreground': '#111827',
+        'editor.lineHighlightBackground': '#f3f4f6',
+        'editor.selectionBackground': '#bfdbfe',
+        'editorCursor.foreground': '#111827',
+        'editorLineNumber.foreground': '#94a3b8',
+        'editorLineNumber.activeForeground': '#334155',
+        'editorIndentGuide.background1': '#e5e7eb',
+        'editorIndentGuide.activeBackground1': '#0f766e',
+        'editorBracketHighlight.foreground1': '#0f766e',
+        'editorBracketHighlight.foreground2': '#ca8a04',
+        'editorBracketHighlight.foreground3': '#ea580c',
+        'editorBracketHighlight.foreground4': '#2563eb',
+        'editorBracketHighlight.foreground5': '#9333ea',
+        'editorBracketHighlight.foreground6': '#059669',
+        'editorBracketMatch.background': '#0f766e22',
+        'editorBracketMatch.border': '#0f766e',
       },
     });
 
@@ -322,6 +355,15 @@ export default function EditorPage({ user }) {
         </div>
 
         <div className="topbar-right d-flex align-items-center gap-2">
+          <button
+    type="button"
+    className="theme-toggle-btn"
+    onClick={toggleTheme}
+    aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
+    title={isLight ? 'Dark mode' : 'Light mode'}
+  >
+    {isLight ? <Moon size={16} /> : <Sun size={16} />}
+  </button>
           {!room.roomId && (
             <div className="room-controls d-flex align-items-center gap-2">
               <button
@@ -708,7 +750,7 @@ export default function EditorPage({ user }) {
                         step="1"
                         value={blurIntensity}
                         onChange={(e) => setBlurIntensity(Number(e.target.value))}
-                        style={{ flex: 1, accentColor: '#00bcd4' }} 
+                        style={{ flex: 1, accentColor: 'var(--accent)' }} 
                       />
                       <span style={{ fontSize: '12px', minWidth: '30px', textAlign: 'right' }}>
                         {blurIntensity}px
@@ -841,7 +883,7 @@ export default function EditorPage({ user }) {
               }}
               beforeMount={handleEditorWillMount}
               onMount={handleEditorMount}
-              theme={editor.theme}
+              theme={isLight ? 'debugra-light' : editor.theme}
               options={{
                 readOnly: room.isReadOnly,
                 fontSize: editor.fontSize,
@@ -979,7 +1021,7 @@ export default function EditorPage({ user }) {
                     background: 'transparent',
                     border: 'none',
                     cursor: 'pointer',
-                    color: '#aaa',
+                    color: 'var(--text-2)',
                     display: 'flex',
                     alignItems: 'center',
                   }}

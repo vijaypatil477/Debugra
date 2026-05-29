@@ -11,6 +11,28 @@
   --text-hi: #f4f4f5;
   --text-mid: #a1a1aa;
   --text-lo: #52525b;
+  --bento-bg: #0c0c0e;
+  --bento-bg-hover: #111115;
+  --preview-line-number: #3f3f46;
+  --preview-label: #52525b;
+  --preview-shadow: rgba(0, 0, 0, 0.6);
+}
+body.light-theme {
+  --brand: #0f766e; /* VS Code teal — already in the editor */
+  --brand-dim: rgba(15, 118, 110, 0.1);
+  --brand-border: rgba(15, 118, 110, 0.24);
+  --surface: rgba(15, 23, 42, 0.035);
+  --surface-hover: rgba(15, 23, 42, 0.06);
+  --border-subtle: rgba(15, 23, 42, 0.1);
+  --border-hover: rgba(15, 23, 42, 0.2);
+  --text-hi: #111827;
+  --text-mid: #475569;
+  --text-lo: #64748b;
+  --bento-bg: #ffffff;
+  --bento-bg-hover: #f8fafc;
+  --preview-line-number: #94a3b8;
+  --preview-label: #64748b;
+  --preview-shadow: rgba(15, 23, 42, 0.14);
 }
 
 /* ─── Kill every glow blob — no exceptions ───────────────────────── */
@@ -176,7 +198,7 @@
   position: relative;
   overflow: hidden;
   padding: 32px 28px;
-  background: #0c0c0e;
+  background: var(--bento-bg);
   border: none;
   border-right: 1px solid var(--border-subtle);
   border-bottom: 1px solid var(--border-subtle);
@@ -194,7 +216,7 @@
 }
 
 .bento-card:hover {
-  background: #111115;
+  background: var(--bento-bg-hover);
 }
 /* teal left stripe on hover — the ONLY color on hover */
 .bento-card::before {
@@ -226,7 +248,7 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 18px;
-  background: rgba(255, 255, 255, 0.04) !important;
+  background: var(--surface-hover) !important;
   color: var(--text-lo) !important;
   transition:
     color 0.2s,
@@ -247,7 +269,7 @@
   padding: 2px 6px;
   border-radius: 3px;
   margin-bottom: 12px;
-  background: rgba(255, 255, 255, 0.04) !important;
+  background: var(--surface-hover) !important;
   color: var(--text-lo) !important;
   border: 1px solid var(--border-subtle) !important;
 }
@@ -301,7 +323,7 @@
 .ln {
   display: inline-block;
   width: 24px;
-  color: #3f3f46;
+  color: var(--preview-line-number);
   user-select: none;
   margin-right: 18px;
   text-align: right;
@@ -312,13 +334,13 @@
 }
 .preview-chrome-label {
   font-size: 0.72rem;
-  color: #52525b;
+  color: var(--preview-label);
   margin-left: 10px;
 }
 .editor-preview {
   box-shadow:
     0 24px 60px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+    0 0 0 1px var(--border-subtle) !important;
 }
 
 /* ─── Responsive ────────────────────────────────────────────────────── */
