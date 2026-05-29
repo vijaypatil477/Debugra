@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider } from '../../services/firebase';
 import toast from 'react-hot-toast';
+import Footer from './Footer';
 import './LandingPage.css';
 
 // ─── Inline SVG Icons ─────────────────────────────────────────────────────────
@@ -670,21 +671,7 @@ export default function LandingPage() {
       </section>
 
       {/* ===== FOOTER ===== */}
-      <footer className="landing-footer">
-        <div className="d-flex align-items-center gap-2 justify-content-center mb-1">
-          <img src="/icon-dark.svg" height="14" alt="Debugra Logo" />
-          <span style={{ fontWeight: 600, color: '#e2e8f0' }}>Debugra</span>
-        </div>
-        <p style={{ margin: 0, fontSize: '0.72rem', color: '#4a4a6a' }}>
-          Built for Hackathon SVKM 2026 ·{' '}
-          <a
-            href="https://github.com/omkhandare55/Debugra"
-            style={{ color: '#6a6a8a', textDecoration: 'none' }}
-          >
-            GitHub
-          </a>
-        </p>
-      </footer>
+      <Footer />
 
       {/* ===== LOGIN MODAL ===== */}
       {showLogin && (
