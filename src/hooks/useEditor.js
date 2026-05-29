@@ -10,6 +10,7 @@ import {
   DEFAULT_FONT_SIZE,
   DEFAULT_EDITOR_FONT,
   DEFAULT_THEME,
+  DEFAULT_KEYMAP,
 } from '../config/constants';
 
 /**
@@ -28,6 +29,9 @@ export function useEditor({ user, onNeedAuth }) {
     () => localStorage.getItem('debugra-editor-font') ?? DEFAULT_EDITOR_FONT
   );
   const [theme, setTheme] = useState(() => localStorage.getItem('debugra-theme') ?? DEFAULT_THEME);
+  const [keymap, setKeymap] = useState(
+    () => localStorage.getItem('debugra-keymap') ?? DEFAULT_KEYMAP
+  );
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
   const [stdinValue, setStdinValue] = useState('');
   const [stdinOpen, setStdinOpen] = useState(false);
@@ -45,6 +49,10 @@ export function useEditor({ user, onNeedAuth }) {
   useEffect(() => {
     localStorage.setItem('debugra-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('debugra-keymap', keymap);
+  }, [keymap]);
 
   useEffect(() => {
     localStorage.setItem('debugra-editor-font', fontFamily);
@@ -120,6 +128,8 @@ export function useEditor({ user, onNeedAuth }) {
     setFontFamily,
     theme,
     setTheme,
+    keymap,
+    setKeymap,
     cursorPos,
     setCursorPos,
     stdinValue,

@@ -26,6 +26,13 @@ export const EDITOR_THEMES = [
   { id: 'monokai', label: 'Monokai' },
 ];
 
+// ─── Editor Keymaps ───────────────────────────────────────────────────────────
+export const DEFAULT_KEYMAP = 'standard';
+export const KEYMAPS = [
+  { id: 'standard', label: 'Standard' },
+  { id: 'emacs', label: 'Emacs' },
+];
+
 // ─── Output / Panel Widths ────────────────────────────────────────────────────
 export const DEFAULT_OUTPUT_WIDTH = 420;
 export const MIN_OUTPUT_WIDTH = 260;

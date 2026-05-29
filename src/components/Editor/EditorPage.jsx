@@ -23,7 +23,9 @@ import {
   OUTPUT_TABS,
   EDITOR_THEMES,
   EDITOR_FONTS,
+  KEYMAPS,
 } from '../../config/constants';
+import { initEmacsKeymap } from '../../utils/emacsKeymap';
 
 import AuthModal from '../Auth/AuthModal';
 import AccountSettings from '../Auth/AccountSettings';
@@ -54,6 +56,7 @@ export default function EditorPage({ user }) {
     new URLSearchParams(window.location.search).get('testRoom') === '1';
   const navigate = useNavigate();
   const editorRef = useRef(null);
+  const monacoRef = useRef(null);
 
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
@@ -73,6 +76,7 @@ export default function EditorPage({ user }) {
   const [minimapSide, setMinimapSide] = useState('right');
   const [showMinimap, setShowMinimap] = useState(true); // ✅ CHANGE 1: Added showMinimap state
   const [showSettings, setShowSettings] = useState(false);
+  const [editorReady, setEditorReady] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
@@ -260,8 +264,10 @@ export default function EditorPage({ user }) {
     });
   };
 
-  const handleEditorMount = (editorInstance) => {
+  const handleEditorMount = (editorInstance, monacoInstance) => {
     editorRef.current = editorInstance;
+    monacoRef.current = monacoInstance;
+    setEditorReady(true);
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
@@ -270,6 +276,25 @@ export default function EditorPage({ user }) {
       if (executionRunRef.current) executionRunRef.current();
     });
   };
+
+  useEffect(() => {
+    if (!editorRef.current || !monacoRef.current) return;
+
+    const cleanup = initEmacsKeymap(
+      editorRef.current,
+      monacoRef.current,
+      editor.keymap === 'emacs',
+      {
+        onSave: () => {
+          editor.saveToCloud();
+        },
+      }
+    );
+
+    return () => {
+      cleanup?.();
+    };
+  }, [editor.keymap, editorReady, editor]);
 
   // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
@@ -791,6 +816,25 @@ export default function EditorPage({ user }) {
                       {EDITOR_THEMES.map((t) => (
                         <option key={t.id} value={t.id}>
                           {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-keyboard" style={{ fontSize: '14px' }} />
+                      <span>Keymap</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.keymap}
+                      onChange={(e) => editor.setKeymap(e.target.value)}
+                      aria-label="Editor keymap"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {KEYMAPS.map((k) => (
+                        <option key={k.id} value={k.id}>
+                          {k.label}
                         </option>
                       ))}
                     </select>
