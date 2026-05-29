@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { downloadAsMarkdown, downloadAsText } from '../../utils/downloadReport';
 import { LANGUAGES } from '../../utils/languageConfig';
+import { useStreamedTTS } from '../../hooks/useStreamedTTS';
+import TTSPlaybackControl from './TTSPlaybackControl';
 
 /**
  * AIResponsePanel
- * Renders the AI output panel — handles loading, empty state, and all
- * response types: error explanation, fix, logic breakdown, trace, tests, complexity.
- * Also provides a download dropdown (Markdown / Plain Text) for offline reference.
+ * Renders the AI output panel with TTS playback controls for streaming narration.
  */
-export default function AIResponsePanel({ isLoading, response: rawResponse, onApplyFix, language }) {
+export default function AIResponsePanel({ isLoading, response: rawResponse, onApplyFix, language, apiKey }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const tts = useStreamedTTS(apiKey);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -66,8 +67,32 @@ export default function AIResponsePanel({ isLoading, response: rawResponse, onAp
     setDropdownOpen(false);
   };
 
+  const handlePlayTTS = () => {
+    const textToSpeak = response.explanation || response.issue || response.summary || '';
+    if (textToSpeak) {
+      tts.streamTTS(textToSpeak);
+    }
+  };
+
   return (
     <div>
+      {/* ─── TTS Controls ─────────────────────────────────────────────── */}
+      {apiKey && (response.explanation || response.issue || response.summary) && (
+        <TTSPlaybackControl
+          isPlaying={tts.isPlaying}
+          isPaused={tts.isPaused}
+          isSpeaking={tts.isSpeaking}
+          progress={tts.progress}
+          error={tts.error}
+          onPlay={handlePlayTTS}
+          onPause={tts.pause}
+          onResume={tts.resume}
+          onStop={tts.stop}
+          text={response.explanation || response.issue || response.summary}
+          disabled={isLoading}
+        />
+      )}
+
       {/* ─── Download Button ─────────────────────────────────────────────── */}
       <div className="ai-download-wrap" ref={dropdownRef}>
         <button
@@ -77,7 +102,6 @@ export default function AIResponsePanel({ isLoading, response: rawResponse, onAp
           aria-label="Download AI report"
           aria-expanded={dropdownOpen}
         >
-          {/* Download arrow icon */}
           <svg
             width="12"
             height="12"
@@ -118,7 +142,6 @@ export default function AIResponsePanel({ isLoading, response: rawResponse, onAp
               role="menuitem"
               onClick={handleDownloadMarkdown}
             >
-              {/* Markdown icon */}
               <svg
                 width="13"
                 height="13"
@@ -143,7 +166,6 @@ export default function AIResponsePanel({ isLoading, response: rawResponse, onAp
               role="menuitem"
               onClick={handleDownloadText}
             >
-              {/* Text file icon */}
               <svg
                 width="13"
                 height="13"
