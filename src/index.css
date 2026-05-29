@@ -10,7 +10,7 @@
   --border: #404040;
   --text-0: #d4d4d4;
   --text-1: #9d9d9d;
-  --text-2: #6a6a6a;
+  --text-2: #959595;
   --accent: #0078d4;
   --accent-hover: #1a8ceb;
   --green: #4ec9b0;
@@ -28,7 +28,7 @@
   --bg-hover: rgba(255, 255, 255, 0.04);
   --text-primary: #d4d4d4;
   --text-secondary: #9d9d9d;
-  --text-muted: #6a6a6a;
+  --text-muted: #959595;
   --success: #4ec9b0;
   --warning: #dcdcaa;
   --error: #f44747;
@@ -1916,7 +1916,7 @@ body {
   justify-content: space-between;
   padding: 0 10px;
   font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: #ffffff;
   flex-shrink: 0;
   user-select: none;
 }
