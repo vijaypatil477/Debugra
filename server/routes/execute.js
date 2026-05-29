@@ -8,12 +8,44 @@ const { executeCode } = require('../services/judge0Service');
 const MAX_SOURCE_CODE_LENGTH = 100000;
 const MAX_STDIN_LENGTH = 10000;
 
-// Initialize cache with 5 minutes TTL, max 100 entries, LRU eviction
-const executeCache = new NodeCache({ stdTTL: 300, maxKeys: 100, checkperiod: 60 });
+const MAX_EXECUTION_CACHE_KEYS = 100;
+
+// Initialize cache with 5 minutes TTL and a hard entry cap.
+const executeCache = new NodeCache({
+  stdTTL: 300,
+  maxKeys: MAX_EXECUTION_CACHE_KEYS,
+  checkperiod: 60,
+});
+const executeCacheInsertionOrder = new Map();
 
 function buildCacheKey(languageId, stdin, sourceCode) {
-  const payload = ${languageId}__;
+  const payload = JSON.stringify({
+    languageId,
+    stdin: stdin || '',
+    sourceCode,
+  });
   return crypto.createHash('sha256').update(payload).digest('hex');
+}
+
+function pruneExecutionCacheForInsert(cacheKey) {
+  if (executeCache.has(cacheKey)) {
+    return;
+  }
+
+  while (executeCache.keys().length >= MAX_EXECUTION_CACHE_KEYS) {
+    const oldestKey = executeCacheInsertionOrder.keys().next().value;
+    if (!oldestKey) {
+      break;
+    }
+    executeCacheInsertionOrder.delete(oldestKey);
+    executeCache.del(oldestKey);
+  }
+}
+
+function cacheExecutionResult(cacheKey, result) {
+  pruneExecutionCacheForInsert(cacheKey);
+  executeCache.set(cacheKey, result);
+  executeCacheInsertionOrder.set(cacheKey, Date.now());
 }
 
 // Stricter rate limiter specific to /api/execute
@@ -37,19 +69,25 @@ router.post('/', executeLimiter, async (req, res, next) => {
       return res.status(400).json({ error: 'source_code and language_id are required' });
     }
 
+    if (typeof source_code !== 'string' || (stdin !== undefined && typeof stdin !== 'string')) {
+      return res.status(400).json({ error: 'source_code and stdin must be strings' });
+    }
+
     if (Buffer.byteLength(source_code, 'utf-8') > MAX_SOURCE_CODE_LENGTH) {
       return res.status(413).json({
-        error: source_code exceeds maximum length of  bytes,
+        error: `source_code exceeds maximum length of ${MAX_SOURCE_CODE_LENGTH} bytes`,
       });
     }
 
-    if (stdin && Buffer.byteLength(stdin, 'utf-8') > MAX_STDIN_LENGTH) {
+    const normalizedStdin = stdin || '';
+
+    if (Buffer.byteLength(normalizedStdin, 'utf-8') > MAX_STDIN_LENGTH) {
       return res.status(413).json({
-        error: stdin exceeds maximum length of  bytes,
+        error: `stdin exceeds maximum length of ${MAX_STDIN_LENGTH} bytes`,
       });
     }
 
-    const cacheKey = buildCacheKey(language_id, stdin, source_code);
+    const cacheKey = buildCacheKey(language_id, normalizedStdin, source_code);
     const cachedResult = executeCache.get(cacheKey);
 
     if (cachedResult) {
@@ -57,11 +95,11 @@ router.post('/', executeLimiter, async (req, res, next) => {
       return res.json(cachedResult);
     }
 
-    const result = await executeCode(source_code, language_id, stdin || '');
+    const result = await executeCode(source_code, language_id, normalizedStdin);
 
     // Only cache successful requests
     if (result && result.status) {
-      executeCache.set(cacheKey, result);
+      cacheExecutionResult(cacheKey, result);
     }
 
     res.json(result);
