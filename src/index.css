@@ -175,6 +175,209 @@ body {
   box-shadow: 0 1px 4px rgba(0, 120, 212, 0.15);
 }
 
+/* ═══════════════════════════════════════════════════════════
+   FORGOT PASSWORD PAGE
+   ═══════════════════════════════════════════════════════════ */
+
+.fp-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #13151a;
+  padding: 24px 16px;
+}
+
+.fp-card {
+  width: min(420px, 100%);
+  background: #1e2327;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 40px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.fp-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  background: rgba(111, 156, 235, 0.1);
+  border: 1px solid rgba(111, 156, 235, 0.2);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.fp-icon { font-size: 1.6rem; }
+
+.fp-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #e0e0e0;
+  margin: 0;
+  text-align: center;
+}
+
+.fp-subtitle {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.fp-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.fp-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fp-input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 11px 14px;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fp-input:focus {
+  border-color: #6f9ceb;
+  background: rgba(111, 156, 235, 0.05);
+}
+
+.fp-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.fp-input-error { border-color: #f48771 !important; }
+
+.fp-error-msg {
+  font-size: 0.78rem;
+  color: #f48771;
+  margin: 0;
+}
+
+.fp-submit-btn {
+  width: 100%;
+  padding: 12px;
+  background: #6f9ceb;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.2s, opacity 0.2s;
+  letter-spacing: 0.02em;
+}
+
+.fp-submit-btn:hover:not(:disabled) { background: #5a87d4; }
+.fp-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.fp-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: fp-spin 0.7s linear infinite;
+}
+
+@keyframes fp-spin { to { transform: rotate(360deg); } }
+
+.fp-cancel-link {
+  text-align: center;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.35);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.fp-cancel-link:hover { color: #6f9ceb; }
+
+.fp-success-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.fp-success-icon { font-size: 2rem; }
+
+.fp-success-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #73c991;
+  margin: 0;
+}
+
+.fp-success-body {
+  font-size: 0.83rem;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.fp-back-btn {
+  margin-top: 8px;
+  display: inline-block;
+  padding: 10px 24px;
+  background: rgba(111, 156, 235, 0.12);
+  border: 1px solid rgba(111, 156, 235, 0.25);
+  border-radius: 8px;
+  color: #6f9ceb;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.fp-back-btn:hover { background: rgba(111, 156, 235, 0.22); }
+
+/* Forgot password link on login modal */
+.fp-login-link-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -8px;
+}
+
+.fp-login-link {
+  font-size: 0.78rem;
+  color: #6f9ceb;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.fp-login-link:hover { opacity: 0.75; }
+
 /* Topbar inline room ID input */
 .topbar-input {
   background: var(--bg-2);
