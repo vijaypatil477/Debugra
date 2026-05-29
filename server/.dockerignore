@@ -1,4 +1,16 @@
+# Dependencies
 node_modules
+
+# Logs
 npm-debug.log
+logs
+
+# Environment files (secrets)
 .env
+.env.local
+
+# Version control
 .git
+
+# Tests (not needed in container)
+tests

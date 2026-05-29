@@ -171,25 +171,46 @@ DEBUGRA_ADMIN_TOKEN=choose_a_long_random_admin_token
 `CORS_ORIGINS` accepts a comma-separated list of trusted frontend origins. `CSP_REPORT_URI` enables browser CSP violation reports through `/api/security/csp-report`.
 `DEBUGRA_ADMIN_TOKEN` is required for `/api/admin/memory-profile` diagnostic endpoints. Send it as either `Authorization: Bearer <token>` or `x-admin-token: <token>`.
 
+> **Note:** Both Docker and non-Docker workflows use the same env files — frontend reads from root `.env`, backend reads from `server/.env`.
+
 ### 4. Start development servers
 
-#### Option A: Using NPM
+#### Option A: Using Docker 🐳 (Recommended)
+
+The fastest way to get everything running — a single command starts both frontend and backend with hot-reload:
+
+```bash
+# Make sure Docker Desktop is running, then:
+docker compose up --build
+```
+
+| Service  | URL                    | Hot Reload |
+| -------- | ---------------------- | ---------- |
+| Frontend | http://localhost:5173   | ✓ (Vite HMR) |
+| Backend  | http://localhost:3001   | ✓ (Node `--watch`) |
+
+**Common Docker commands:**
+
+```bash
+docker compose up -d --build   # Start in background
+docker compose logs -f          # View live logs
+docker compose down             # Stop all services
+docker compose down -v          # Stop & remove volumes (clean reset)
+```
+
+> See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed Docker troubleshooting tips.
+
+#### Option B: Using NPM
 
 ```bash
 # Terminal 1 — Frontend
+npm install
 npm run dev
 
 # Terminal 2 — Backend
 cd server
+npm install
 npm run dev
-```
-
-#### Option B: Using Docker (Recommended for quick setup)
-
-Make sure Docker Desktop is running, then use Docker Compose to spin up both the frontend and backend with hot-reloading:
-
-```bash
-docker-compose up --build
 ```
 
 Frontend runs at `http://localhost:5173`, backend at `http://localhost:3001`.

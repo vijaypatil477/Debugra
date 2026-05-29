@@ -2,14 +2,16 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package configuration
+# Copy only package files first for better layer caching
 COPY package.json package-lock.json ./
 
 # Install dependencies
 RUN npm install --no-audit --no-fund
 
+# Source files are mounted via docker-compose for hot-reload
+# so we do NOT copy them here
+
 EXPOSE 3001
 
-# Start the Express server using the dev script (requires nodemon/watch)
-# We use npm run dev to enable hot-reloading
+# Start with Node's built-in --watch for hot-reload
 CMD ["npm", "run", "dev"]
