@@ -78,6 +78,7 @@ export default function EditorPage({ user }) {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [markdownPreview, setMarkdownPreview] = useState('');
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -1054,8 +1055,11 @@ export default function EditorPage({ user }) {
               language={langConfig.monacoLang}
               value={editor.code}
               onChange={(val) => {
-                if (!room.isReadOnly) editor.setCode(val || '');
-              }}
+  if (!room.isReadOnly) {
+    editor.setCode(val || '');
+    setMarkdownPreview(val || '');
+  }
+}}
               beforeMount={handleEditorWillMount}
               onMount={handleEditorMount}
               theme={editor.theme}
@@ -1097,6 +1101,20 @@ export default function EditorPage({ user }) {
                 formatOnPaste: true,
               }}
             />
+            {markdownPreview && (
+  <div
+    style={{
+      background: "#1e1e1e",
+      color: "white",
+      padding: "10px",
+      marginTop: "10px",
+      borderRadius: "8px",
+    }}
+  >
+    <h3>Markdown Preview</h3>
+    <pre>{markdownPreview}</pre>
+  </div>
+)}
           </div>
 
           {/* Stdin Panel */}
