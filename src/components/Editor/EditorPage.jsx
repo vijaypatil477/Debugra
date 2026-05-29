@@ -47,6 +47,8 @@ function getApiKeyStatus() {
   return 'empty';
 }
 
+import FileTreePanel from './FileTreePanel';
+
 export default function EditorPage({ user }) {
   const isTestRoom =
     typeof window !== 'undefined' &&
@@ -74,6 +76,7 @@ export default function EditorPage({ user }) {
   const [showMinimap, setShowMinimap] = useState(true); // ✅ CHANGE 1: Added showMinimap state
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [activeFileId, setActiveFileId] = useState('main');
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
@@ -535,7 +538,8 @@ export default function EditorPage({ user }) {
   };
 
   const langConfig = LANGUAGES[editor.language];
-  const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
+  const activeFile = room.roomData?.files?.find(f => f.id === activeFileId);
+  const editorFileName = activeFile ? activeFile.name : (LANG_FILE_NAMES[editor.language] || 'main.txt');
 
   return (
     <div
@@ -1120,11 +1124,27 @@ export default function EditorPage({ user }) {
       </div>
 
       {/* ===== MAIN SPLIT ===== */}
-      <div className="main-split">
+      <div className="main-split" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        {room.roomId && !isMobile && (
+          <FileTreePanel 
+            room={room} 
+            activeFileId={activeFileId} 
+            onSelectFile={(id) => {
+              setActiveFileId(id);
+              const file = room.roomData?.files?.find(f => f.id === id);
+              if (file) {
+                editor.setCode(file.content);
+                editor.changeLanguage(file.language);
+              }
+            }}
+            isReadOnly={room.isReadOnly}
+          />
+        )}
+        
         {/* EDITOR PANE */}
         <div
           className="editor-pane glass-panel"
-          style={isMobile && mobileTab !== MOBILE_TABS.CODE ? { display: 'none' } : {}}
+          style={{ flex: 1, display: isMobile && mobileTab !== MOBILE_TABS.CODE ? 'none' : 'flex', flexDirection: 'column', minWidth: 0 }}
         >
           <div className="editor-tab-bar">
             <div className="editor-tab">

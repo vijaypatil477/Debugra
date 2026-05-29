@@ -11,7 +11,7 @@ const AudioPeer = ({ stream }) => {
     }
   }, [stream]);
 
-  return <audio ref={audioRef} autoPlay playsInline />;
+  return <audio ref={audioRef} autoPlay  />;
 };
 
 export default function AudioChannel({ room, user }) {
@@ -29,6 +29,7 @@ export default function AudioChannel({ room, user }) {
       {!inCall ? (
         <button
           onClick={joinCall}
+          aria-label="Join Voice Call"
           style={{
             background: 'var(--accent)',
             color: '#fff',
@@ -52,6 +53,7 @@ export default function AudioChannel({ room, user }) {
           </span>
           <button
             onClick={toggleMute}
+            aria-label={isMuted ? 'Unmute Microphone' : 'Mute Microphone'}
             style={{
               background: 'var(--bg-3)',
               color: isMuted ? 'var(--red)' : 'var(--text-1)',
@@ -69,6 +71,7 @@ export default function AudioChannel({ room, user }) {
           </button>
           <button
             onClick={leaveCall}
+            aria-label="Leave Voice Call"
             style={{
               background: '#f44747',
               color: '#fff',

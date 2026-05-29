@@ -8,6 +8,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import ChatMessage from './ChatMessage';
 
 const hashColor = (str) => {
   const colors = [
@@ -23,12 +24,6 @@ const hashColor = (str) => {
   let hash = 0;
   for (let i = 0; i < (str || '').length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
   return colors[Math.abs(hash) % colors.length];
-};
-
-const formatTime = (timestamp) => {
-  if (!timestamp?.toDate) return '';
-  const d = timestamp.toDate();
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
 export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
@@ -64,12 +59,16 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
     if (!input.trim() || !roomId || !user) return;
     const msg = input.trim();
     setInput('');
-    await addDoc(collection(db, 'rooms', roomId, 'messages'), {
-      text: msg,
-      uid: user.uid,
-      displayName: user.displayName || user.email?.split('@')[0] || 'User',
-      createdAt: serverTimestamp(),
-    });
+    try {
+      await addDoc(collection(db, 'rooms', roomId, 'messages'), {
+        text: msg,
+        uid: user.uid,
+        displayName: user.displayName || user.email?.split('@')[0] || 'User',
+        createdAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    }
   };
   const handleDownloadReport = () => {
     if (!messages || messages.length === 0) {
@@ -113,6 +112,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
         <button
           onClick={onToggle}
           title="Team Chat"
+          aria-label="Toggle Team Chat"
           className="chat-fab"
           style={{
             position: 'fixed',
@@ -229,6 +229,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
             <button
               onClick={handleDownloadReport}
               title="Download Report as Markdown"
+              aria-label="Download Debug Report"
               style={{
                 background: 'none',
                 border: 'none',
@@ -284,6 +285,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
               </span>
               <button
                 onClick={onToggle}
+                aria-label="Close Chat Panel"
                 style={{
                   width: '32px',
                   height: '32px',
@@ -359,69 +361,13 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
               const initial = (msg.displayName?.[0] || '?').toUpperCase();
 
               return (
-                <div
+                <ChatMessage
                   key={msg.id}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: isMe ? 'flex-end' : 'flex-start',
-                    marginTop: msg.showHeader ? '10px' : '2px',
-                  }}
-                >
-                  {msg.showHeader && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        marginBottom: '3px',
-                        padding: '0 2px',
-                        flexDirection: isMe ? 'row-reverse' : 'row',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '4px',
-                          background: isMe ? '#374151' : avatarColor,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.5rem',
-                          fontWeight: 700,
-                          color: 'white',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {initial}
-                      </div>
-                      <span style={{ fontSize: '0.6rem', color: '#64748b', fontWeight: 600 }}>
-                        {isMe ? 'You' : msg.displayName}
-                      </span>
-                      <span style={{ fontSize: '0.5rem', color: '#334155' }}>
-                        {formatTime(msg.createdAt)}
-                      </span>
-                    </div>
-                  )}
-                  <div
-                    style={{
-                      maxWidth: '80%',
-                      padding: '7px 10px',
-                      borderRadius: '8px',
-                      borderTopLeftRadius: !isMe && msg.showHeader ? '2px' : '8px',
-                      borderTopRightRadius: isMe && msg.showHeader ? '2px' : '8px',
-                      background: isMe ? '#2d2d2d' : 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      color: '#cbd5e1',
-                      fontSize: '0.76rem',
-                      lineHeight: 1.5,
-                      wordBreak: 'break-word',
-                    }}
-                  >
-                    {msg.text}
-                  </div>
-                </div>
+                  msg={msg}
+                  isMe={isMe}
+                  avatarColor={avatarColor}
+                  initial={initial}
+                />
               );
             })}
             <div ref={bottomRef} />
@@ -465,6 +411,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
               <button
                 onClick={handleSend}
                 disabled={!input.trim()}
+                aria-label="Send Message"
                 style={{
                   width: '30px',
                   height: '30px',

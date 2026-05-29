@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -25,6 +25,37 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
   const [loading, setLoading] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+      
+      if (e.key === 'Tab') {
+        const modal = document.getElementById('auth-modal-container');
+        if (!modal) return;
+        const focusableElements = modal.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length === 0) return;
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const saveUser = async (user) => {
     await setDoc(
@@ -151,6 +182,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
       onClick={onClose}
     >
       <div
+        id="auth-modal-container"
         onClick={(e) => e.stopPropagation()}
         style={{
           background: '#1a1a2e',
@@ -165,6 +197,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-24px' }}>
           <button
             onClick={onClose}
+            aria-label="Close modal"
             style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
           >
             <X size={20} />
@@ -199,6 +232,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
               placeholder="Email address"
               type="email"
               required
+              autoFocus
               style={{ ...inputStyle, marginBottom: '16px' }}
             />
             <button
@@ -305,6 +339,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                   placeholder="Full Name"
                   style={{ ...inputStyle, marginBottom: '10px' }}
                   required
+                  autoFocus
                 />
               )}
               <input
@@ -313,6 +348,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                 placeholder="Email"
                 type="email"
                 required
+                autoFocus={isLogin}
                 style={{ ...inputStyle, marginBottom: '10px' }}
               />
               <input
