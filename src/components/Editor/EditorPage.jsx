@@ -650,6 +650,7 @@ export default function EditorPage({ user }) {
         <div className="toolbar-left d-flex align-items-center gap-2">
           <select
             className="lang-select"
+            aria-label="Programming language"
             value={editor.language}
             onChange={(e) => editor.changeLanguage(e.target.value)}
             disabled={room.isReadOnly}
