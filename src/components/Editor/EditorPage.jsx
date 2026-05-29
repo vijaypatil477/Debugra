@@ -333,170 +333,70 @@ export default function EditorPage({ user }) {
       }
     });
 
-    // Ctrl/Cmd+S → Format (Prettier)
-    try {
-      const monaco = monacoRef.current;
-      if (monaco) {
-        const SAVE_KEYBIND = monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S;
-        editorInstance.addCommand(SAVE_KEYBIND, async () => {
-          // Preserve selection offsets
-          const model = editorInstance.getModel();
-          if (!model) return;
-          const selection = editorInstance.getSelection();
-          const startOffset = model.getOffsetAt(selection.getStartPosition());
-          const endOffset = model.getOffsetAt(selection.getEndPosition());
+    const formatCurrentModel = async () => {
+      const model = editorInstance.getModel();
+      if (!model) return;
 
-          try {
-            // Dynamically import Prettier and parsers to avoid bundling unless used
-            const prettierModule = await import('prettier/standalone');
-            const prettier =
-              prettierModule && prettierModule.default ? prettierModule.default : prettierModule;
-            const parserBabelModule = await import('prettier/parser-babel');
-            const parserBabel =
-              parserBabelModule && parserBabelModule.default
-                ? parserBabelModule.default
-                : parserBabelModule;
-            const parserTSModule = await import('prettier/parser-typescript');
-            const parserTS =
-              parserTSModule && parserTSModule.default ? parserTSModule.default : parserTSModule;
-
-            const langKey = editor.language || 'javascript';
-            let plugins = [parserBabel];
-            let parserName = 'babel';
-            if (langKey === 'typescript') {
-              plugins = [parserTS];
-              parserName = 'typescript';
-            }
-
-            // Use editor's code value
-            const original = model.getValue();
-            const formatted = prettier.format(original, {
-              parser: parserName,
-              plugins,
-              semi: true,
-              singleQuote: true,
-              tabWidth: editor.tabSize || 2,
-            });
-
-            // Apply full-model edit (keeps undo stack) and attempt to restore selection by offsets
-            model.pushEditOperations(
-              [],
-              [
-                {
-                  range: model.getFullModelRange(),
-                  text: formatted,
-                },
-              ],
-              () => null
-            );
-
-            const newStartPos = model.getPositionAt(Math.min(startOffset, formatted.length));
-            const newEndPos = model.getPositionAt(Math.min(endOffset, formatted.length));
-            // Create a Range using Monaco API
-            const Range = monaco.Range;
-            editorInstance.setSelection(
-              new Range(
-                newStartPos.lineNumber,
-                newStartPos.column,
-                newEndPos.lineNumber,
-                newEndPos.column
-              )
-            );
-
-            // Update internal state
-            editor.setCode(formatted);
-            toast.success('Formatted');
-          } catch (err) {
-            // If formatting fails, do not disrupt save flow
-            console.error('Formatting error', err);
-            toast.error('Formatting failed');
-          }
-        });
-      }
-    } catch (err) {
-      console.warn('Could not register save formatter', err);
-    }
-    // Also intercept keydown on the Monaco editor to prevent the browser's
-    // default Save dialog (Cmd/Ctrl+S) and trigger formatting instead.
-    editorInstance.onKeyDown((e) => {
       try {
-        const monaco = monacoRef.current;
-        if (!monaco) return;
-        const isSave = (e.ctrlKey || e.metaKey) && e.keyCode === monaco.KeyCode.KEY_S;
-        if (isSave) {
-          e.preventDefault();
-          e.stopPropagation();
-          // Reuse the same command by triggering the Monaco command we registered.
-          // Some Monaco builds don't expose the command id, so call the formatter directly.
-          (async () => {
-            const model = editorInstance.getModel();
-            if (!model) return;
-            try {
-              const prettierModule = await import('prettier/standalone');
-              const prettier =
-                prettierModule && prettierModule.default ? prettierModule.default : prettierModule;
-              const parserBabelModule = await import('prettier/parser-babel');
-              const parserBabel =
-                parserBabelModule && parserBabelModule.default
-                  ? parserBabelModule.default
-                  : parserBabelModule;
-              const parserTSModule = await import('prettier/parser-typescript');
-              const parserTS =
-                parserTSModule && parserTSModule.default ? parserTSModule.default : parserTSModule;
+        const prettierModule = await import('prettier/standalone');
+        const prettier = prettierModule?.default ?? prettierModule;
+        const parserBabelModule = await import('prettier/parser-babel');
+        const parserBabel = parserBabelModule?.default ?? parserBabelModule;
+        const parserEstreeModule = await import('prettier/plugins/estree');
+        const parserEstree = parserEstreeModule?.default ?? parserEstreeModule;
+        const parserTSModule = await import('prettier/parser-typescript');
+        const parserTS = parserTSModule?.default ?? parserTSModule;
 
-              const langKey = editor.language || 'javascript';
-              let plugins = [parserBabel];
-              let parserName = 'babel';
-              if (langKey === 'typescript') {
-                plugins = [parserTS];
-                parserName = 'typescript';
-              }
-
-              const selection = editorInstance.getSelection();
-              const startOffset = model.getOffsetAt(selection.getStartPosition());
-              const endOffset = model.getOffsetAt(selection.getEndPosition());
-
-              const original = model.getValue();
-              const formatted = prettier.format(original, {
-                parser: parserName,
-                plugins,
-                semi: true,
-                singleQuote: true,
-                tabWidth: editor.tabSize || 2,
-              });
-
-              model.pushEditOperations(
-                [],
-                [
-                  {
-                    range: model.getFullModelRange(),
-                    text: formatted,
-                  },
-                ],
-                () => null
-              );
-
-              const newStartPos = model.getPositionAt(Math.min(startOffset, formatted.length));
-              const newEndPos = model.getPositionAt(Math.min(endOffset, formatted.length));
-              const Range = monacoRef.current.Range;
-              editorInstance.setSelection(
-                new Range(
-                  newStartPos.lineNumber,
-                  newStartPos.column,
-                  newEndPos.lineNumber,
-                  newEndPos.column
-                )
-              );
-              editor.setCode(formatted);
-              toast.success('Formatted');
-            } catch (err) {
-              console.error('Formatting error', err);
-              toast.error('Formatting failed');
-            }
-          })();
+        const langKey = editor.language || 'javascript';
+        let plugins = [parserBabel, parserEstree];
+        let parserName = 'babel';
+        if (langKey === 'typescript') {
+          plugins = [parserTS, parserEstree];
+          parserName = 'typescript';
         }
+
+        const original = model.getValue();
+        const formatted = await prettier.format(original, {
+          parser: parserName,
+          plugins,
+          semi: true,
+          singleQuote: true,
+          tabWidth: editor.tabSize || 2,
+        });
+
+        model.setValue(formatted);
+        editor.setCode(formatted);
+        toast.success('Formatted');
+        return formatted;
       } catch (err) {
-        // swallow
+        console.error('Formatting error', err);
+        toast.error('Formatting failed');
+        return null;
+      }
+    };
+
+    window.__debugra_formatEditor = formatCurrentModel;
+
+    let isFormattingModel = false;
+    editorInstance.onDidChangeModelContent((event) => {
+      if (!event.isFlush || isFormattingModel) return;
+
+      isFormattingModel = true;
+      void formatCurrentModel().finally(() => {
+        isFormattingModel = false;
+      });
+    });
+
+    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, () => {
+      formatCurrentModel();
+    });
+
+    editorInstance.onKeyDown((e) => {
+      if (room.isReadOnly) return;
+      if ((e.ctrlKey || e.metaKey) && e.keyCode === monaco.KeyCode.KEY_S) {
+        e.preventDefault();
+        e.stopPropagation();
+        formatCurrentModel();
       }
     });
   };
