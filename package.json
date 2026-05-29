@@ -9,15 +9,19 @@
     "preview": "vite preview",
     "lint": "eslint src --ext .js,.jsx",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css,json}\"",
-    "format:fix": "prettier --write \"src/**/*.{js,jsx,css,json}\""
+    "format:fix": "prettier --write \"src/**/*.{js,jsx,css,json}\"",
+    "test:rules": "firebase emulators:exec --only firestore \"vitest run tests/firestore.test.js\""
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.1",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",
+    "firebase-tools": "^13.35.1",
     "prettier": "^3.2.5",
-    "vite": "^8.0.10"
+    "vite": "^8.0.10",
+    "vitest": "^4.1.7"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

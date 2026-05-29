@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Rules for user documents
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+      
+      match /savedCode/{codeId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Rules for room documents
+    match /rooms/{roomId} {
+      allow read: if isAuthenticated();
+      
+      // Creating a room is allowed if authenticated and setting themselves as the creator
+      allow create: if isAuthenticated() && 
+                    request.resource.data.createdBy == request.auth.uid;
+      
+      // Update rules
+      allow update: if isAuthenticated() && (
+        // The creator can update anything
+        resource.data.createdBy == request.auth.uid ||
+        // Allowed editors can update the room
+        request.auth.uid in resource.data.allowedEditors ||
+        // The current editor can update the room (to sync code etc.)
+        resource.data.currentEditor == request.auth.uid ||
+        // Non-members can update the room ONLY if they are joining/leaving or requesting access.
+        // We detect this by checking if the update only changes membership/request fields:
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeUsers', 'editRequests', 'updatedAt', '_lastEditor'])
+      );
+      
+      // Delete is restricted to the creator
+      allow delete: if isAuthenticated() && resource.data.createdBy == request.auth.uid;
+
+      // Subcollection rules:
+      // Messages:
+      match /messages/{messageId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+        allow update, delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
+      }
+    }
+  }
+}
