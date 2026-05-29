@@ -130,13 +130,59 @@ export default function EditorPage({ user }) {
   });
 
   const executionRunRef = useRef(execution.run);
+  const tabSizeRef = useRef(editor.tabSize);
   useEffect(() => {
     executionRunRef.current = execution.run;
   }, [execution.run]);
 
   useEffect(() => {
+    tabSizeRef.current = editor.tabSize;
+  }, [editor.tabSize]);
+
+  useEffect(() => {
     ensureEditorFontLoaded(editor.fontFamily);
   }, [editor.fontFamily]);
+
+  const syncMonacoEditorOptions = (overrides = {}) => {
+    const monacoEditor = editorRef.current;
+    if (!monacoEditor) return;
+
+    const nextTabSize = overrides.tabSize ?? editor.tabSize;
+    const nextShowMinimap = overrides.showMinimap ?? showMinimap;
+    const nextMinimapSide = overrides.minimapSide ?? minimapSide;
+    const nextRulerColumn = overrides.rulerColumn ?? editor.rulerColumn;
+
+    monacoEditor.updateOptions({
+      tabSize: nextTabSize,
+      minimap: {
+        enabled: nextShowMinimap,
+        side: nextMinimapSide,
+        showSlider: 'always',
+        renderCharacters: false,
+      },
+      rulers: nextRulerColumn ? [{ column: nextRulerColumn }] : [],
+    });
+
+    monacoEditor.getModel()?.updateOptions({ tabSize: nextTabSize, insertSpaces: true });
+
+    const domNode = monacoEditor.getDomNode?.();
+    if (domNode) {
+      const minimapNode = domNode.querySelector('.minimap');
+      const rulerNode = domNode.querySelector('.decorationsOverviewRuler');
+
+      if (minimapNode) {
+        minimapNode.style.display = nextShowMinimap ? '' : 'none';
+      }
+
+      if (rulerNode) {
+        rulerNode.style.display = nextShowMinimap ? '' : 'none';
+      }
+    }
+  };
+
+  useEffect(() => {
+    syncMonacoEditorOptions();
+  }, [editor.rulerColumn, editor.tabSize, minimapSide, showMinimap]);
 
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
@@ -259,12 +305,32 @@ export default function EditorPage({ user }) {
 
   const handleEditorMount = (editorInstance) => {
     editorRef.current = editorInstance;
+    window.__DEBUGRA_EDITOR__ = editorInstance;
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
     // Ctrl+Enter → Run
     editorInstance.addCommand(2048 | 3, () => {
       if (executionRunRef.current) executionRunRef.current();
+    });
+
+    editorInstance.onKeyDown((e) => {
+      if (e.browserEvent?.key === 'Tab') {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const model = editorInstance.getModel();
+        const selection = editorInstance.getSelection();
+        if (!model || !selection) return;
+
+        editorInstance.executeEdits('debugra-tab-indent', [
+          {
+            range: selection,
+            text: ' '.repeat(tabSizeRef.current),
+            forceMoveMarkers: true,
+          },
+        ]);
+      }
     });
 
     // Ctrl/Cmd+S → Format (Prettier)
@@ -948,6 +1014,87 @@ export default function EditorPage({ user }) {
                       ))}
                     </select>
                   </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-code-slash" style={{ fontSize: '14px' }} />
+                      <span>Tab size</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.tabSize}
+                      onChange={(e) => {
+                        editor.setTabSize(e.target.value);
+                        syncMonacoEditorOptions({ tabSize: Number(e.target.value) });
+                      }}
+                      aria-label="Tab size"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {[2, 4].map((size) => (
+                        <option key={size} value={size}>
+                          {size} spaces
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-grid" style={{ fontSize: '14px' }} />
+                      <span>Minimap</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={showMinimap ? 'enabled' : 'disabled'}
+                      onChange={(e) => {
+                        const nextEnabled = e.target.value === 'enabled';
+                        setShowMinimap(nextEnabled);
+                        syncMonacoEditorOptions({ showMinimap: nextEnabled });
+                      }}
+                      aria-label="Minimap"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      <option value="enabled">Enabled</option>
+                      <option value="disabled">Disabled</option>
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-rulers" style={{ fontSize: '14px' }} />
+                      <span>Vertical ruler</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.rulerColumn}
+                      onChange={(e) => {
+                        editor.setRulerColumn(e.target.value);
+                        syncMonacoEditorOptions({ rulerColumn: Number(e.target.value) });
+                      }}
+                      aria-label="Vertical ruler"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {[80, 120].map((column) => (
+                        <option key={column} value={column}>
+                          {column} chars
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-clock" style={{ fontSize: '14px' }} />
+                      <span>Autosave interval</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.autosaveInterval}
+                      onChange={(e) => editor.setAutosaveInterval(e.target.value)}
+                      aria-label="Autosave interval"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      <option value="0">Off</option>
+                      <option value="5000">5 seconds</option>
+                      <option value="10000">10 seconds</option>
+                    </select>
+                  </div>
                   {/* ===== WALLPAPER BLUR SETTING ROW ===== */}
                   <div className="audio-settings-row" style={{ marginTop: '12px' }}>
                     <div className="audio-settings-label">
@@ -1103,7 +1250,7 @@ export default function EditorPage({ user }) {
                 fontSize: editor.fontSize,
                 fontFamily: getEditorFontFamily(editor.fontFamily),
                 minimap: {
-                  enabled: showMinimap, // ✅ CHANGE 3: Use showMinimap state instead of hardcoded true
+                  enabled: showMinimap,
                   side: minimapSide,
                   showSlider: 'always',
                   renderCharacters: false,
@@ -1113,7 +1260,8 @@ export default function EditorPage({ user }) {
                 lineNumbers: 'on',
                 renderLineHighlight: room.isReadOnly ? 'none' : 'line',
                 automaticLayout: true,
-                tabSize: 4,
+                tabSize: editor.tabSize,
+                rulers: editor.rulerColumn ? [editor.rulerColumn] : [],
                 wordWrap: 'on',
                 smoothScrolling: true,
                 cursorBlinking: room.isReadOnly ? 'solid' : 'smooth',
