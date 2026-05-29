@@ -369,6 +369,8 @@ export default function LandingPage() {
         </button>
       </nav>
 
+      {mobileMenu && <div className="mobile-backdrop" onClick={() => setMobileMenu(false)} />}
+
       {mobileMenu && (
         <div className="mobile-dropdown">
           <a href="#features" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>
