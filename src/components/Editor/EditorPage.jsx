@@ -48,6 +48,19 @@ function getApiKeyStatus() {
   return 'empty';
 }
 
+const applyTextToModel = (model, text) => {
+  model.pushEditOperations(
+    [],
+    [
+      {
+        range: model.getFullModelRange(),
+        text,
+      },
+    ],
+    () => null
+  );
+};
+
 export default function EditorPage({ user }) {
   const isTestRoom =
     typeof window !== 'undefined' &&
@@ -284,58 +297,55 @@ export default function EditorPage({ user }) {
     });
   };
 
-  const handleEditorMount = (editorInstance) => {
-    editorRef.current = editorInstance;
-    window.__DEBUGRA_EDITOR__ = editorInstance;
-    const monaco = monacoRef.current;
-    if (!monaco) return;
+  const formatCurrentModel = async () => {
+  const model = editorInstance.getModel();
+  if (!model) return null;
 
-    const editorDomNode = editorInstance.getDomNode();
+  try {
+    const prettierModule = await import('prettier/standalone');
+    const prettier = prettierModule?.default ?? prettierModule;
 
-    const formatCurrentModel = async () => {
-      const model = editorInstance.getModel();
-      if (!model) return;
+    const parserBabelModule = await import('prettier/plugins/babel');
+    const parserBabel = parserBabelModule?.default ?? parserBabelModule;
 
-      try {
-        const prettierModule = await import('prettier/standalone');
-        const prettier = prettierModule?.default ?? prettierModule;
-        const parserBabelModule = await import('prettier/plugins/babel');
-        const parserBabel = parserBabelModule?.default ?? parserBabelModule;
-        const parserEstreeModule = await import('prettier/plugins/estree');
-        const parserEstree = parserEstreeModule?.default ?? parserEstreeModule;
-        const parserTSModule = await import('prettier/plugins/typescript');
-        const parserTS = parserTSModule?.default ?? parserTSModule;
+    const parserEstreeModule = await import('prettier/plugins/estree');
+    const parserEstree = parserEstreeModule?.default ?? parserEstreeModule;
 
-        const langKey = editor.language || 'javascript';
-        const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
-        const plugins =
-          langKey === 'typescript' ? [parserTS, parserEstree] : [parserBabel, parserEstree];
+    const parserTSModule = await import('prettier/plugins/typescript');
+    const parserTS = parserTSModule?.default ?? parserTSModule;
 
-        const original = model.getValue();
-        const formatted = await prettier.format(original, {
-          parser: parserName,
-          plugins,
-          semi: true,
-          singleQuote: true,
-          tabWidth: editor.tabSize || 2,
-        });
+    const langKey = editor.language || 'javascript';
+    const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
 
-          model.pushEditOperations(
-          [],
-          [{ range: model.getFullModelRange(), text: formatted }],
-          () => null
-          );
-          await new Promise((r) => setTimeout(r, 250));
-        
-        editor.setCode(formatted);
-        toast.success('Formatted');
-        return formatted;
-      } catch (err) {
-        console.error('Formatting error', err);
-        toast.error('Formatting failed');
-        return null;
-      }
-    };
+    const plugins =
+      langKey === 'typescript'
+        ? [parserTS, parserEstree]
+        : [parserBabel, parserEstree];
+
+    const original = model.getValue();
+
+    const formatted = await prettier.format(original, {
+      parser: parserName,
+      plugins,
+      semi: true,
+      singleQuote: true,
+      tabWidth: Number(editor.tabSize) || 2,
+    });
+
+    if (formatted !== original) {
+      applyTextToModel(model, formatted);
+    }
+
+    editor.setCode(formatted);
+    toast.success('Formatted');
+
+    return formatted;
+  } catch (err) {
+    console.error('Formatting error', err);
+    toast.error('Formatting failed');
+    return null;
+  }
+  };
 
     window.__debugra_formatEditor = formatCurrentModel;
 
