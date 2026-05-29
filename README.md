@@ -153,6 +153,9 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 VITE_API_URL=http://localhost:3001
 ```
+> ⚠️ **`VITE_API_URL` is required.** If not set, the app falls back to
+> `http://localhost:3001` in development and logs a browser console warning.
+> Code execution and AI features will fail if the backend is unreachable.
 
 **Backend** — create `.env` in `server/`:
 
