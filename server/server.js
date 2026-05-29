@@ -12,6 +12,7 @@ const memoryTracker = require('./middleware/memoryTracker');
 const memoryProfiler = require('./services/memoryProfiler');
 const errorHandler = require('./middleware/errorHandler');
 const webhookRoutes = require('./routes/webhooks');
+const { startRoomCleanupCron } = require('./services/roomCleanup');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -295,6 +296,7 @@ if (require.main === module) {
     logger.info(`🚀 Debugra server running on port ${PORT}`);
     logger.info(`🔒 Security headers: HSTS=${isProd}, CSP=on, Permissions-Policy=on`);
     memoryProfiler.start();
+    startRoomCleanupCron();
   });
 }
 

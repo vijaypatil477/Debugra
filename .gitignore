@@ -18,3 +18,8 @@ Thumbs.db
 
 # Logs
 *.log
+server/logs/
+
+# Secrets
+*-service-account.json
+*firebase-adminsdk*.json
