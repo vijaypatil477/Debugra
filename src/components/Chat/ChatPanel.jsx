@@ -6,8 +6,11 @@ import {
   orderBy,
   onSnapshot,
   serverTimestamp,
+  deleteDoc,
+  doc,
 } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import toast from 'react-hot-toast';
 
 const hashColor = (str) => {
   const colors = [
@@ -31,13 +34,29 @@ const formatTime = (timestamp) => {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
+export default function ChatPanel({ roomId, user, isOpen, onToggle, isAuthor, onInsertSnippet }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const prevCountRef = useRef(0);
+
+  const [activeTab, setActiveTab] = useState('chat'); // 'chat' or 'snippets'
+  const [snippets, setSnippets] = useState([]);
+  const [snippetTitle, setSnippetTitle] = useState('');
+  const [snippetCode, setSnippetCode] = useState('');
+  const [snippetLang, setSnippetLang] = useState('javascript');
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  useEffect(() => {
+    if (!roomId) return;
+    const q = query(collection(db, 'rooms', roomId, 'snippets'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snap) => {
+      const snips = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setSnippets(snips);
+    });
+  }, [roomId]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -71,6 +90,50 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
       createdAt: serverTimestamp(),
     });
   };
+
+  const handleAddSnippet = async (e) => {
+    e.preventDefault();
+    if (!snippetTitle.trim() || !snippetCode.trim() || !roomId || !user) return;
+    try {
+      await addDoc(collection(db, 'rooms', roomId, 'snippets'), {
+        title: snippetTitle.trim(),
+        code: snippetCode.trim(),
+        language: snippetLang,
+        uid: user.uid,
+        displayName: user.displayName || user.email?.split('@')[0] || 'User',
+        createdAt: serverTimestamp(),
+      });
+      setSnippetTitle('');
+      setSnippetCode('');
+      setShowAddForm(false);
+      toast.success('Snippet posted successfully! ✦');
+    } catch (err) {
+      toast.error('Failed to post snippet');
+    }
+  };
+
+  const handleDeleteSnippet = async (e, snippetId) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this snippet?')) return;
+    try {
+      await deleteDoc(doc(db, 'rooms', roomId, 'snippets', snippetId));
+      toast.success('Snippet deleted');
+    } catch (err) {
+      toast.error('Failed to delete snippet');
+    }
+  };
+
+  const handleCopySnippet = (e, codeText) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(codeText)
+      .then(() => {
+        toast.success('Copied snippet to clipboard! ✦');
+      })
+      .catch(() => {
+        toast.error('Copy failed');
+      });
+  };
+
   const handleDownloadReport = () => {
     if (!messages || messages.length === 0) {
       alert('No logs available to download!');
@@ -313,8 +376,84 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
             </div>
           </div>
 
-          {/* Messages */}
+          {/* Tab Selection */}
           <div
+            style={{
+              display: 'flex',
+              background: '#181818',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              padding: '4px',
+              gap: '4px',
+            }}
+          >
+            <button
+              onClick={() => setActiveTab('chat')}
+              style={{
+                flex: 1,
+                padding: '6px 12px',
+                borderRadius: '6px',
+                background: activeTab === 'chat' ? 'rgba(255,255,255,0.08)' : 'transparent',
+                border: 'none',
+                color: activeTab === 'chat' ? '#e2e8f0' : '#64748b',
+                fontSize: '0.72rem',
+                fontWeight: activeTab === 'chat' ? 600 : 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              Chat
+            </button>
+            <button
+              onClick={() => setActiveTab('snippets')}
+              style={{
+                flex: 1,
+                padding: '6px 12px',
+                borderRadius: '6px',
+                background: activeTab === 'snippets' ? 'rgba(255,255,255,0.08)' : 'transparent',
+                border: 'none',
+                color: activeTab === 'snippets' ? '#e2e8f0' : '#64748b',
+                fontSize: '0.72rem',
+                fontWeight: activeTab === 'snippets' ? 600 : 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="16 18 22 12 16 6" />
+                <polyline points="8 6 2 12 8 18" />
+              </svg>
+              Snippets
+              {snippets.length > 0 && (
+                <span
+                  style={{
+                    background: '#f97316',
+                    color: '#0a0a0f',
+                    borderRadius: '8px',
+                    padding: '1px 6px',
+                    fontSize: '0.55rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  {snippets.length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Messages */}
+          {activeTab === 'chat' && (
+            <div
             style={{
               flex: 1,
               overflowY: 'auto',
@@ -426,9 +565,11 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
             })}
             <div ref={bottomRef} />
           </div>
+          )}
 
           {/* Input */}
-          <div
+          {activeTab === 'chat' && (
+            <div
             style={{
               padding: '10px 12px',
               borderTop: '1px solid rgba(255,255,255,0.06)',
@@ -495,6 +636,396 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
               </button>
             </div>
           </div>
+          )}
+
+          {/* Snippet Repository */}
+          {activeTab === 'snippets' && (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              {/* Header inside panel to toggle Add Snippet form */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  background: 'rgba(255,255,255,0.02)',
+                  borderBottom: '1px solid rgba(255,255,255,0.04)',
+                }}
+              >
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>Shared Snippets</span>
+                <button
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  style={{
+                    background: showAddForm ? 'rgba(239, 68, 68, 0.15)' : 'rgba(249, 115, 22, 0.15)',
+                    color: showAddForm ? '#ef4444' : '#f97316',
+                    border: 'none',
+                    padding: '4px 10px',
+                    borderRadius: '4px',
+                    fontSize: '0.68rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {showAddForm ? 'Cancel' : '+ Share Snippet'}
+                </button>
+              </div>
+
+              {/* Collapsible Add Snippet Form */}
+              {showAddForm && (
+                <form
+                  onSubmit={handleAddSnippet}
+                  style={{
+                    padding: '12px',
+                    background: '#1a1a1a',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    animation: 'slide-up 0.2s ease',
+                  }}
+                >
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.62rem', color: '#64748b', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>
+                      Snippet Title
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. DFS Algorithm, Fetch API helper"
+                      value={snippetTitle}
+                      onChange={(e) => setSnippetTitle(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '6px',
+                        color: '#e2e8f0',
+                        fontSize: '0.75rem',
+                        padding: '6px 8px',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: '0.62rem', color: '#64748b', fontWeight: 600, marginBottom: '4px' }}>
+                        Language
+                      </label>
+                      <select
+                        value={snippetLang}
+                        onChange={(e) => setSnippetLang(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: '#222',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: '6px',
+                          color: '#e2e8f0',
+                          fontSize: '0.75rem',
+                          padding: '5px 8px',
+                          outline: 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <option value="javascript">JavaScript</option>
+                        <option value="typescript">TypeScript</option>
+                        <option value="python">Python</option>
+                        <option value="html">HTML</option>
+                        <option value="css">CSS</option>
+                        <option value="cpp">C++</option>
+                        <option value="c">C</option>
+                        <option value="csharp">C#</option>
+                        <option value="java">Java</option>
+                        <option value="go">Go</option>
+                        <option value="rust">Rust</option>
+                        <option value="sql">SQL</option>
+                        <option value="bash">Bash / Shell</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.62rem', color: '#64748b', fontWeight: 600, marginBottom: '4px' }}>
+                      Code Content
+                    </label>
+                    <textarea
+                      required
+                      placeholder="Paste your code snippet here..."
+                      value={snippetCode}
+                      onChange={(e) => setSnippetCode(e.target.value)}
+                      rows={5}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '6px',
+                        color: '#cbd5e1',
+                        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                        fontSize: '0.72rem',
+                        padding: '8px',
+                        resize: 'vertical',
+                        outline: 'none',
+                        lineHeight: 1.4,
+                      }}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    style={{
+                      background: '#f97316',
+                      color: '#0a0a0f',
+                      border: 'none',
+                      padding: '8px',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    Post Snippet
+                  </button>
+                </form>
+              )}
+
+              {/* Snippets Feed */}
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}
+              >
+                {snippets.length === 0 ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flex: 1,
+                      gap: '8px',
+                      padding: '40px 0',
+                      opacity: 0.6,
+                    }}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5">
+                      <polyline points="16 18 22 12 16 6" />
+                      <polyline points="8 6 2 12 8 18" />
+                    </svg>
+                    <p style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 500, margin: 0 }}>
+                      No snippets yet
+                    </p>
+                    <p
+                      style={{
+                        fontSize: '0.65rem',
+                        color: '#475569',
+                        lineHeight: 1.4,
+                        textAlign: 'center',
+                        margin: 0,
+                        maxWidth: '200px',
+                      }}
+                    >
+                      Post high-frequency code chunks to copy and paste easily!
+                    </p>
+                  </div>
+                ) : (
+                  snippets.map((snip) => {
+                    const isMySnippet = snip.uid === user?.uid;
+                    const avatarColor = hashColor(snip.uid);
+                    const initial = (snip.displayName?.[0] || '?').toUpperCase();
+                    const langBadge = snip.language ? snip.language.toUpperCase() : 'CODE';
+
+                    return (
+                      <div
+                        key={snip.id}
+                        style={{
+                          background: 'rgba(255,255,255,0.02)',
+                          border: '1px solid rgba(255,255,255,0.06)',
+                          borderRadius: '8px',
+                          padding: '10px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          transition: 'all 0.2s',
+                          position: 'relative',
+                        }}
+                      >
+                        {/* Header: User & Meta info */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div
+                              style={{
+                                width: '18px',
+                                height: '18px',
+                                borderRadius: '4px',
+                                background: isMySnippet ? '#374151' : avatarColor,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.5rem',
+                                fontWeight: 700,
+                                color: 'white',
+                              }}
+                            >
+                              {initial}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.68rem', color: '#e2e8f0', fontWeight: 600 }}>
+                                {snip.title}
+                              </span>
+                              <span style={{ fontSize: '0.55rem', color: '#64748b' }}>
+                                by {isMySnippet ? 'You' : snip.displayName}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span
+                              style={{
+                                background: 'rgba(255,255,255,0.05)',
+                                color: '#38bdf8',
+                                borderRadius: '4px',
+                                padding: '1px 5px',
+                                fontSize: '0.55rem',
+                                fontWeight: 700,
+                                border: '1px solid rgba(56, 189, 248, 0.15)',
+                              }}
+                            >
+                              {langBadge}
+                            </span>
+                            {(isMySnippet || isAuthor) && (
+                              <button
+                                onClick={(e) => handleDeleteSnippet(e, snip.id)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#ef4444',
+                                  cursor: 'pointer',
+                                  padding: '2px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  opacity: 0.6,
+                                  transition: 'opacity 0.2s',
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                                onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
+                                title="Delete Snippet"
+                              >
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <polyline points="3 6 5 6 21 6" />
+                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Code Monospace preview */}
+                        <div style={{ position: 'relative' }}>
+                          <pre
+                            className="custom-scrollbar"
+                            style={{
+                              margin: 0,
+                              background: '#0d0d0f',
+                              border: '1px solid rgba(255,255,255,0.04)',
+                              borderRadius: '6px',
+                              padding: '8px',
+                              color: '#a9b1d6',
+                              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                              fontSize: '0.68rem',
+                              lineHeight: 1.45,
+                              maxHeight: '120px',
+                              overflowY: 'auto',
+                              whiteSpace: 'pre',
+                              overflowX: 'auto',
+                            }}
+                          >
+                            {snip.code}
+                          </pre>
+                        </div>
+
+                        {/* Actions: Copy & Insert */}
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
+                          <button
+                            onClick={(e) => handleCopySnippet(e, snip.code)}
+                            style={{
+                              flex: 1,
+                              background: '#252526',
+                              border: '1px solid rgba(255,255,255,0.06)',
+                              color: '#e2e8f0',
+                              borderRadius: '4px',
+                              padding: '4px 0',
+                              fontSize: '0.62rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#2d2d2e';
+                              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = '#252526';
+                              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+                            }}
+                          >
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                            Copy
+                          </button>
+                          {onInsertSnippet && (
+                            <button
+                              onClick={() => onInsertSnippet(snip.code)}
+                              style={{
+                                flex: 1,
+                                background: 'rgba(249, 115, 22, 0.08)',
+                                border: '1px solid rgba(249, 115, 22, 0.25)',
+                                color: '#f97316',
+                                borderRadius: '4px',
+                                padding: '4px 0',
+                                fontSize: '0.62rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '4px',
+                                transition: 'all 0.15s',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(249, 115, 22, 0.15)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(249, 115, 22, 0.08)';
+                              }}
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                              </svg>
+                              Insert
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>
