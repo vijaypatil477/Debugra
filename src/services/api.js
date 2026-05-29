@@ -1,6 +1,18 @@
 import axios from 'axios';
 import { getSessionApiKey } from './secureApiKeyStore';
 
+function createOfflineError() {
+  const error = new Error('You are offline. Reconnect to continue.');
+  error.status = 'OFFLINE';
+  error.code = 'OFFLINE';
+  return error;
+}
+
+function isBrowserOffline() {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  return !navigator.onLine;
+}
+
 const API_URL = import.meta.env.VITE_API_URL || 
   (import.meta.env.MODE !== 'production' ? 'http://localhost:3001' : '');
 
@@ -22,6 +34,10 @@ const api = axios.create({
 // Request interceptor — attach a session-only user Groq key when unlocked
 api.interceptors.request.use(
   (config) => {
+    if (isBrowserOffline()) {
+      return Promise.reject(createOfflineError());
+    }
+
     const apiKey = getSessionApiKey();
     if (apiKey && config.url?.startsWith('/api/ai/')) {
       config.headers['X-Groq-Api-Key'] = apiKey;

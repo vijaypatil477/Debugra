@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { doc, setDoc, updateDoc, onSnapshot, serverTimestamp, getDoc, runTransaction } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import toast from 'react-hot-toast';
+import { useNetworkStatus } from './useNetworkStatus';
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
 
@@ -40,6 +41,7 @@ function hasRememberedRoomAccess(roomId) {
  * @param {Function} setStdinValue - to apply remote stdin changes
  */
 export function useRoom({ user, code, language, stdinValue, setCode, setLanguage, setStdinValue }) {
+  const { isOnline } = useNetworkStatus();
   const [roomId, setRoomId] = useState(null);
   const [roomData, setRoomData] = useState(null);
   const [activeUsers, setActiveUsers] = useState([]);
@@ -72,6 +74,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   useEffect(() => {
     if (!roomId || !user || !roomData) return;
     if (!isEditor) return;
+    if (!isOnline) return;
     const timer = setTimeout(() => {
       updateDoc(doc(db, 'rooms', roomId), {
         code,
@@ -82,11 +85,12 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       }).catch(() => {});
     }, 300);
     return () => clearTimeout(timer);
-  }, [code, language, stdinValue, roomId, user, isEditor]);
+  }, [code, language, stdinValue, roomId, user, isEditor, isOnline]);
 
   // ─── Sync active file (language) for presence ───────────────────────────────
   useEffect(() => {
     if (!roomId || !user || !roomData) return;
+    if (!isOnline) return;
     const currentUsers = roomData.activeUsers || [];
     const myIndex = currentUsers.findIndex((u) => u.uid === user.uid);
     if (myIndex !== -1 && currentUsers[myIndex].activeFile !== language) {
@@ -94,11 +98,12 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       newUsers[myIndex] = { ...newUsers[myIndex], activeFile: language };
       updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
     }
-  }, [roomId, user, roomData, language]);
+  }, [roomId, user, roomData, language, isOnline]);
 
   // ─── Sync active file (language) for presence ───────────────────────────────
   useEffect(() => {
     if (!roomId || !user || !roomData) return;
+    if (!isOnline) return;
     const currentUsers = roomData.activeUsers || [];
     const myIndex = currentUsers.findIndex((u) => u.uid === user.uid);
     if (myIndex !== -1 && currentUsers[myIndex].activeFile !== language) {
@@ -106,7 +111,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       newUsers[myIndex] = { ...newUsers[myIndex], activeFile: language };
       updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
     }
-  }, [roomId, user, roomData, language]);
+  }, [roomId, user, roomData, language, isOnline]);
 
   // ─── Auto-join from local storage ───────────────────────────────────────────
   useEffect(() => {
@@ -122,6 +127,10 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   const createRoom = useCallback(
     async (roomPassword = '') => {
       if (!user) return false; // let caller show auth modal
+      if (!isOnline) {
+        toast.error('You are offline. Reconnect to create a room.');
+        return false;
+      }
       const id = crypto.randomUUID().slice(0, 8);
       const displayName = user.displayName || user.email?.split('@')[0] || 'Guest';
       const trimmedPassword = roomPassword.trim();
@@ -163,13 +172,17 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
 
       return true;
     },
-    [user, code, language]
+    [user, code, language, isOnline]
   );
 
   // ─── Join room ──────────────────────────────────────────────────────────────
   const joinRoom = useCallback(
     async (joinId, roomPassword = '') => {
       if (!user || !joinId.trim()) return false;
+      if (!isOnline) {
+        toast.error('You are offline. Reconnect to join a room.');
+        return false;
+      }
       const newRoomId = joinId.trim();
       try {
         const roomRef = doc(db, 'rooms', newRoomId);
@@ -233,7 +246,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         return false;
       }
     },
-    [user]
+    [user, isOnline]
   );
 
   // (Legacy access control methods removed for simpler role system)
@@ -248,7 +261,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     if (!roomId) return;
     try {
       localStorage.removeItem('debugra_roomId');
-      if (user && roomData) {
+      if (user && roomData && isOnline) {
         const newUsers = (roomData.activeUsers || []).filter((u) => u.uid !== user.uid);
         await updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
       }
@@ -259,11 +272,15 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     setRoomData(null);
     setActiveUsers([]);
     toast.success('Left the room');
-  }, [roomId, user, roomData]);
+  }, [roomId, user, roomData, isOnline]);
 
   // ─── Execution Voting & Results Sync ──────────────────────────────────────────
   const startExecutionVote = useCallback(async (code, language, stdin) => {
     if (!roomId || !user) return;
+    if (!isOnline) {
+      toast.error('You are offline. Reconnect to start execution voting.');
+      return;
+    }
 
     // Custom fallback random UUID generator
     const generateUUID = () => {
@@ -304,10 +321,14 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
 
     await updateDoc(doc(db, 'rooms', roomId), { activeVote });
     toast.success('Started a vote for code execution!');
-  }, [roomId, user]);
+  }, [roomId, user, isOnline]);
 
   const castVote = useCallback(async (voteType) => {
     if (!roomId || !user) return;
+    if (!isOnline) {
+      toast.error('You are offline. Reconnect to cast votes.');
+      return;
+    }
 
     const roomRef = doc(db, 'rooms', roomId);
     try {
@@ -351,15 +372,17 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       console.error("Voting transaction failed: ", error);
       toast.error(error.message || "Failed to cast vote");
     }
-  }, [roomId, user]);
+  }, [roomId, user, isOnline]);
 
   const clearVote = useCallback(async () => {
     if (!roomId) return;
+    if (!isOnline) return;
     await updateDoc(doc(db, 'rooms', roomId), { activeVote: null });
-  }, [roomId]);
+  }, [roomId, isOnline]);
 
   const syncExecutionResult = useCallback(async (result) => {
     if (!roomId) return;
+    if (!isOnline) return;
     const cappedResult = { ...result };
     // Cap output payload sizes to 10k characters to prevent document size limit errors & heavy traffic
     if (cappedResult.stdout && cappedResult.stdout.length > 10000) {
@@ -369,15 +392,17 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       cappedResult.stderr = cappedResult.stderr.slice(0, 10000) + '\n... [stderr truncated due to size limits]';
     }
     await updateDoc(doc(db, 'rooms', roomId), { executionResult: cappedResult });
-  }, [roomId]);
+  }, [roomId, isOnline]);
 
   const clearExecutionResult = useCallback(async () => {
     if (!roomId) return;
+    if (!isOnline) return;
     await updateDoc(doc(db, 'rooms', roomId), { executionResult: null });
-  }, [roomId]);
+  }, [roomId, isOnline]);
 
   const fetchFullVotePayload = useCallback(async (voteId) => {
     if (!roomId) return null;
+    if (!isOnline) return null;
     try {
       const voteSnap = await getDoc(doc(db, 'rooms', roomId, 'votes', voteId));
       if (voteSnap.exists()) {
@@ -387,10 +412,11 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       console.error('Failed to fetch full vote payload:', e);
     }
     return null;
-  }, [roomId]);
+  }, [roomId, isOnline]);
 
   const transitionVoteToExecuting = useCallback(async (voteId) => {
     if (!roomId || !user) return false;
+    if (!isOnline) return false;
     const roomRef = doc(db, 'rooms', roomId);
     try {
       let transitioned = false;
@@ -410,7 +436,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       console.error('Failed to transition vote status:', e);
       return false;
     }
-  }, [roomId, user]);
+  }, [roomId, user, isOnline]);
 
   return {
     roomId,
@@ -442,4 +468,3 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     transitionVoteToExecuting,
   };
 }
-

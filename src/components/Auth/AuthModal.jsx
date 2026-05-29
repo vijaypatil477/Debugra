@@ -11,8 +11,11 @@ import { auth, googleProvider, db } from '../../services/firebase';
 import { X, LogIn, UserPlus, Globe } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+import { useNetworkStatus } from '../../hooks';
+
 export default function AuthModal({ onClose, initialMode = 'login', mode }) {
   const [isLogin, setIsLogin] = useState(initialMode === 'login');
+  const { isOnline } = useNetworkStatus();
   // support older callers that pass `mode` prop
   // If `mode` prop is provided, derive initial isLogin from it on first render.
   if (mode && initialMode !== mode) {
@@ -251,7 +254,8 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
             {/* Google */}
             <button
               onClick={handleGoogle}
-              disabled={loading}
+              disabled={loading || !isOnline}
+              title={!isOnline ? 'You are offline' : undefined}
               style={{
                 width: '100%',
                 padding: '10px',
@@ -261,13 +265,14 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                 background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.1)',
                 color: '#e2e8f0',
-                cursor: 'pointer',
+                cursor: loading || !isOnline ? 'not-allowed' : 'pointer',
                 marginBottom: '16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
                 boxSizing: 'border-box',
+                opacity: loading || !isOnline ? 0.55 : 1,
               }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24">
@@ -348,7 +353,8 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
               )}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !isOnline}
+                title={!isOnline ? 'You are offline' : undefined}
                 style={{
                   width: '100%',
                   padding: '10px',
@@ -358,8 +364,9 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                   background: '#4ec9b0',
                   color: '#09090b',
                   border: 'none',
-                  cursor: 'pointer',
+                  cursor: loading || !isOnline ? 'not-allowed' : 'pointer',
                   boxSizing: 'border-box',
+                  opacity: loading || !isOnline ? 0.55 : 1,
                 }}
               >
                 {loading ? 'Please wait...' : !isLogin ? 'Create Account' : 'Sign In'}

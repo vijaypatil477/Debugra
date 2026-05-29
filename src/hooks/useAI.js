@@ -11,6 +11,7 @@ import {
 import { showRateLimitToast } from '../utils/rateLimitToast';
 import { LANGUAGES } from '../utils/languageConfig';
 import { OUTPUT_TABS } from '../config/constants';
+import { useNetworkStatus } from './useNetworkStatus';
 
 /**
  * useAI
@@ -23,6 +24,7 @@ import { OUTPUT_TABS } from '../config/constants';
  * @param {React.RefObject} editorRef - Monaco editor ref (for selection)
  */
 export function useAI({ language, code, stderr, setActiveOutputTab, editorRef }) {
+  const { isOnline } = useNetworkStatus();
   const [aiResponse, setAiResponse] = useState(null);
   const [isAILoading, setIsAILoading] = useState(false);
 
@@ -32,6 +34,11 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
 
   const withAI = useCallback(
     async (action) => {
+      if (!isOnline) {
+        toast.error('You are offline. Reconnect to continue.');
+        return;
+      }
+
       setIsAILoading(true);
       setActiveOutputTab(OUTPUT_TABS.AI);
       try {
@@ -47,7 +54,7 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
         setIsAILoading(false);
       }
     },
-    [setActiveOutputTab]
+    [setActiveOutputTab, isOnline]
   );
 
   const fix = useCallback(
@@ -89,6 +96,11 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
 
   const debugError = useCallback(async () => {
     if (!stderr) return;
+    if (!isOnline) {
+      toast.error('You are offline. Reconnect to continue.');
+      return;
+    }
+
     setIsDebugLoading(true);
     setDebugResponse(null);
     try {
@@ -99,7 +111,7 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
     } finally {
       setIsDebugLoading(false);
     }
-  }, [code, stderr, language]);
+  }, [code, stderr, language, isOnline]);
 
   const clearDebug = useCallback(() => setDebugResponse(null), []);
 
