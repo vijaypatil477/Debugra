@@ -1,7 +1,16 @@
 import axios from 'axios';
 import { getSessionApiKey } from './secureApiKeyStore';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.MODE !== 'production' ? 'http://localhost:3001' : '');
+
+if (!import.meta.env.VITE_API_URL && import.meta.env.MODE !== 'production') {
+  console.warn(
+    '[api.js] VITE_API_URL is not set. ' +
+    'Falling back to http://localhost:3001 for development. ' +
+    'Create a .env file and set VITE_API_URL to silence this warning.'
+  );
+}
 
 // ─── Axios Instance ────────────────────────────────────────────────────────────
 const api = axios.create({
@@ -26,6 +35,18 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 429) {
+      const retryAfter = parseInt(
+        error.response.headers['retry-after'] || error.response.data?.retryAfter || '60',
+        10
+      );
+      const err = new Error(
+        error.response.data?.error || 'Too many requests. Please wait before trying again.'
+      );
+      err.status = 429;
+      err.retryAfter = retryAfter;
+      return Promise.reject(err);
+    }
     const message =
       error.response?.data?.error ||
       error.response?.data?.message ||

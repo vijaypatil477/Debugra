@@ -153,6 +153,9 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 VITE_API_URL=http://localhost:3001
 ```
+> ⚠️ **`VITE_API_URL` is required.** If not set, the app falls back to
+> `http://localhost:3001` in development and logs a browser console warning.
+> Code execution and AI features will fail if the backend is unreachable.
 
 **Backend** — create `.env` in `server/`:
 
@@ -170,6 +173,8 @@ DEBUGRA_ADMIN_TOKEN=choose_a_long_random_admin_token
 
 ### 4. Start development servers
 
+#### Option A: Using NPM
+
 ```bash
 # Terminal 1 — Frontend
 npm run dev
@@ -177,6 +182,14 @@ npm run dev
 # Terminal 2 — Backend
 cd server
 npm run dev
+```
+
+#### Option B: Using Docker (Recommended for quick setup)
+
+Make sure Docker Desktop is running, then use Docker Compose to spin up both the frontend and backend with hot-reloading:
+
+```bash
+docker-compose up --build
 ```
 
 Frontend runs at `http://localhost:5173`, backend at `http://localhost:3001`.
