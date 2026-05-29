@@ -325,6 +325,9 @@ export default function LandingPage() {
           <a href="#languages" className="landing-nav-link">
             Languages
           </a>
+          <button onClick={() => navigate('/feedback', { state: { source: 'landing-nav' } })} className="landing-nav-link" style={{ background: 'none', border: 'none' }}>
+            Feedback
+          </button>
           <button onClick={() => setShowLogin(true)} className="landing-btn-outline">
             Log In
           </button>
@@ -381,6 +384,15 @@ export default function LandingPage() {
           >
             Languages
           </a>
+          <button
+            onClick={() => {
+              navigate('/feedback', { state: { source: 'landing-nav' } });
+              setMobileMenu(false);
+            }}
+            className="mobile-dropdown-link"
+          >
+            Feedback
+          </button>
           <button
             onClick={() => {
               setShowLogin(true);
@@ -683,6 +695,13 @@ export default function LandingPage() {
           >
             GitHub
           </a>
+          {' '}·{' '}
+          <button
+            onClick={() => navigate('/feedback', { state: { source: 'landing-footer' } })}
+            style={{ color: '#6a6a8a', textDecoration: 'none', background: 'none', border: 'none', padding: 0 }}
+          >
+            Feedback
+          </button>
         </p>
       </footer>
 

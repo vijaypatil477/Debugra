@@ -8,6 +8,7 @@ const { rateLimit } = require('express-rate-limit');
 const executeRoutes = require('./routes/execute');
 const aiRoutes = require('./routes/ai');
 const memoryRoutes = require('./routes/memory');
+const feedbackRoutes = require('./routes/feedback');
 const memoryTracker = require('./middleware/memoryTracker');
 const memoryProfiler = require('./services/memoryProfiler');
 const errorHandler = require('./middleware/errorHandler');
@@ -307,6 +308,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/execute', executeLimiter, executeRoutes);
 app.use('/api/ai', aiLimiter, aiRoutes);
 app.use('/api/admin/memory-profile', memoryRoutes);
+app.use('/api/feedback', feedbackRoutes);
 app.use('/api/webhooks', webhookRoutes);
 
 // ──────────────────────────────────────────────

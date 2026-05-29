@@ -597,6 +597,12 @@ export default function EditorPage({ user }) {
             <div className="d-flex align-items-center gap-2">
               <button
                 className="topbar-link"
+                onClick={() => navigate('/feedback', { state: { source: 'editor' } })}
+              >
+                Feedback
+              </button>
+              <button
+                className="topbar-link"
                 onClick={() => {
                   signOut(auth);
                   toast.success('Logged out');

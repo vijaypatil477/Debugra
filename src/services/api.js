@@ -92,6 +92,12 @@ export const aiAuditCode = async (code, language) => {
   return data;
 };
 
+// ─── Feedback ────────────────────────────────────────────────────────────────
+export const submitFeedback = async (payload) => {
+  const { data } = await api.post('/api/feedback', payload);
+  return data;
+};
+
 export const aiVisualizeExecution = async (code, language, input = '') => {
   const { data } = await api.post('/api/ai/visualize', { code, language, input });
   return data;
