@@ -8,15 +8,43 @@ import EditorPage from './components/Editor/EditorPage';
 import VideoCall from './components/Editor/VideoCall';
 import OfflineBanner from './components/Editor/OfflineBanner';
 
+const THEME_STORAGE_KEY = 'debugra-theme';
+
+function getInitialAppTheme() {
+  try {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+
+    const prefersLight = window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: light)').matches;
+
+    return prefersLight ? 'light' : 'dark';
+  } catch {
+    return 'dark';
+  }
+}
+
 export default function App() {
   const [user, setUser] = useState(null);
+  const [appTheme, setAppTheme] = useState(getInitialAppTheme);
+
 
   useEffect(() => {
     return onAuthStateChanged(auth, (u) => setUser(u));
   }, []);
 
+  useEffect(() => {
+    try {
+      document.body.classList.toggle('light-theme', appTheme === 'light');
+      localStorage.setItem(THEME_STORAGE_KEY, appTheme);
+    } catch {
+      // ignore
+    }
+  }, [appTheme]);
+
   // Test helper: allow forcing a fake user via URL query param `?testUser=1`
   useEffect(() => {
+
     try {
       const params = new URLSearchParams(window.location.search);
       if (!user && params.get('testUser') === '1') {
@@ -34,15 +62,19 @@ export default function App() {
         position="top-right"
         toastOptions={{
           style: {
-            background: '#1e1e3a',
-            color: '#e2e8f0',
-            border: '1px solid #2a2a4a',
+            background: 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border)',
           },
         }}
       />
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/editor" element={<EditorPage user={user} />} />
+        <Route
+          path="/editor"
+          element={<EditorPage user={user} appTheme={appTheme} setAppTheme={setAppTheme} />}
+        />
+
         {/* Test route to render VideoCall directly for e2e tests */}
         <Route
           path="/voice-test"

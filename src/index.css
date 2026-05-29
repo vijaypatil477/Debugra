@@ -33,7 +33,71 @@
   --warning: #dcdcaa;
   --error: #f44747;
   --info: #0078d4;
+
+  --glass-bg: rgba(30, 30, 30, 0.75);
+  --glass-pane-bg: rgba(30, 30, 30, 0.45);
+  --tab-bg: rgba(20, 20, 20, 0.3);
 }
+
+/* Light theme override (default dark remains baseline) */
+body.light-theme {
+  --bg-0: #ffffff;
+  --bg-1: #f3f4f6;
+  --bg-2: #ffffff;
+  --bg-3: #e5e7eb;
+  --bg-active: #e8f0fe;
+  --border: #d0d7de;
+  --text-0: #111111;
+  --text-1: #444444;
+  --text-2: #6b7280;
+  --accent: #0969da;
+  --accent-hover: #0b63c7;
+  --green: #1a7f37;
+  --red: #d73a49;
+  --yellow: #b08900;
+  --orange: #9a3412;
+  --status-bar: #0969da;
+
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --bg-tertiary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-header: #f3f4f6;
+  --bg-hover: rgba(9, 105, 218, 0.08);
+  --text-primary: #111111;
+  --text-secondary: #444444;
+  --text-muted: #6b7280;
+  --success: #1a7f37;
+  --warning: #b08900;
+  --error: #d73a49;
+  --info: #0969da;
+
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-pane-bg: rgba(255, 255, 255, 0.45);
+  --tab-bg: rgba(255, 255, 255, 0.35);
+}
+
+/* Smooth theme transitions */
+body,
+body * {
+  transition:
+
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease;
+}
+
+/* Ensure topbar/toolbar icon theme toggle stays visible in light mode */
+body.light-theme .toolbar-icon-btn {
+  color: var(--text-2);
+  border-color: var(--border);
+  background: transparent;
+}
+body.light-theme .toolbar-icon-btn:hover {
+  color: var(--text-0);
+  background: var(--bg-2);
+}
+
 
 /* Console Output Copy Button Styles */
 .console-container {
@@ -80,9 +144,14 @@ body,
 }
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background: linear-gradient(135deg, #0f0c20 0%, #15102a 50%, #06040a 100%);
+  background: var(--bg-primary);
+  background-image: linear-gradient(135deg, #0f0c20 0%, #15102a 50%, #06040a 100%);
   color: var(--text-0);
   -webkit-font-smoothing: antialiased;
+}
+body.light-theme {
+  background: var(--bg-primary);
+  background-image: none;
 }
 
 /* ============ SCROLLBAR ============ */
@@ -1200,9 +1269,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #252526;
-  color: #e2e8f0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-secondary);
+  color: var(--text-0);
+  border: 1px solid var(--border);
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   transition: all 0.2s;
@@ -1220,8 +1289,8 @@ body {
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  background: #1e1e1e;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   z-index: 30;
   overflow: hidden;
@@ -2153,7 +2222,7 @@ body {
   align-items: center;
   justify-content: space-around;
   height: 56px;
-  background: #1a1a1a;
+  background: var(--bg-secondary);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
   padding: 0 8px;
@@ -2202,7 +2271,7 @@ body {
   height: 48px;
   border-radius: 50%;
   background: #2ea043;
-  border: 3px solid #1a1a1a;
+  border: 3px solid var(--bg-secondary);
   color: white;
   display: flex;
   align-items: center;
@@ -2698,8 +2767,8 @@ details[open] .debug-stderr-summary::before {
 /* ===== GLASSMORPHISM BACKDROP EFFECT ===== */
 .glass-panel {
   /* Semi-transparent overlay color tint */
-  background-color: rgba(30, 30, 30, 0.75) !important;
-
+  background-color: var(--glass-bg, rgba(30, 30, 30, 0.75)) !important; 
+  
   /* Link browser engine filtering directly to your dynamic custom property hook */
   backdrop-filter: blur(var(--blur-intensity, 10px)) !important;
   -webkit-backdrop-filter: blur(var(--blur-intensity, 10px)) !important; /* Safari compatibility */
@@ -2721,7 +2790,7 @@ details[open] .debug-stderr-summary::before {
 /* 1. Target the left-side editor panel and right-side output panel wrappers */
 .editor-pane.glass-panel,
 .output-pane.glass-panel {
-  background-color: rgba(30, 30, 30, 0.45) !important; /* Semi-transparent base tint */
+  background-color: var(--glass-pane-bg, rgba(30, 30, 30, 0.45)) !important; /* Semi-transparent base tint */
   backdrop-filter: blur(var(--blur-intensity)) !important;
   -webkit-backdrop-filter: blur(var(--blur-intensity)) !important; /* Safari support */
   transition: backdrop-filter 0.1s ease-out;
@@ -2735,8 +2804,7 @@ details[open] .debug-stderr-summary::before {
 }
 
 /* 3. Soften the top tab headers for the glassy look */
-.editor-tab-bar,
-.output-tabs {
-  background-color: rgba(20, 20, 20, 0.3) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+.editor-tab-bar, .output-tabs {
+  background-color: var(--tab-bg, rgba(20, 20, 20, 0.3)) !important;
+  border-bottom: 1px solid var(--border) !important;
 }
