@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -148,6 +148,20 @@ const IconTerminal = () => (
   </svg>
 );
 
+// ─── Eye Icons for Toggle ───────────────────────────────────────────────────
+const IconEye = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+const IconEyeOff = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+);
+
 // ─── Feature Data ─────────────────────────────────────────────────────────────
 const FEATURES = [
   {
@@ -156,7 +170,7 @@ const FEATURES = [
     tag: 'AI',
     title: 'Error Explainer',
     desc: 'Paste an error — get the root cause and exact fix in plain language, instantly.',
-    size: 'large', // spans 2 cols on desktop
+    size: 'large',
   },
   {
     icon: <IconWrench />,
@@ -252,7 +266,6 @@ const STATS = [
   { value: '0', label: 'Setup Required' },
 ];
 
-// ─── Tag accent colors ─────────────────────────────────────────────────────────
 const TAG_COLORS = {
   AI: { bg: 'rgba(139,92,246,0.15)', color: '#a78bfa' },
   Collab: { bg: 'rgba(78,201,176,0.12)', color: '#4ec9b0' },
@@ -266,9 +279,47 @@ export default function LandingPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState(''); // Added field state
+  const [passwordError, setPasswordError] = useState(''); // Added validation error state
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
+
+  // Enhancements states
+  const [showPwd, setShowPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
+  const [isFormInvalid, setIsFormInvalid] = useState(false);
+
+  // Trigger real-time checking whenever inputs or form state switches
+  useEffect(() => {
+    if (!isSignUp) {
+      setPasswordError('');
+      setIsFormInvalid(false);
+      return;
+    }
+
+    // Don't flag match errors if the user hasn't typed in the second field yet
+    if (confirmPassword.length === 0) {
+      setPasswordError('');
+      setIsFormInvalid(password.length < 6);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+      setIsFormInvalid(true);
+    } else {
+      setPasswordError('');
+      setIsFormInvalid(password.length < 6); // Also verify Firebase minLength condition
+    }
+  }, [password, confirmPassword, isSignUp]);
+
+  // Cleanup fields on modal state shifts
+  useEffect(() => {
+    setPassword('');
+    setConfirmPassword('');
+    setPasswordError('');
+  }, [isSignUp, showLogin]);
 
   const handleGoogle = async () => {
     try {
@@ -282,6 +333,11 @@ export default function LandingPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSignUp && password !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+    
     setLoading(true);
     try {
       if (isSignUp) {
@@ -686,10 +742,10 @@ export default function LandingPage() {
         </p>
       </footer>
 
-      {/* ===== LOGIN MODAL ===== */}
+      {/* ===== LOGIN / SIGNUP MODAL ===== */}
       {showLogin && (
-        <div className="modal-backdrop" onClick={() => setShowLogin(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => setShowLogin(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <h2 className="modal-title">{isSignUp ? 'Create Account' : 'Welcome Back'}</h2>
             <p className="modal-subtitle">
               {isSignUp ? 'Sign up to save code & collaborate' : 'Sign in to access saved code'}
@@ -734,6 +790,7 @@ export default function LandingPage() {
                   required
                 />
               )}
+              
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -743,21 +800,102 @@ export default function LandingPage() {
                 className="modal-input"
                 required
               />
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                aria-label="Password"
-                placeholder="Password"
-                type="password"
-                className="modal-input"
-                required
-                minLength={6}
-              />
+
+              {/* Password wrapper with visibility toggle enhancement */}
+              <div style={{ position: 'relative', width: '100%' }}>
+                <input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  aria-label="Password"
+                  placeholder="Password"
+                  type={showPwd ? 'text' : 'password'}
+                  className="modal-input"
+                  style={{ paddingRight: '40px' }}
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd(!showPwd)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#6a6a8a',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  {showPwd ? <IconEyeOff /> : <IconEye />}
+                </button>
+              </div>
+
+              {/* NEW: Confirm Password Field Wrapper (Only visible during Sign Up) */}
+              {isSignUp && (
+                <div style={{ position: 'relative', width: '100%', marginTop: '0px' }}>
+                  <input
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    aria-label="Confirm Password"
+                    placeholder="Confirm Password"
+                    type={showConfirmPwd ? 'text' : 'password'}
+                    className="modal-input"
+                    style={{ paddingRight: '40px' }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPwd(!showConfirmPwd)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: '#6a6a8a',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {showConfirmPwd ? <IconEyeOff /> : <IconEye />}
+                  </button>
+                </div>
+              )}
+
+              {/* NEW: Real-time UI Error Message Banner */}
+              {isSignUp && passwordError && (
+                <div 
+                  style={{ 
+                    color: '#ef4444', 
+                    fontSize: '0.78rem', 
+                    margin: '-4px 0 8px 4px', 
+                    textAlign: 'left',
+                    fontFamily: 'sans-serif'
+                  }}
+                >
+                  {passwordError}
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || isFormInvalid}
                 className="landing-btn-primary"
-                style={{ width: '100%', padding: '10px', marginTop: '4px' }}
+                style={{ 
+                  width: '100%', 
+                  padding: '10px', 
+                  marginTop: '8px',
+                  opacity: (loading || isFormInvalid) ? 0.5 : 1,
+                  cursor: (loading || isFormInvalid) ? 'not-allowed' : 'pointer'
+                }}
               >
                 {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
               </button>
