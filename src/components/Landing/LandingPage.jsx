@@ -9,6 +9,7 @@ import {
 import { auth, googleProvider } from '../../services/firebase';
 import toast from 'react-hot-toast';
 import './LandingPage.css';
+import { useTheme } from '../../context/ThemeContext';
 
 // ─── Inline SVG Icons ─────────────────────────────────────────────────────────
 const IconBolt = () => (
@@ -262,6 +263,7 @@ const TAG_COLORS = {
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   const [showLogin, setShowLogin] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -337,36 +339,115 @@ export default function LandingPage() {
           >
             Sign Up Free
           </button>
-        </div>
-        <button
-          className="mobile-menu-btn mobile-only"
-          aria-label="Toggle mobile menu"
-          aria-expanded={mobileMenu}
-          onClick={() => setMobileMenu(!mobileMenu)}
-        >
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#e2e8f0"
-            strokeWidth="2"
-            strokeLinecap="round"
+          <button
+            onClick={toggleTheme}
+            className="landing-btn-outline p-0 d-flex align-items-center justify-content-center"
+            title="Toggle theme"
+            style={{ width: '36px', height: '36px', borderRadius: '8px' }}
           >
-            {mobileMenu ? (
-              <>
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </>
+            {theme === 'light' ? (
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
             ) : (
-              <>
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" strokeLinecap="round" />
+                <line x1="12" y1="21" x2="12" y2="23" strokeLinecap="round" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" strokeLinecap="round" />
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" strokeLinecap="round" />
+                <line x1="1" y1="12" x2="3" y2="12" strokeLinecap="round" />
+                <line x1="21" y1="12" x2="23" y2="12" strokeLinecap="round" />
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" strokeLinecap="round" />
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" strokeLinecap="round" />
+              </svg>
             )}
-          </svg>
-        </button>
+          </button>
+        </div>
+
+        <div className="d-flex align-items-center gap-2 mobile-only">
+          <button
+            onClick={toggleTheme}
+            className="landing-btn-outline p-0 d-flex align-items-center justify-content-center"
+            title="Toggle theme"
+            style={{ width: '36px', height: '36px', borderRadius: '8px' }}
+          >
+            {theme === 'light' ? (
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            ) : (
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" strokeLinecap="round" />
+                <line x1="12" y1="21" x2="12" y2="23" strokeLinecap="round" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" strokeLinecap="round" />
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" strokeLinecap="round" />
+                <line x1="1" y1="12" x2="3" y2="12" strokeLinecap="round" />
+                <line x1="21" y1="12" x2="23" y2="12" strokeLinecap="round" />
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" strokeLinecap="round" />
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" strokeLinecap="round" />
+              </svg>
+            )}
+          </button>
+          <button
+            className="mobile-menu-btn"
+            aria-label="Toggle mobile menu"
+            aria-expanded={mobileMenu}
+            onClick={() => setMobileMenu(!mobileMenu)}
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              {mobileMenu ? (
+                <>
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </>
+              ) : (
+                <>
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </>
+              )}
+            </svg>
+          </button>
+        </div>
       </nav>
 
       {mobileMenu && (
@@ -438,7 +519,7 @@ export default function LandingPage() {
               >
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
-              Open Editor — it&apos;s free 
+              Open Editor — it&apos;s free
             </button>
             <button onClick={() => setShowLogin(true)} className="landing-btn-ghost landing-btn-lg">
               Sign in to save code

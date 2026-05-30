@@ -5,6 +5,7 @@ import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
 import { Settings, Volume2, VolumeX } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 
 import {
   useRoom,
@@ -109,6 +110,21 @@ export default function EditorPage({ user }) {
       setShowAuth(true);
     },
   });
+
+  const { theme: globalTheme, toggleTheme: toggleGlobalTheme } = useTheme();
+
+  // Synchronize Monaco editor theme with global light/dark theme toggle
+  useEffect(() => {
+    if (globalTheme === 'light') {
+      if (editor.theme !== 'vs') {
+        editor.setTheme('vs');
+      }
+    } else {
+      if (editor.theme === 'vs') {
+        editor.setTheme('debugra-dark');
+      }
+    }
+  }, [globalTheme, editor.theme, editor.setTheme]);
 
   const tabSizeRef = useRef(editor.tabSize);
 
@@ -505,6 +521,44 @@ export default function EditorPage({ user }) {
         </div>
 
         <div className="topbar-right d-flex align-items-center gap-2">
+          <button
+            onClick={toggleGlobalTheme}
+            className="topbar-link p-0 d-flex align-items-center justify-content-center"
+            title="Toggle theme"
+            style={{ width: '26px', height: '26px', borderRadius: '4px' }}
+          >
+            {globalTheme === 'light' ? (
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            ) : (
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" strokeLinecap="round" />
+                <line x1="12" y1="21" x2="12" y2="23" strokeLinecap="round" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" strokeLinecap="round" />
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" strokeLinecap="round" />
+                <line x1="1" y1="12" x2="3" y2="12" strokeLinecap="round" />
+                <line x1="21" y1="12" x2="23" y2="12" strokeLinecap="round" />
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" strokeLinecap="round" />
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" strokeLinecap="round" />
+              </svg>
+            )}
+          </button>
           {!(room.roomId || isTestRoom) && (
             <div className="room-controls d-flex align-items-center gap-2">
               <button
@@ -999,7 +1053,7 @@ export default function EditorPage({ user }) {
       )}
 
       {/* ===== MAIN SPLIT ===== */}
-            <KeyboardShortcutsModal />
+      <KeyboardShortcutsModal />
       <div className="main-split">
         {/* EDITOR PANE */}
         <div

@@ -80,9 +80,7 @@ export function buildMarkdown(response, language = '', usage = null) {
     lines.push('');
     response.steps.forEach((step, i) => {
       const isString = typeof step === 'string';
-      const desc = isString
-        ? step
-        : step.description || step.explanation || step.action || '';
+      const desc = isString ? step : step.description || step.explanation || step.action || '';
       const line = isString ? null : step.line;
       const code = isString ? null : step.code;
       const vars = isString ? null : step.variables;
@@ -215,9 +213,7 @@ export function buildPlainText(response, language = '', usage = null) {
     lines.push(`EXECUTION TRACE (${response.steps.length} steps)`);
     response.steps.forEach((step, i) => {
       const isString = typeof step === 'string';
-      const desc = isString
-        ? step
-        : step.description || step.explanation || step.action || '';
+      const desc = isString ? step : step.description || step.explanation || step.action || '';
       const line = isString ? null : step.line;
       const code = isString ? null : step.code;
       const vars = isString ? null : step.variables;
