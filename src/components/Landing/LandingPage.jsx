@@ -941,6 +941,7 @@ export default function LandingPage() {
       </section>
 
       {/* ===== FOOTER ===== */}
+<<<<<<< HEAD
 <footer className="landing-footer">
   <div className="d-flex align-items-center gap-2 justify-content-center mb-1">
     <img src="/icon-dark.svg" height="14" alt="Debugra Logo" />
@@ -958,6 +959,52 @@ export default function LandingPage() {
   </p>
 </footer>
 
+=======
+      <footer className="landing-footer">
+        <div className="footer-inner">
+          <div className="footer-col footer-brand-col">
+            <div className="footer-brand">
+              <img src="/icon-dark.svg" height="20" alt="Debugra Logo" />
+              <span>Debugra</span>
+            </div>
+            <p className="footer-tagline">AI-powered code debugging and real-time collaboration platform.</p>
+          </div>
+          <div className="footer-col">
+            <h4 className="footer-heading">Product</h4>
+            <a href="#features" className="footer-link">
+              <span className="footer-link-label">Features</span>
+              <span className="footer-link-desc">Explore capabilities</span>
+            </a>
+            <a href="#languages" className="footer-link">
+              <span className="footer-link-label">Languages</span>
+              <span className="footer-link-desc">Supported languages</span>
+            </a>
+            <a href="/editor" className="footer-link">
+              <span className="footer-link-label">Editor</span>
+              <span className="footer-link-desc">Start coding</span>
+            </a>
+          </div>
+          <div className="footer-col">
+            <h4 className="footer-heading">Connect</h4>
+            <a href="https://github.com/omkhandare55/Debugra" target="_blank" rel="noopener noreferrer" className="footer-link">
+              <span className="footer-link-label">GitHub</span>
+              <span className="footer-link-desc">Source code &amp; issues</span>
+            </a>
+            <a href="/CONTRIBUTING.md" className="footer-link">
+              <span className="footer-link-label">Contributing</span>
+              <span className="footer-link-desc">Guide &amp; guidelines</span>
+            </a>
+            <a href="/SECURITY.md" className="footer-link">
+              <span className="footer-link-label">Security</span>
+              <span className="footer-link-desc">Report vulnerabilities</span>
+            </a>
+          </div>
+        </div>
+        <div className="footer-bottom">
+          <p>Built for Hackathon SVKM 2026 · debugra.tech · Free &amp; Open Source</p>
+        </div>
+      </footer>
+>>>>>>> db0fa05 (feat: enhance footer with interactive hover effects and structured link columns)
 
       {/* ===== LOGIN MODAL ===== */}
       {showLogin && (
