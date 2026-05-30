@@ -48,7 +48,21 @@ function getStoredDraft() {
  *   - stdin detection and management
  *   - save to cloud and download as file
  */
+
 export function useEditor({ user, onNeedAuth }) {
+  // Per-file Monaco model cache — keyed by language
+  // Preserves undo/redo history when switching languages
+  const modelCacheRef = useRef(new Map());
+  const getModelCache = useCallback(() => modelCacheRef.current, []);
+  const disposeModel = useCallback((lang) => {
+    const model = modelCacheRef.current.get(lang);
+    if (model && !model.isDisposed()) {
+      model.dispose();
+    }
+    modelCacheRef.current.delete(lang);
+  }, []);
+
+  // Restore last draft from localStorage if available
   const initialDraft = getStoredDraft();
   const initialLanguage =
     initialDraft?.language && LANGUAGES[initialDraft.language]
@@ -61,7 +75,9 @@ export function useEditor({ user, onNeedAuth }) {
   const [fontFamily, setFontFamily] = useState(
     () => localStorage.getItem('debugra-editor-font') ?? DEFAULT_EDITOR_FONT
   );
-  const [theme, setTheme] = useState(() => localStorage.getItem('debugra-theme') ?? DEFAULT_THEME);
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem('debugra-theme') ?? DEFAULT_THEME
+  );
   const [tabSize, setTabSizeState] = useState(() =>
     getStoredNumber('debugra-tab-size', 4, TAB_SIZE_VALUES)
   );
@@ -140,7 +156,10 @@ export function useEditor({ user, onNeedAuth }) {
 
   const changeLanguage = useCallback((newLang) => {
     setLanguage(newLang);
-    setCode(LANGUAGES[newLang].template);
+    // Only reset code to template if no cached model exists for this language
+    if (!modelCacheRef.current.has(newLang)) {
+      setCode(LANGUAGES[newLang].template);
+    }
   }, []);
 
   const increaseFontSize = useCallback(() => setFontSize((f) => Math.min(f + 1, 28)), []);
@@ -235,5 +254,7 @@ export function useEditor({ user, onNeedAuth }) {
     downloadCode,
     saveToCloud,
     loadCode,
+    getModelCache,
+    disposeModel,
   };
 }
