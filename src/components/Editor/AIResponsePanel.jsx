@@ -117,7 +117,7 @@ export default function AIResponsePanel({ isLoading, response: rawResponse, onAp
     Low: { color: '#4ec9b0', border: 'rgba(78,201,176,0.35)', bg: 'rgba(78,201,176,0.08)' },
   };
   const auditFindings = Array.isArray(response.findings) ? response.findings : null;
-  const langName = language ? (LANGUAGES[language]?.name || language) : '';
+  const langName = language ? LANGUAGES[language]?.name || language : '';
 
   const handleDownloadMarkdown = () => {
     downloadAsMarkdown(rawResponse, langName);
@@ -176,11 +176,7 @@ export default function AIResponsePanel({ isLoading, response: rawResponse, onAp
 
         {dropdownOpen && (
           <div className="ai-download-dropdown" role="menu">
-            <button
-              className="ai-download-option"
-              role="menuitem"
-              onClick={handleDownloadMarkdown}
-            >
+            <button className="ai-download-option" role="menuitem" onClick={handleDownloadMarkdown}>
               {/* Markdown icon */}
               <svg
                 width="13"
@@ -201,11 +197,7 @@ export default function AIResponsePanel({ isLoading, response: rawResponse, onAp
               <span>Download as Markdown</span>
               <span className="ai-download-ext">.md</span>
             </button>
-            <button
-              className="ai-download-option"
-              role="menuitem"
-              onClick={handleDownloadText}
-            >
+            <button className="ai-download-option" role="menuitem" onClick={handleDownloadText}>
               {/* Text file icon */}
               <svg
                 width="13"
@@ -462,8 +454,7 @@ export default function AIResponsePanel({ isLoading, response: rawResponse, onAp
                   )}
                   {finding.suggestion && (
                     <div className="ai-card-content" style={{ marginTop: '6px' }}>
-                      <strong style={{ color: 'var(--text-0)' }}>Fix:</strong>{' '}
-                      {finding.suggestion}
+                      <strong style={{ color: 'var(--text-0)' }}>Fix:</strong> {finding.suggestion}
                     </div>
                   )}
                   {finding.refactor && (
