@@ -14,6 +14,8 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
 
   const loadHistory = async () => {
     setLoading(true);
+    // Note: loading code from history calls onLoadCode which updates editor state.
+    // Monaco model cache in useEditor preserves per-language undo history independently.
     try {
       const q = query(collection(db, 'users', user.uid, 'savedCode'), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);

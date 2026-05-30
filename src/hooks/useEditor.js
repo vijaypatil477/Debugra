@@ -49,6 +49,20 @@ function getStoredDraft() {
  *   - save to cloud and download as file
  */
 export function useEditor({ user, onNeedAuth }) {
+  // Per-file Monaco model cache — keyed by language
+  // Preserves undo/redo history when switching languages
+  const modelCacheRef = useRef(new Map());
+
+  const getModelCache = useCallback(() => modelCacheRef.current, []);
+
+  const disposeModel = useCallback((lang) => {
+    const model = modelCacheRef.current.get(lang);
+    if (model && !model.isDisposed()) {
+      model.dispose();
+    }
+    modelCacheRef.current.delete(lang);
+  }, []);
+
   const initialDraft = getStoredDraft();
   const initialLanguage =
     initialDraft?.language && LANGUAGES[initialDraft.language]
@@ -138,13 +152,17 @@ export function useEditor({ user, onNeedAuth }) {
     if (needsInput && !stdinOpen) setStdinOpen(true);
   }, [needsInput, stdinOpen]);
 
+  // ✅ Preserve undo history: only reset code template if no cached model exists for new lang
   const changeLanguage = useCallback((newLang) => {
     setLanguage(newLang);
-    setCode(LANGUAGES[newLang].template);
+    if (!modelCacheRef.current.has(newLang)) {
+      setCode(LANGUAGES[newLang].template);
+    }
   }, []);
 
   const increaseFontSize = useCallback(() => setFontSize((f) => Math.min(f + 1, 28)), []);
   const decreaseFontSize = useCallback(() => setFontSize((f) => Math.max(f - 1, 10)), []);
+
   const setTabSize = useCallback(
     (value) => setTabSizeState(TAB_SIZE_VALUES.includes(Number(value)) ? Number(value) : 4),
     []
@@ -183,7 +201,7 @@ export function useEditor({ user, onNeedAuth }) {
 
     const defaultName = LANG_FILE_NAMES[language] || 'code.txt';
     const fileName = window.prompt('Enter a name for this file:', defaultName);
-    if (!fileName) return; // User cancelled
+    if (!fileName) return;
 
     try {
       await addDoc(collection(db, 'users', user.uid, 'savedCode'), {
@@ -235,5 +253,7 @@ export function useEditor({ user, onNeedAuth }) {
     downloadCode,
     saveToCloud,
     loadCode,
+    getModelCache,
+    disposeModel,
   };
 }
