@@ -41,6 +41,8 @@ import VotePopup from './VotePopup';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import DiagnosticsOverlay from './DiagnosticsOverlay';
+import './DiagnosticsOverlay.css';
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -78,6 +80,29 @@ export default function EditorPage({ user }) {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [diagnostics, setDiagnostics] = useState(() => {
+    try {
+      const stored = localStorage.getItem('debugra_diagnostics');
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // Save to localStorage when diagnostics change
+  useEffect(() => {
+    try {
+      localStorage.setItem('debugra_diagnostics', JSON.stringify(diagnostics));
+    } catch (e) {
+      // ignore
+    }
+  }, [diagnostics]);
+
+  const handleRecordDiagnostic = (log) => {
+    setDiagnostics((prev) => [log, ...prev]);
+  };
+
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -154,6 +179,7 @@ export default function EditorPage({ user }) {
     stderr: execution.stderr,
     setActiveOutputTab: execution.setActiveOutputTab,
     editorRef,
+    onRecordDiagnostic: handleRecordDiagnostic,
   });
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
@@ -712,6 +738,18 @@ export default function EditorPage({ user }) {
         </div>
         <div className="toolbar-right d-flex align-items-center gap-2">
           <div className="d-none d-md-flex align-items-center gap-2">
+            <button
+              className="ai-btn diagnostics-toggle"
+              onClick={() => setShowDiagnostics(true)}
+              title="Live LLM Performance Diagnostics"
+              style={{
+                background: 'rgba(236, 72, 153, 0.15)',
+                color: '#f472b6',
+                border: '1px solid rgba(236, 72, 153, 0.3)',
+              }}
+            >
+              ⚡ Diagnostics
+            </button>
             <button
               className={`ai-btn api-key-toggle ${apiKeyStatus}`}
               onClick={() => setShowApiKey(true)}
@@ -1365,6 +1403,8 @@ export default function EditorPage({ user }) {
         tabSize={editor.tabSize}
         room={room}
         user={user}
+        diagnostics={diagnostics}
+        onToggleDiagnostics={() => setShowDiagnostics(true)}
       />
 
       {/* Chat */}
@@ -1483,6 +1523,16 @@ export default function EditorPage({ user }) {
           roomId={room.roomId}
           userName={user?.displayName || user?.email?.split('@')[0] || 'Guest'}
           onClose={() => setShowVideoCall(false)}
+        />
+      )}
+
+      {/* Diagnostics Overlay */}
+      {showDiagnostics && (
+        <DiagnosticsOverlay
+          isOpen={showDiagnostics}
+          onClose={() => setShowDiagnostics(false)}
+          diagnostics={diagnostics}
+          setDiagnostics={setDiagnostics}
         />
       )}
 
