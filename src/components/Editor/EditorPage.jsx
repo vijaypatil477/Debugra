@@ -53,7 +53,44 @@ export default function EditorPage({ user }) {
     new URLSearchParams(window.location.search).get('testRoom') === '1';
   const navigate = useNavigate();
   const editorRef = useRef(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const filteredTerm = searchTerm.toLowerCase();
+          const shortcuts = [
+          {
+            category: "Editing",
+            items: [
+              { key: "Ctrl + D", desc: "Multi-cursor selection" },
+              { key: "Alt + ↑ / ↓", desc: "Move line up/down" },
+              { key: "Ctrl + /", desc: "Toggle comment" },
+              { key: "Ctrl + Shift + K", desc: "Delete line" },
+            ],
+          },
+          {
+            category: "Search",
+            items: [
+              { key: "Ctrl + F", desc: "Find" },
+              { key: "Ctrl + H", desc: "Replace" },
+              { key: "Ctrl + Shift + \\", desc: "Matching bracket navigation" },
+            ],
+          },
+          {
+                category: "AI Debugging",
+                items: [
+                  { key: "Ctrl + Enter", desc: "Explain code" },
+                  { key: "Shift + Enter", desc: "Generate test cases" },
+                ],
+              },
+            ];
 
+                      const filteredShortcuts = shortcuts.map((section) => ({
+            ...section,
+            items: section.items.filter(
+              (item) =>
+                item.key.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.desc.toLowerCase().includes(searchTerm.toLowerCase())
+            ),
+          }));
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
@@ -139,6 +176,19 @@ export default function EditorPage({ user }) {
   useEffect(() => {
     ensureEditorFontLoaded(editor.fontFamily);
   }, [editor.fontFamily]);
+      useEffect(() => {
+      const handleEsc = (e) => {
+        if (e.key === "Escape") {
+          setShowShortcuts(false);
+        }
+      };
+
+      window.addEventListener("keydown", handleEsc);
+
+      return () => {
+        window.removeEventListener("keydown", handleEsc);
+      };
+    }, []);
 
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
@@ -607,11 +657,17 @@ export default function EditorPage({ user }) {
                 stroke="currentColor"
                 strokeWidth="2"
               >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="2" y1="12" x2="22" y2="12" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-              Visualize
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="2" y1="12" x2="22" y2="12" />
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                          </svg>
+                          Visualize
+                        </button>
+                        <button
+              className="ai-btn"
+              onClick={() => setShowShortcuts(true)}
+            >
+              ⌨ Shortcuts
             </button>
             <button className="ai-btn" onClick={ai.explain} disabled={ai.isAILoading}>
               <svg
@@ -1329,8 +1385,74 @@ export default function EditorPage({ user }) {
           ai.fix();
         }}
       />
+      {showShortcuts && (
+      <div
+      className="fixed top-0 left-0 w-screen h-screen z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-300"
+      onClick={() => setShowShortcuts(false)}
+    >
+          <div
+ className="w-[90%] max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#111111] p-6 text-white opacity-100 scale-100 transition-all duration-300"
+  onClick={(e) => e.stopPropagation()}
+>
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-3xl font-bold">
+          Keyboard Shortcuts
+        </h2>
 
-{/* Video Call Overlay */}
+        <button
+          onClick={() => setShowShortcuts(false)}
+          className="rounded-lg border border-white/10 px-3 py-1 hover:bg-white/10"
+        >
+          ✕
+        </button>
+      </div>
+
+      <input
+        type="text"
+        placeholder="Search shortcuts..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        onKeyDown={(e) => e.stopPropagation()}
+        className="mb-6 w-full rounded-xl border border-white/10 bg-[#1a1a1a] px-4 py-3 outline-none focus:border-cyan-400"
+      />     
+              <div className="space-y-6">
+          {filteredShortcuts.map(
+            (section) =>
+              section.items.length > 0 && (
+                <div key={section.category}>
+                  <h3 className="mb-3 text-xl font-semibold text-cyan-400">
+                    {section.category}
+                  </h3>
+
+                  <div className="space-y-3">
+                    {section.items.map((item) => (
+                      <div
+                        key={item.desc}
+                        className="flex items-center justify-between rounded-xl bg-[#1b1b1b] p-4"
+                      >
+                        <span>{item.desc}</span>
+                        <kbd className="rounded bg-black px-3 py-1">
+                          {item.key}
+                        </kbd>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+          )}
+                    {filteredShortcuts.every(
+            (section) => section.items.length === 0
+          ) && (
+            <div className="text-center text-gray-400 py-8">
+              No shortcuts found
+            </div>
+          )}
+        </div>
+    </div>
+  </div>
+)}
+
+      {/* Video Call Overlay */}
 {showVideoCall && room.roomId && (
   <VideoCall
     roomId={room.roomId}
@@ -1345,6 +1467,7 @@ export default function EditorPage({ user }) {
 
 {/* Real-time Democratic Vote Popup */}
 <VotePopup room={room} user={user} />
+          
     </div>
   );
 }
