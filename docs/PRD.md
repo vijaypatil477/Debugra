@@ -14,6 +14,7 @@
 #### 3.1 Advanced Code Editor (Monaco)
 - **VS Code-Like Aesthetics:** High-performance, dark-themed UI with an integrated status bar, scalable output panes, and familiar keyboard shortcuts.
 - **Rich Editing Experience:** Features syntax highlighting, code formatting, auto-completion, and bracket matching.
+- **Compare Changes (Split View):** Side-by-side comparison of local edits against the starting snapshot of code with live-editable modified pane, automatic snapshot updates (on language changes, file loads, and room connects), and red/green visual difference highlight lines.
 
 #### 3.2 Real-Time Collaboration
 - **Live Syncing:** Instantaneous synchronization of code, cursors, and selections across multiple users in a "Room" using Firebase Realtime/Firestore.

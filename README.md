@@ -16,6 +16,7 @@ A professional, real-time collaborative code editor for developers and CS studen
 - **VS Code-Like UI** — Professional dark-mode interface with status bar, tab bar, and keyboard shortcuts (`Ctrl+Enter` to run)
 - **Multi-Language Execution** — Run 18+ languages (Python, Java, C++, JavaScript, Go, Rust, SQLite and more) powered by the Wandbox API — permanently free
 - **Monaco Editor** — Syntax highlighting, autocomplete, bracket matching, snippets, and code formatting
+- **Compare Changes (Split View)** — Side-by-side comparison of local edits against the starting baseline snapshot of code with diff coloring (red/green highlights), interactive direct editing in the diff view, and manual baseline resets
 - **AI Time-Travel Debugger** — Step-by-step execution visualization, error explanations, logic breakdown, and test case generation
 - **AI Fix with "Apply Solution"** — Click "Fix" to generate an AI solution, review it in the AI panel, and apply it to the editor with a single click
 - **Encrypted Personal Groq Keys** — Optional user-provided Groq keys are encrypted locally with AES-GCM and unlocked only for the current browser session
