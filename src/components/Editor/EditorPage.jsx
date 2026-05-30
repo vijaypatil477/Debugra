@@ -297,9 +297,12 @@ export default function EditorPage({ user }) {
       if (!model) return;
 
       try {
-        const prettier = (await import('prettier/standalone')).default;
-        const parserBabel = (await import('prettier/parser-babel')).default;
-        const parserTS = (await import('prettier/parser-typescript')).default;
+        const prettierModule = await import('prettier/standalone');
+        const prettier = prettierModule?.default ?? prettierModule;
+        const parserBabelModule = await import('prettier/parser-babel');
+        const parserBabel = parserBabelModule?.default ?? parserBabelModule;
+        const parserTSModule = await import('prettier/parser-typescript');
+        const parserTS = parserTSModule?.default ?? parserTSModule;
 
         const langKey = editor.language || 'javascript';
         const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
@@ -314,15 +317,9 @@ export default function EditorPage({ user }) {
           tabWidth: editor.tabSize || 2,
         });
 
-        model.pushEditOperations(
-          [],
-          [{ range: model.getFullModelRange(), text: formatted }],
-          () => null
-        );
-
-        // Wait for Monaco view to update before test assertions read the value
-        await new Promise((r) => setTimeout(r, 250));
-
+        // Use setValue so editor.getValue() reflects the update immediately
+        // (required for Playwright waitForFunction polling editor.getValue())
+        model.setValue(formatted);
         editor.setCode(formatted);
         toast.success('Formatted');
         return formatted;
