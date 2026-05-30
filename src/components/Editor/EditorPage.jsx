@@ -297,22 +297,16 @@ export default function EditorPage({ user }) {
       if (!model) return;
 
       try {
-        const prettierModule = await import('prettier/standalone');
-        const prettier = prettierModule?.default ?? prettierModule;
-        const parserBabelModule = await import('prettier/plugins/babel');
-        const parserBabel = parserBabelModule?.default ?? parserBabelModule;
-        const parserEstreeModule = await import('prettier/plugins/estree');
-        const parserEstree = parserEstreeModule?.default ?? parserEstreeModule;
-        const parserTSModule = await import('prettier/plugins/typescript');
-        const parserTS = parserTSModule?.default ?? parserTSModule;
+        const prettier = (await import('prettier/standalone')).default;
+        const parserBabel = (await import('prettier/parser-babel')).default;
+        const parserTS = (await import('prettier/parser-typescript')).default;
 
         const langKey = editor.language || 'javascript';
         const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
-        const plugins =
-          langKey === 'typescript' ? [parserTS, parserEstree] : [parserBabel, parserEstree];
+        const plugins = langKey === 'typescript' ? [parserTS] : [parserBabel];
 
         const original = model.getValue();
-        const formatted = await prettier.format(original, {
+        const formatted = prettier.format(original, {
           parser: parserName,
           plugins,
           semi: true,
