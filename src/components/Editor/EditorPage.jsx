@@ -40,6 +40,14 @@ import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 
+const TAB_SIZE_OPTIONS = [2, 4];
+const RULER_OPTIONS = [80, 120];
+const AUTOSAVE_INTERVAL_OPTIONS = [0, 5000, 10000];
+const MINIMAP_OPTIONS = [
+  { value: 'enabled', label: 'Enabled' },
+  { value: 'disabled', label: 'Disabled' },
+];
+
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
   if (isSecureApiKeyStored()) return 'locked';
@@ -77,6 +85,7 @@ export default function EditorPage({ user }) {
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const resizingRef = useRef(false);
   const reviewDecorationsRef = useRef([]);
+  const tabSizeRef = useRef(4);
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
@@ -138,6 +147,31 @@ export default function EditorPage({ user }) {
   useEffect(() => {
     ensureEditorFontLoaded(editor.fontFamily);
   }, [editor.fontFamily]);
+
+  useEffect(() => {
+    tabSizeRef.current = editor.tabSize;
+  }, [editor.tabSize]);
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    editorRef.current.updateOptions({
+      minimap: {
+        enabled: editor.minimapEnabled,
+        side: minimapSide,
+        showSlider: 'always',
+        renderCharacters: false,
+      },
+      rulers: [{ column: editor.rulerColumn }],
+      insertSpaces: true,
+      tabSize: editor.tabSize,
+    });
+
+    const model = editorRef.current.getModel();
+    if (model) {
+      model.updateOptions({ tabSize: editor.tabSize, insertSpaces: true });
+    }
+  }, [editor.tabSize, editor.minimapEnabled, editor.rulerColumn, minimapSide]);
 
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
@@ -310,22 +344,40 @@ export default function EditorPage({ user }) {
       if (executionRunRef.current) executionRunRef.current();
     });
 
-    const monaco = monacoRef.current;
-    if (monaco) {
-      editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, () => {
-        void formatCurrentModel();
-      });
-    }
-
-    editorInstance.onKeyDown((e) => {
+    const editorDomNode = editorInstance.getDomNode();
+    const handleDomKeyDown = (event) => {
       if (room.isReadOnly) return;
-      const monacoInstance = monacoRef.current;
-      if (!monacoInstance) return;
-      if ((e.ctrlKey || e.metaKey) && e.keyCode === monacoInstance.KeyCode.KEY_S) {
-        e.preventDefault();
-        e.stopPropagation();
+
+      const isSaveShortcut = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's';
+      if (isSaveShortcut) {
+        event.preventDefault();
+        event.stopPropagation();
         void formatCurrentModel();
+        return;
       }
+
+      if (event.key !== 'Tab') return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const spaces = ' '.repeat(tabSizeRef.current);
+      const selection = editorInstance.getSelection();
+
+      if (selection) {
+        editorInstance.executeEdits('debugra-tab-indent', [
+          {
+            range: selection,
+            text: spaces,
+            forceMoveMarkers: true,
+          },
+        ]);
+      }
+    };
+
+    editorDomNode?.addEventListener('keydown', handleDomKeyDown, true);
+    editorInstance.onDidDispose(() => {
+      editorDomNode?.removeEventListener('keydown', handleDomKeyDown, true);
     });
   };
 
@@ -688,7 +740,11 @@ export default function EditorPage({ user }) {
               type="button"
               className={showMinimap ? 'active' : ''}
               aria-pressed={showMinimap}
-              onClick={() => setShowMinimap(!showMinimap)}
+              onClick={() => {
+                const nextValue = !showMinimap;
+                setShowMinimap(nextValue);
+                editor.setMinimapEnabled(nextValue);
+              }}
               title="Toggle minimap visibility"
             >
               {showMinimap ? 'Hide' : 'Show'}
@@ -885,6 +941,86 @@ export default function EditorPage({ user }) {
                   </div>
                   <div className="audio-settings-row">
                     <div className="audio-settings-label">
+                      <i className="bi bi-arrow-right-short" style={{ fontSize: '16px' }} />
+                      <span>Tab size</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.tabSize}
+                      onChange={(e) => editor.setTabSize(e.target.value)}
+                      aria-label="Tab size"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {TAB_SIZE_OPTIONS.map((size) => (
+                        <option key={size} value={size}>
+                          {size} spaces
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-grid-3x3-gap" style={{ fontSize: '14px' }} />
+                      <span>Minimap</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.minimapEnabled ? 'enabled' : 'disabled'}
+                      onChange={(e) => {
+                        const nextValue = e.target.value === 'enabled';
+                        setShowMinimap(nextValue);
+                        editor.setMinimapEnabled(nextValue);
+                      }}
+                      aria-label="Minimap"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {MINIMAP_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-rulers" style={{ fontSize: '14px' }} />
+                      <span>Vertical ruler</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.rulerColumn}
+                      onChange={(e) => editor.setRulerColumn(e.target.value)}
+                      aria-label="Vertical ruler"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {RULER_OPTIONS.map((column) => (
+                        <option key={column} value={column}>
+                          {column}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-clock-history" style={{ fontSize: '14px' }} />
+                      <span>Autosave interval</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.autosaveInterval}
+                      onChange={(e) => editor.setAutosaveInterval(e.target.value)}
+                      aria-label="Autosave interval"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {AUTOSAVE_INTERVAL_OPTIONS.map((interval) => (
+                        <option key={interval} value={interval}>
+                          {interval === 0 ? 'Off' : `${interval / 1000}s`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
                       <i className="bi bi-palette" style={{ fontSize: '14px' }} />
                       <span>Theme</span>
                     </div>
@@ -1024,6 +1160,7 @@ export default function EditorPage({ user }) {
           {/* Monaco Editor */}
           <div
             id="editor-container"
+            className={showMinimap ? '' : 'minimap-disabled'}
             style={{ flex: 1, minHeight: 0, opacity: room.isReadOnly ? 0.8 : 1 }}
           >
             {room.isReadOnly && (
@@ -1057,7 +1194,7 @@ export default function EditorPage({ user }) {
                 fontSize: editor.fontSize,
                 fontFamily: getEditorFontFamily(editor.fontFamily),
                 minimap: {
-                  enabled: showMinimap, // ✅ CHANGE 3: Use showMinimap state instead of hardcoded true
+                  enabled: showMinimap,
                   side: minimapSide,
                   showSlider: 'always',
                   renderCharacters: false,
@@ -1067,7 +1204,8 @@ export default function EditorPage({ user }) {
                 lineNumbers: 'on',
                 renderLineHighlight: room.isReadOnly ? 'none' : 'line',
                 automaticLayout: true,
-                tabSize: 4,
+                tabSize: editor.tabSize,
+                insertSpaces: true,
                 wordWrap: 'on',
                 smoothScrolling: true,
                 cursorBlinking: room.isReadOnly ? 'solid' : 'smooth',
