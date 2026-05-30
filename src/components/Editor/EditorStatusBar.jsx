@@ -9,7 +9,7 @@ import { LANG_FILE_NAMES } from '../../config/constants';
  * - Online users count (clickable dropdown)
  * - Wandbox + Debugra labels
  */
-export default function EditorStatusBar({ execStatus, langName, cursorPos, tabSize, room, user }) {
+export default function EditorStatusBar({ execStatus, langName, cursorPos, tabSize, room, user, diagnostics = [], onToggleDiagnostics }) {
   const { roomId, activeUsers, showOnlineDropdown, setShowOnlineDropdown } = room;
 
   return (
@@ -105,6 +105,54 @@ export default function EditorStatusBar({ execStatus, langName, cursorPos, tabSi
           Ln {cursorPos.line}, Col {cursorPos.col}
         </span>
         <span>Spaces: {tabSize}</span>
+        {/* Diagnostics / LLM Stats */}
+        {diagnostics.length > 0 ? (
+          (() => {
+            const sum = diagnostics.reduce((acc, d) => acc + d.latencyMs, 0);
+            const avg = sum / diagnostics.length / 1000;
+            return (
+              <span
+                onClick={onToggleDiagnostics}
+                style={{
+                  color: '#f472b6',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontWeight: '600',
+                  background: 'rgba(236, 72, 153, 0.1)',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  border: '1px solid rgba(236, 72, 153, 0.25)',
+                  transition: 'all 0.15s ease-in-out',
+                }}
+                title="Click to view AI Diagnostics Dashboard"
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="currentColor" />
+                </svg>
+                Avg {avg.toFixed(2)}s
+              </span>
+            );
+          })()
+        ) : (
+          <span
+            onClick={onToggleDiagnostics}
+            style={{
+              color: 'var(--text-2)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+            title="Click to open AI Diagnostics Dashboard"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
+            AI Stats
+          </span>
+        )}
       </div>
 
       <div className="statusbar-right">
