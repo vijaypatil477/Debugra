@@ -18,11 +18,11 @@ async function chatCompletion(systemPrompt, userPrompt, apiKey = '') {
     response_format: { type: 'json_object' },
   });
   const aiMessage = JSON.parse(response.choices[0].message.content);
-    const tokenUsage = response.usage;
-    
-    console.log("Metadata caught: ", tokenUsage);
+  const tokenUsage = response.usage;
 
-    return { content: aiMessage, usage: tokenUsage };
+  console.log('Metadata caught: ', tokenUsage);
+
+  return { content: aiMessage, usage: tokenUsage };
 }
 
 async function chatCompletionText(systemPrompt, userPrompt, apiKey = '') {
@@ -36,11 +36,11 @@ async function chatCompletionText(systemPrompt, userPrompt, apiKey = '') {
     max_tokens: 2000,
   });
   const aiMessage = response.choices[0].message.content;
-    const tokenUsage = response.usage;
-    
-    console.log("Text Metadata caught: ", tokenUsage);
+  const tokenUsage = response.usage;
 
-    return { content: aiMessage, usage: tokenUsage };
+  console.log('Text Metadata caught: ', tokenUsage);
+
+  return { content: aiMessage, usage: tokenUsage };
 }
 
 // 1. Error Explanation
@@ -184,7 +184,9 @@ Rules:
 async function reviewCodeAI(code, language, apiKey = '') {
   return chatCompletion(
     `You are a senior code reviewer. Review code for performance, readability, and security. Always respond in valid JSON.`,
-    'Review this ' + language + ' code:\n\n' +
+    'Review this ' +
+      language +
+      ' code:\n\n' +
       code +
       '\n\nRespond in this EXACT JSON format:\n' +
       '{\n' +
