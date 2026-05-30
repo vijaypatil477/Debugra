@@ -1,5 +1,5 @@
 // tests/format-save.spec.js
-const { test, expect } = require('@playwright/test');
+import { test, expect } from '@playwright/test';
 
 test('format on save', async ({ page }) => {
   await page.goto('/');
