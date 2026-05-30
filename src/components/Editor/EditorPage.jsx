@@ -320,7 +320,15 @@ export default function EditorPage({ user }) {
           tabWidth: editor.tabSize || 2,
         });
 
-        model.setValue(formatted);
+        model.pushEditOperations(
+          [],
+          [{ range: model.getFullModelRange(), text: formatted }],
+          () => null
+        );
+
+        // Wait for Monaco view to update before test assertions read the value
+        await new Promise((r) => setTimeout(r, 250));
+
         editor.setCode(formatted);
         toast.success('Formatted');
         return formatted;
