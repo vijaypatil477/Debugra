@@ -365,7 +365,6 @@ export default function EditorPage({ user }) {
     const monaco = monacoRef.current;
     if (!monaco) return;
 
-<<<<<<< HEAD
     // ── Define formatCurrentModel FIRST — handleDomKeyDown references it ──────
     const formatCurrentModel = async () => {
       const model = editorInstance.getModel();
@@ -409,8 +408,6 @@ export default function EditorPage({ user }) {
     window.__debugra_formatEditor = formatCurrentModel;
 
     // ── DOM-level keydown: handles Tab indent and Ctrl+S format ──────────────
-=======
->>>>>>> fd4367014f0322209a420878f0c91f09f7d63169
     const editorDomNode = editorInstance.getDomNode();
     const handleDomKeyDown = (event) => {
       if (room.isReadOnly) return;
@@ -456,51 +453,7 @@ export default function EditorPage({ user }) {
       if (executionRunRef.current) executionRunRef.current();
     });
 
-<<<<<<< HEAD
     // Ctrl/Cmd+S → Format (Monaco command API)
-=======
-    const formatCurrentModel = async () => {
-      const model = editorInstance.getModel();
-      if (!model) return;
-
-      try {
-        const prettierModule = await import('prettier/standalone');
-        const prettier = prettierModule?.default ?? prettierModule;
-        const parserBabelModule = await import('prettier/plugins/babel');
-        const parserBabel = parserBabelModule?.default ?? parserBabelModule;
-        const parserEstreeModule = await import('prettier/plugins/estree');
-        const parserEstree = parserEstreeModule?.default ?? parserEstreeModule;
-        const parserTSModule = await import('prettier/plugins/typescript');
-        const parserTS = parserTSModule?.default ?? parserTSModule;
-
-        const langKey = editor.language || 'javascript';
-        const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
-        const plugins =
-          langKey === 'typescript' ? [parserTS, parserEstree] : [parserBabel, parserEstree];
-
-        const original = model.getValue();
-        const formatted = await prettier.format(original, {
-          parser: parserName,
-          plugins,
-          semi: true,
-          singleQuote: true,
-          tabWidth: editor.tabSize || 2,
-        });
-
-        model.setValue(formatted);
-        editor.setCode(formatted);
-        toast.success('Formatted');
-        return formatted;
-      } catch (err) {
-        console.error('Formatting error', err);
-        toast.error('Formatting failed');
-        return null;
-      }
-    };
-
-    window.__debugra_formatEditor = formatCurrentModel;
-
->>>>>>> fd4367014f0322209a420878f0c91f09f7d63169
     editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, () => {
       formatCurrentModel();
     });
