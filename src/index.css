@@ -2740,3 +2740,28 @@ details[open] .debug-stderr-summary::before {
   background-color: rgba(20, 20, 20, 0.3) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
+
+
+form div[style*="position: relative"] {
+  margin-bottom: 12px; 
+}
+
+
+.modal-input {
+  width: 100%;
+  padding: 10px 40px 10px 12px !important;
+  background: var(--bg-2, #1e1e2f);
+  border: 1px solid var(--border, #2e2e4e);
+  color: var(--text-0, #e2e8f0);
+  border-radius: 6px;
+  outline: none;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+
+.modal-input:focus {
+  border-color: #8b5cf6; 
+}
+form div[style*="position: relative"] button:hover {
+  color: var(--text-0) !important;
+}
