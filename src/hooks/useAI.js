@@ -7,6 +7,7 @@ import {
   aiGenerateTests,
   aiAuditCode,
   aiExplainError,
+  aiReviewCode,
 } from '../services/api';
 import { showRateLimitToast } from '../utils/rateLimitToast';
 import { LANGUAGES } from '../utils/languageConfig';
@@ -29,6 +30,11 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
   // ─── Debug Error (inline button on Errors tab) ─────────────────────────────
   const [debugResponse, setDebugResponse] = useState(null);
   const [isDebugLoading, setIsDebugLoading] = useState(false);
+
+  const getSelectedOrFullCode = useCallback(() => {
+    const sel = editorRef?.current?.getSelection();
+    return sel && !sel.isEmpty() ? editorRef.current.getModel().getValueInRange(sel) : code;
+  }, [code, editorRef]);
 
   const withAI = useCallback(
     async (action) => {
@@ -62,12 +68,17 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
   const explain = useCallback(
     () =>
       withAI(async () => {
-        const sel = editorRef?.current?.getSelection();
-        const selectedCode =
-          sel && !sel.isEmpty() ? editorRef.current.getModel().getValueInRange(sel) : code;
-        return await aiExplainLogic(selectedCode, LANGUAGES[language].name);
+        return await aiExplainLogic(getSelectedOrFullCode(), LANGUAGES[language].name);
       }),
-    [withAI, code, language, editorRef]
+    [withAI, language, getSelectedOrFullCode]
+  );
+
+  const review = useCallback(
+    () =>
+      withAI(async () => {
+        return await aiReviewCode(getSelectedOrFullCode(), LANGUAGES[language].name);
+      }),
+    [withAI, language, getSelectedOrFullCode]
   );
 
   const visualize = useCallback(
@@ -81,8 +92,8 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
   );
 
   const audit = useCallback(
-    () => withAI(() => aiAuditCode(code, LANGUAGES[language].name)),
-    [withAI, code, language]
+    () => withAI(() => aiAuditCode(getSelectedOrFullCode(), LANGUAGES[language].name)),
+    [withAI, language, getSelectedOrFullCode]
   );
 
   const clearAI = useCallback(() => setAiResponse(null), []);
@@ -108,6 +119,7 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
     isAILoading,
     fix,
     explain,
+    review,
     visualize,
     generateTests,
     audit,

@@ -64,6 +64,42 @@
   color: #e2e8f0; /* Brighter color on hover */
 }
 
+<<<<<<< HEAD
+=======
+/* Review highlight styles used by Monaco decorations */
+.review-line-highlight {
+  border-left: 3px solid transparent;
+}
+.review-line-highlight--high {
+  background: rgba(244, 71, 71, 0.14) !important;
+  border-left-color: #f44747;
+}
+.review-line-highlight--medium {
+  background: rgba(220, 220, 170, 0.12) !important;
+  border-left-color: #dcdcaa;
+}
+.review-line-highlight--low {
+  background: rgba(78, 201, 176, 0.12) !important;
+  border-left-color: #4ec9b0;
+}
+.review-line-marker--high,
+.review-line-marker--medium,
+.review-line-marker--low {
+  width: 4px !important;
+  margin-left: 4px;
+  border-radius: 999px;
+}
+.review-line-marker--high {
+  background: #f44747;
+}
+.review-line-marker--medium {
+  background: #dcdcaa;
+}
+.review-line-marker--low {
+  background: #4ec9b0;
+}
+
+>>>>>>> c7ca29d (feat(ai): add code review workflow)
 /* ============ RESET ============ */
 *,
 *::before,
@@ -2297,6 +2333,7 @@ body {
     min-height: 0;
   }
 }
+<<<<<<< HEAD
 
 /* ============================================================
    DEBUG WITH AI — Inline button (Errors tab)
@@ -2695,6 +2732,8 @@ details[open] .debug-stderr-summary::before {
   .debug-overlay-body   { padding: 12px 16px; }
   .debug-overlay-footer { padding: 10px 16px; }
 }
+=======
+>>>>>>> c7ca29d (feat(ai): add code review workflow)
 /* ===== GLASSMORPHISM BACKDROP EFFECT ===== */
 .glass-panel {
   /* Semi-transparent overlay color tint */

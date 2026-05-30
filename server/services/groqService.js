@@ -180,6 +180,47 @@ Rules:
   );
 }
 
+// 5. Code review
+async function reviewCodeAI(code, language, apiKey = '') {
+  return chatCompletion(
+    `You are a senior code reviewer. Review code for performance, readability, and security. Always respond in valid JSON.`,
+    `Review this ${language} code:
+
+${code}
+
+Respond in this EXACT JSON format:
+{
+  "summary": "one-line review summary",
+  "riskScore": 0,
+  "findings": [
+    {
+      "category": "Performance",
+      "severity": "High",
+      "title": "short finding title",
+      "explanation": "why this matters in 1-2 sentences",
+      "evidence": "specific code pattern or line reference if obvious",
+      "suggestion": "specific mitigation",
+      "refactor": "cleaner architecture or safer pattern",
+      "line": 12,
+      "startLine": 12,
+      "endLine": 18
+    }
+  ],
+  "remediationSteps": ["highest priority next step", "second priority next step"]
+}
+
+Rules:
+- Use category values Performance, Readability, or Security.
+- Use severity values High, Medium, or Low.
+- Prefer concrete, actionable guidance and explain why each issue matters.
+- Use riskScore as an integer from 0 to 100.
+- Include an empty findings array when no meaningful risk is found.
+- Do not invent line numbers when they are not obvious from the snippet.
+- Prefer concrete secure-coding guidance over generic advice.",
+    apiKey
+  );
+}
+
 // 6. Execution Visualization
 async function visualizeAI(code, language, input = '', apiKey = '') {
   return chatCompletion(
@@ -246,6 +287,7 @@ module.exports = {
   fixCodeAI,
   explainLogicAI,
   generateTestsAI,
+  reviewCodeAI,
   auditCodeAI,
   visualizeAI,
   explainCodeSnippetAI,

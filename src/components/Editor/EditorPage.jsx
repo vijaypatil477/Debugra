@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
@@ -79,6 +79,7 @@ export default function EditorPage({ user }) {
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const resizingRef = useRef(false);
+  const reviewDecorationsRef = useRef([]);
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
@@ -146,7 +147,6 @@ export default function EditorPage({ user }) {
   useEffect(() => {
     tabSizeRef.current = editor.tabSize;
   }, [editor.tabSize]);
-
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
     language: editor.language,
@@ -269,6 +269,47 @@ export default function EditorPage({ user }) {
   const handleEditorMount = (editorInstance) => {
     editorRef.current = editorInstance;
     window.__DEBUGRA_EDITOR__ = editorInstance;
+
+    const formatCurrentModel = async () => {
+      const model = editorInstance.getModel();
+      if (!model) return null;
+
+      try {
+        const prettierModule = await import('prettier/standalone');
+        const prettier = prettierModule?.default ?? prettierModule;
+        const parserBabelModule = await import('prettier/plugins/babel');
+        const parserBabel = parserBabelModule?.default ?? parserBabelModule;
+        const parserEstreeModule = await import('prettier/plugins/estree');
+        const parserEstree = parserEstreeModule?.default ?? parserEstreeModule;
+        const parserTSModule = await import('prettier/plugins/typescript');
+        const parserTS = parserTSModule?.default ?? parserTSModule;
+
+        const langKey = editor.language || 'javascript';
+        const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
+        const plugins =
+          langKey === 'typescript' ? [parserTS, parserEstree] : [parserBabel, parserEstree];
+
+        const formatted = await prettier.format(model.getValue(), {
+          parser: parserName,
+          plugins,
+          semi: true,
+          singleQuote: true,
+          tabWidth: editor.tabSize || 2,
+        });
+
+        model.setValue(formatted);
+        editor.setCode(formatted);
+        toast.success('Formatted');
+        return formatted;
+      } catch (err) {
+        console.error('Formatting error', err);
+        toast.error('Formatting failed');
+        return null;
+      }
+    };
+
+    window.__debugra_formatEditor = formatCurrentModel;
+
     const monaco = monacoRef.current;
     if (!monaco) return;
 
@@ -311,63 +352,8 @@ export default function EditorPage({ user }) {
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
-    // Ctrl+Enter → Run
     editorInstance.addCommand(2048 | 3, () => {
       if (executionRunRef.current) executionRunRef.current();
-    });
-
-    const formatCurrentModel = async () => {
-      const model = editorInstance.getModel();
-      if (!model) return;
-
-      try {
-        const prettierModule = await import('prettier/standalone');
-        const prettier = prettierModule?.default ?? prettierModule;
-        const parserBabelModule = await import('prettier/plugins/babel');
-        const parserBabel = parserBabelModule?.default ?? parserBabelModule;
-        const parserEstreeModule = await import('prettier/plugins/estree');
-        const parserEstree = parserEstreeModule?.default ?? parserEstreeModule;
-        const parserTSModule = await import('prettier/plugins/typescript');
-        const parserTS = parserTSModule?.default ?? parserTSModule;
-
-        const langKey = editor.language || 'javascript';
-        const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
-        const plugins =
-          langKey === 'typescript' ? [parserTS, parserEstree] : [parserBabel, parserEstree];
-
-        const original = model.getValue();
-        const formatted = await prettier.format(original, {
-          parser: parserName,
-          plugins,
-          semi: true,
-          singleQuote: true,
-          tabWidth: editor.tabSize || 2,
-        });
-
-        model.setValue(formatted);
-        editor.setCode(formatted);
-        toast.success('Formatted');
-        return formatted;
-      } catch (err) {
-        console.error('Formatting error', err);
-        toast.error('Formatting failed');
-        return null;
-      }
-    };
-
-    window.__debugra_formatEditor = formatCurrentModel;
-
-    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, () => {
-      formatCurrentModel();
-    });
-
-    editorInstance.onKeyDown((e) => {
-      if (room.isReadOnly) return;
-      if ((e.ctrlKey || e.metaKey) && e.keyCode === monaco.KeyCode.KEY_S) {
-        e.preventDefault();
-        e.stopPropagation();
-        formatCurrentModel();
-      }
     });
   };
 
@@ -376,7 +362,7 @@ export default function EditorPage({ user }) {
       if (window.__DEBUGRA_EDITOR__ === editorRef.current) {
         window.__DEBUGRA_EDITOR__ = null;
       }
-      if (window.__debugra_formatEditor && editorRef.current) {
+      if (window.__debugra_formatEditor) {
         window.__debugra_formatEditor = null;
       }
     },
@@ -403,7 +389,6 @@ export default function EditorPage({ user }) {
       model.updateOptions({ tabSize: editor.tabSize, insertSpaces: true });
     }
   }, [editor.tabSize, editor.minimapEnabled, editor.rulerColumn, minimapSide]);
-
   // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
     e.preventDefault();
@@ -425,6 +410,54 @@ export default function EditorPage({ user }) {
 
   const langConfig = LANGUAGES[editor.language];
   const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
+
+  const clearReviewDecorations = useCallback(() => {
+    const editorInstance = editorRef.current;
+    if (!editorInstance) return;
+
+    reviewDecorationsRef.current = editorInstance.deltaDecorations(
+      reviewDecorationsRef.current,
+      []
+    );
+  }, [editorRef]);
+
+  useEffect(() => {
+    const editorInstance = editorRef.current;
+    const monaco = monacoRef.current;
+    const findings = ai.aiResponse?.content?.findings || ai.aiResponse?.findings || [];
+
+    if (!editorInstance || !monaco || !Array.isArray(findings) || findings.length === 0) {
+      clearReviewDecorations();
+      return undefined;
+    }
+
+    const decorations = findings
+      .map((finding) => {
+        const startLine = Number(finding.startLine || finding.line || 0);
+        const endLine = Number(finding.endLine || finding.line || startLine || 0);
+        if (!startLine || !endLine) return null;
+
+        const severity = String(finding.severity || 'Low').toLowerCase();
+        return {
+          range: new monaco.Range(startLine, 1, endLine, 1),
+          options: {
+            isWholeLine: true,
+            className: `review-line-highlight review-line-highlight--${severity}`,
+            linesDecorationsClassName: `review-line-marker review-line-marker--${severity}`,
+          },
+        };
+      })
+      .filter(Boolean);
+
+    reviewDecorationsRef.current = editorInstance.deltaDecorations(
+      reviewDecorationsRef.current,
+      decorations
+    );
+
+    return () => {
+      clearReviewDecorations();
+    };
+  }, [ai.aiResponse, clearReviewDecorations]);
 
   return (
     <div
@@ -726,7 +759,7 @@ export default function EditorPage({ user }) {
             >
               Tests
             </button>
-            <button className="ai-btn" onClick={ai.audit} disabled={ai.isAILoading}>
+            <button className="ai-btn" onClick={ai.review} disabled={ai.isAILoading}>
               <svg
                 width="12"
                 height="12"
@@ -738,7 +771,7 @@ export default function EditorPage({ user }) {
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 <path d="M9 12l2 2 4-5" />
               </svg>
-              Audit
+              Review Code
             </button>
             <button className="ai-btn" onClick={ai.visualize} disabled={ai.isAILoading}>
               <svg
@@ -1094,7 +1127,9 @@ export default function EditorPage({ user }) {
                 },
                 suggestOnTriggerCharacters: true,
                 quickSuggestions: true,
-                formatOnPaste: true,
+                // Only format on explicit save (Cmd/Ctrl+S). Disable automatic
+                // formatting when pasting so pasted code isn't reformatted immediately.
+                formatOnPaste: false,
               }}
             />
           </div>
@@ -1236,132 +1271,129 @@ export default function EditorPage({ user }) {
                   onClick={(e) => {
                     e.stopPropagation();
                     execution.setActiveOutputTab(OUTPUT_TABS.STDERR);
-                    ai.debugError();
-                    setShowDebugOverlay(true);
-                  }}
-                  title="Explain this error in plain English"
-                  aria-label="Debug with AI"
-                >
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                  Debug with AI
-                </button>
-              </div>
-            )}
-            {(ai.aiResponse || ai.isAILoading) && (
-              <button
-                className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.AI ? 'active' : ''}`}
-                onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.AI)}
-              >
-                AI{' '}
-                {ai.isAILoading && (
-                  <span
-                    className="spinner"
-                    style={{ width: '8px', height: '8px', borderWidth: '1.5px', marginLeft: '4px' }}
-                  />
-                )}
-              </button>
-            )}
-          </div>
+                            </div>
 
-          <div className="output-content">
-            <div
-              className={`output-panel ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''}`}
-              id="output-stdout"
-              style={{ position: 'relative' }}
-            >
-              {execution.stdout ? (
-                <>
-                  <button
-                    className="toolbar-icon-btn"
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      background: 'var(--bg-1)',
-                      zIndex: 10,
-                    }}
-                    onClick={() => {
-                      navigator.clipboard.writeText(execution.stdout);
-                      toast.success('Output copied!');
-                    }}
-                    title="Copy output"
-                  >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                  </button>
-                  {execution.stdout}
-                </>
-              ) : (
-                <span className="output-placeholder">Run your code to see output here.</span>
-              )}
-            </div>
-            <div
-              className={`output-panel ${execution.activeOutputTab === OUTPUT_TABS.STDERR ? 'active' : ''}`}
-              id="output-stderr"
-            >
-              {execution.stderr || <span className="output-placeholder">No errors.</span>}
-            </div>
-            <div
-              className="output-panel"
-              style={{
-                display: execution.activeOutputTab === OUTPUT_TABS.AI ? 'block' : 'none',
-                fontFamily: "'Inter', sans-serif",
-              }}
-            >
-              <AIResponsePanel
-                isLoading={ai.isAILoading}
-                response={ai.aiResponse}
-                language={editor.language}
-                onApplyFix={(code) => {
-                  editor.setCode(code);
-                  toast.success('Solution applied!');
-                }}
-              />
-            </div>
-          </div>
+                            {/* Resize Handle (desktop only) */}
+                            {!isMobile && <div className="resize-handle" onMouseDown={handleResizeStart} />}
 
-          {/* Execution info bar */}
-          <div className="exec-info">
-            <div className="exec-item">
-              Status:{' '}
-              <span className={`status-badge status-${execution.execStatus.type}`}>
-                {execution.execStatus.text}
-              </span>
-            </div>
-            {execution.execTime && (
-              <div className="exec-item">
-                Time: <strong>{execution.execTime}</strong>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+                            {/* History Panel (desktop) */}
+                            {showHistory && user && !isMobile && (
+                              <HistoryPanel
+                                user={user}
+                                onLoadCode={editor.loadCode}
+                                onClose={() => setShowHistory(false)}
+                              />
+                            )}
 
-      {/* ===== STATUS BAR ===== */}
-      <EditorStatusBar
-        execStatus={execution.execStatus}
-        langName={langConfig.name}
-        cursorPos={editor.cursorPos}
+                            {/* OUTPUT PANE */}
+                            <div
+                              className="output-pane glass-panel"
+                              style={
+                                isMobile
+                                  ? mobileTab === MOBILE_TABS.OUTPUT
+                                    ? { display: 'flex', width: '100%' }
+                                    : { display: 'none' }
+                                  : { width: outputWidth + 'px' }
+                              }
+                            >
+                              <div className="output-tabs">
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                  }}
+                                >
+                                  <button
+                                    className={`output-tab ${
+                                      execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''
+                                    }`}
+                                    onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDOUT)}
+                                  >
+                                    Output
+                                  </button>
+
+                                  {execution.stdout && (
+                                    <button
+                                      onClick={handleCopyOutput}
+                                      title="Copy Output"
+                                      style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        color: '#aaa',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                      }}
+                                    >
+                                      {copied ? '✓' : '📋'}
+                                    </button>
+                                  )}
+                                </div>
+                                {execution.stderr && (
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                    }}
+                                  >
+                                    <button
+                                      className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDERR ? 'active' : ''}`}
+                                      onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDERR)}
+                                    >
+                                      <span
+                                        style={{
+                                          color:
+                                            execution.activeOutputTab === OUTPUT_TABS.STDERR ? '#f44747' : undefined,
+                                        }}
+                                      >
+                                        ✦ Errors
+                                      </span>
+                                    </button>
+                                    <button
+                                      id="debug-with-ai-btn"
+                                      className="debug-ai-btn"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        execution.setActiveOutputTab(OUTPUT_TABS.STDERR);
+                                        ai.debugError();
+                                        setShowDebugOverlay(true);
+                                      }}
+                                      title="Explain this error in plain English"
+                                      aria-label="Debug with AI"
+                                    >
+                                      <svg
+                                        width="10"
+                                        height="10"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2.5"
+                                      >
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="12" y1="8" x2="12" y2="12" />
+                                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                                      </svg>
+                                      Debug with AI
+                                    </button>
+                                  </div>
+                                )}
+                                {(ai.aiResponse || ai.isAILoading) && (
+                                  <button
+                                    className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.AI ? 'active' : ''}`}
+                                    onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.AI)}
+                                  >
+                                    AI{' '}
+                                    {ai.isAILoading && (
+                                      <span
+                                        className="spinner"
+                                        style={{ width: '8px', height: '8px', borderWidth: '1.5px', marginLeft: '4px' }}
+                                      />
+                                    )}
+                                  </button>
+                                )}
+                              </div>
         tabSize={editor.tabSize}
         room={room}
         user={user}
