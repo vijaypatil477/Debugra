@@ -3571,6 +3571,78 @@ details[open] .debug-stderr-summary::before {
     width: 100%;
     display: block;
     padding: 0.5rem 0;
+/* ============ COMPARE MODE BANNER ============ */
+.compare-banner {
+  background: rgba(30, 20, 60, 0.45) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  font-family: 'Inter', sans-serif;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+  animation: slide-down 0.2s ease-out;
+}
+
+.compare-badge {
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  color: #a78bfa;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.compare-text {
+  font-size: 0.72rem;
+  color: var(--text-1);
+}
+
+.compare-action-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.compare-action-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.compare-action-btn.close {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.compare-action-btn.close:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+@keyframes slide-down {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
 
@@ -4254,4 +4326,6 @@ details[open] .debug-stderr-summary::before {
   }
   .breakdown-note { display: none; }
   .d-none.d-md-block { display: none !important; }
+}
+  }
 }
