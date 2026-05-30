@@ -299,26 +299,44 @@ export default function EditorPage({ user }) {
       try {
         const prettierModule = await import('prettier/standalone');
         const prettier = prettierModule?.default ?? prettierModule;
-        const parserBabelModule = await import('prettier/parser-babel');
-        const parserBabel = parserBabelModule?.default ?? parserBabelModule;
-        const parserTSModule = await import('prettier/parser-typescript');
-        const parserTS = parserTSModule?.default ?? parserTSModule;
 
+        // Support both Prettier v2 (parser-babel) and v3 (plugins/babel + plugins/estree)
+        let plugins;
         const langKey = editor.language || 'javascript';
         const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
-        const plugins = langKey === 'typescript' ? [parserTS] : [parserBabel];
+
+        try {
+          // Try Prettier v3 plugin paths first
+          const [babelPlugin, estreePlugin, tsPlugin] = await Promise.all([
+            import('prettier/plugins/babel').then((m) => m?.default ?? m),
+            import('prettier/plugins/estree').then((m) => m?.default ?? m),
+            import('prettier/plugins/typescript').then((m) => m?.default ?? m),
+          ]);
+          plugins = langKey === 'typescript'
+            ? [tsPlugin, estreePlugin]
+            : [babelPlugin, estreePlugin];
+        } catch {
+          // Fall back to Prettier v2 parser paths
+          const [babelParser, tsParser] = await Promise.all([
+            import('prettier/parser-babel').then((m) => m?.default ?? m),
+            import('prettier/parser-typescript').then((m) => m?.default ?? m),
+          ]);
+          plugins = langKey === 'typescript' ? [tsParser] : [babelParser];
+        }
 
         const original = model.getValue();
-        const formatted = prettier.format(original, {
-          parser: parserName,
-          plugins,
-          semi: true,
-          singleQuote: true,
-          tabWidth: editor.tabSize || 2,
-        });
+        const formatted = await Promise.resolve(
+          prettier.format(original, {
+            parser: parserName,
+            plugins,
+            semi: true,
+            singleQuote: true,
+            tabWidth: editor.tabSize || 2,
+          })
+        );
 
-        // Use setValue so editor.getValue() reflects the update immediately
-        // (required for Playwright waitForFunction polling editor.getValue())
+        // model.setValue updates editor.getValue() immediately
+        // so Playwright waitForFunction polling works correctly
         model.setValue(formatted);
         editor.setCode(formatted);
         toast.success('Formatted');
