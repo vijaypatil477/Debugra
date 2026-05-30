@@ -2,7 +2,7 @@
 import { test, expect } from '@playwright/test';
 
 test('format on save', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/editor');
 
   // Wait for Monaco editor to be fully ready
   await page.waitForFunction(
