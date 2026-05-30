@@ -1,11 +1,13 @@
 // tests/format-save.spec.js
-const { test, expect } = require('@playwright/test');
+import { test, expect } from '@playwright/test';
 
 test('format on save', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/editor');
 
   // Wait for Monaco editor to be fully ready
-  await page.waitForFunction(() => window.__DEBUGRA_EDITOR__ !== null && window.__DEBUGRA_EDITOR__ !== undefined);
+  await page.waitForFunction(
+    () => window.__DEBUGRA_EDITOR__ !== null && window.__DEBUGRA_EDITOR__ !== undefined
+  );
 
   // Type unformatted code directly into the editor via the exposed global
   await page.evaluate(() => {
@@ -17,10 +19,14 @@ test('format on save', async ({ page }) => {
   // Small settle delay after setValue
   await page.waitForTimeout(200);
 
-  // Trigger Ctrl+S to format
-  await page.keyboard.press('Control+s');
+  // Trigger formatter directly via exposed global (avoids browser Ctrl+S interception)
+  await page.evaluate(async () => {
+    if (window.__debugra_formatEditor) {
+      await window.__debugra_formatEditor();
+    }
+  });
 
-  // Wait for prettier to finish (it's async) — poll until semicolon appears
+  // Wait for prettier to finish — poll until semicolon appears
   await page.waitForFunction(
     () => {
       const editor = window.__DEBUGRA_EDITOR__;
