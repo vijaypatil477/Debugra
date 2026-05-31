@@ -78,7 +78,7 @@ export function useWebRTC(roomId, user) {
 
   const createPeer = (userToSignal, callerID, stream) => {
     const peer = new Peer({
-      initiator: true,
+      initiator: callerID > userToSignal,
       trickle: false,
       stream,
     });
@@ -94,6 +94,13 @@ export function useWebRTC(roomId, user) {
 
     peer.on('stream', peerStream => {
       setPeers(prev => [...prev.filter(p => p.peerId !== userToSignal), { peerId: userToSignal, stream: peerStream }]);
+    });
+
+    peer.on('close', () => {
+      if (peersRef.current[userToSignal]) {
+        delete peersRef.current[userToSignal];
+        setPeers(prev => prev.filter(p => p.peerId !== userToSignal));
+      }
     });
 
     return peer;
@@ -119,6 +126,13 @@ export function useWebRTC(roomId, user) {
 
     peer.on('stream', peerStream => {
       setPeers(prev => [...prev.filter(p => p.peerId !== callerID), { peerId: callerID, stream: peerStream }]);
+    });
+
+    peer.on('close', () => {
+      if (peersRef.current[callerID]) {
+        delete peersRef.current[callerID];
+        setPeers(prev => prev.filter(p => p.peerId !== callerID));
+      }
     });
 
     return peer;

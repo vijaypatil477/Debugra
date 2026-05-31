@@ -21,7 +21,6 @@
     "vite": "^8.0.10"
   },
   "dependencies": {
-    "prettier": "^3.2.5",
     "@emnapi/core": "^1.10.0",
     "@emnapi/runtime": "^1.10.0",
     "@monaco-editor/react": "^4.7.0",
@@ -31,7 +30,8 @@
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
     "firebase": "^12.13.0",
-    "lucide-react": "^1.8.0",
+    "lucide-react": "^1.17.0",
+    "prettier": "^3.2.5",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-hot-toast": "^2.6.0",

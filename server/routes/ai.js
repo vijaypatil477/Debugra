@@ -42,6 +42,12 @@ const handleCachedRequest = (actionFn) => async (req, res, next) => {
       return res.json(cachedResponse);
     }
 
+   // const cachedResponse = aiCache.get(cacheKey);
+   // if (cachedResponse) {
+   //   console.log(`[Cache Hit] Serving cached AI response for ${req.path}`);
+   //   return res.json(cachedResponse);
+   // }
+    
     // Process request if not cached
     const result = await actionFn(req.body, apiKey);
 
