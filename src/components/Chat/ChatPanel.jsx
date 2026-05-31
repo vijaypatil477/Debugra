@@ -1,3 +1,4 @@
+import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, useRef } from 'react';
 import {
   collection,
@@ -419,7 +420,24 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
                       wordBreak: 'break-word',
                     }}
                   >
-                    {msg.text}
+                    <ReactMarkdown
+  components={{
+    p: ({ children }) => <p style={{ margin: 0, lineHeight: 1.5 }}>{children}</p>,
+    code: ({ inline, children }) =>
+      inline ? (
+        <code style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '3px', padding: '1px 5px', fontSize: '0.72rem', fontFamily: 'monospace', color: '#f97316' }}>
+          {children}
+        </code>
+      ) : (
+        <pre style={{ background: '#0d0d0d', borderRadius: '6px', padding: '8px 10px', overflowX: 'auto', margin: '4px 0 0', fontSize: '0.7rem', fontFamily: 'monospace', color: '#a3e635', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <code>{children}</code>
+        </pre>
+      ),
+    strong: ({ children }) => <strong style={{ color: '#e2e8f0', fontWeight: 600 }}>{children}</strong>,
+  }}
+>
+  {msg.text}
+</ReactMarkdown>
                   </div>
                 </div>
               );
