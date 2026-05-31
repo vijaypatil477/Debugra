@@ -9,6 +9,8 @@ import {
   addDoc,
   updateDoc,
   serverTimestamp,
+  query,
+  orderBy,
 } from 'firebase/firestore';
 import './VideoCall.css';
 
@@ -24,7 +26,18 @@ const ICE_SERVERS = [
   { urls: 'stun:stun1.l.google.com:19302' },
 ];
 
-const VideoCall = ({ roomId, userName, onClose }) => {
+const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
+  // Test-only flag: when URL contains ?testLocal=1 we render a static local meter
+  // This avoids depending on getUserMedia / AudioContext in headless test environments.
+  let isTestLocal = false;
+  try {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      isTestLocal = params.get('testLocal') === '1';
+    }
+  } catch (e) {
+    isTestLocal = false;
+  }
   const [peers, setPeers] = useState(new Map());
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -32,10 +45,26 @@ const VideoCall = ({ roomId, userName, onClose }) => {
   const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [error, setError] = useState(null);
 
+  // Whiteboard state
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [brushColor, setBrushColor] = useState('#a78bfa'); // Sleek Neon Purple
+  const [brushWidth, setBrushWidth] = useState(5);
+  const [isEraser, setIsEraser] = useState(false);
+  const [strokes, setStrokes] = useState([]);
+
+  const canvasRef = useRef(null);
+  const currentStrokePoints = useRef([]);
+
   const localVideoRef = useRef(null);
   const peersRef = useRef(new Map());
   const localStreamRef = useRef(null);
   const screenStreamRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const localAnalyserRef = useRef(null);
+  const localDataRef = useRef(null);
+  const localRafRef = useRef(null);
+  const [localLevel, setLocalLevel] = useState(0);
 
   // Generate a persistent, session-unique ID for the local peer
   const myPeerId = useRef(crypto.randomUUID().slice(0, 8)).current;
@@ -43,16 +72,21 @@ const VideoCall = ({ roomId, userName, onClose }) => {
   // ── Acquire local media ──────────────────────────
   const startLocalStream = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 },
-          facingMode: 'user',
-        },
-        audio: { echoCancellation: true, noiseSuppression: true },
-      });
+      const constraints = audioOnly
+        ? { audio: { echoCancellation: true, noiseSuppression: true }, video: false }
+        : {
+            video: {
+              width: { ideal: 1280, max: 1920 },
+              height: { ideal: 720, max: 1080 },
+              facingMode: 'user',
+            },
+            audio: { echoCancellation: true, noiseSuppression: true },
+          };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       localStreamRef.current = stream;
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      if (!audioOnly && localVideoRef.current) localVideoRef.current.srcObject = stream;
+      // Setup local analyser will be done by caller when stream is available
       setConnectionStatus('ready');
       return stream;
     } catch (err) {
@@ -65,10 +99,12 @@ const VideoCall = ({ roomId, userName, onClose }) => {
       setConnectionStatus('error');
       return null;
     }
-  }, []);
+  }, [audioOnly]);
 
   useEffect(() => {
-    startLocalStream();
+    startLocalStream().then((stream) => {
+      if (stream && stream.getAudioTracks().length) setupLocalAnalyser(stream);
+    });
     const currentPeers = peersRef.current;
     return () => {
       // Cleanup tracks on unmount
@@ -78,9 +114,60 @@ const VideoCall = ({ roomId, userName, onClose }) => {
         peerObj.connection.close();
         if (peerObj.unsubConnection) peerObj.unsubConnection();
         if (peerObj.unsubCandidates) peerObj.unsubCandidates();
+        if (peerObj.raf) cancelAnimationFrame(peerObj.raf);
+        try {
+          peerObj.analyserSource?.disconnect();
+          peerObj.analyser?.disconnect();
+        } catch (e) {
+          console.warn('Error disconnecting peer analyser', e);
+        }
       });
+      // stop local analyser
+      if (localRafRef.current) cancelAnimationFrame(localRafRef.current);
+      try {
+        localAnalyserRef.current?.disconnect();
+        audioCtxRef.current?.close();
+      } catch (e) {
+        console.warn('Error closing local analyser/audio context', e);
+      }
     };
   }, [startLocalStream]);
+
+  const ensureAudioContext = () => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtxRef.current;
+  };
+
+  const setupLocalAnalyser = useCallback((stream) => {
+    try {
+      const audioCtx = ensureAudioContext();
+      const src = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      src.connect(analyser);
+      localAnalyserRef.current = analyser;
+      localDataRef.current = data;
+
+      const tick = () => {
+        analyser.getByteTimeDomainData(data);
+        // compute normalized RMS
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          const v = data[i] - 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / data.length) / 128;
+        setLocalLevel(Math.min(1, rms));
+        localRafRef.current = requestAnimationFrame(tick);
+      };
+      localRafRef.current = requestAnimationFrame(tick);
+    } catch (e) {
+      console.error('Local analyser setup failed', e);
+    }
+  }, []);
 
   // Update Firestore presence details
   const updatePresence = useCallback(
@@ -128,12 +215,48 @@ const VideoCall = ({ roomId, userName, onClose }) => {
           next.set(peerId, p);
           return next;
         });
+
+        // Setup per-peer analyser for mic activity
+        try {
+          if (remoteStream && remoteStream.getAudioTracks().length) {
+            const audioCtx = ensureAudioContext();
+            const src = audioCtx.createMediaStreamSource(remoteStream);
+            const analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            const data = new Uint8Array(analyser.frequencyBinCount);
+            src.connect(analyser);
+
+            const tickPeer = () => {
+              analyser.getByteTimeDomainData(data);
+              let sum = 0;
+              for (let i = 0; i < data.length; i++) {
+                const v = data[i] - 128;
+                sum += v * v;
+              }
+              const rms = Math.sqrt(sum / data.length) / 128;
+              setPeers((prev) => {
+                const next = new Map(prev);
+                const existing = next.get(peerId) || { id: peerId };
+                existing.volume = Math.min(1, rms);
+                next.set(peerId, existing);
+                return next;
+              });
+              peerObj.raf = requestAnimationFrame(tickPeer);
+            };
+            peerObj.analyser = analyser;
+            peerObj.analyserSource = src;
+            peerObj.raf = requestAnimationFrame(tickPeer);
+          }
+        } catch (e) {
+          console.error('Peer analyser setup failed', e);
+        }
       };
 
       // Handle local ICE candidates and publish them to Firestore
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          const connectionId = myPeerId < peerId ? `${myPeerId}_${peerId}` : `${peerId}_${myPeerId}`;
+          const connectionId =
+            myPeerId < peerId ? `${myPeerId}_${peerId}` : `${peerId}_${myPeerId}`;
           const candidatesCol = collection(
             db,
             'rooms',
@@ -259,6 +382,13 @@ const VideoCall = ({ roomId, userName, onClose }) => {
           peerObj.connection.close();
           if (peerObj.unsubConnection) peerObj.unsubConnection();
           if (peerObj.unsubCandidates) peerObj.unsubCandidates();
+          if (peerObj.raf) cancelAnimationFrame(peerObj.raf);
+          try {
+            peerObj.analyserSource?.disconnect();
+            peerObj.analyser?.disconnect();
+          } catch (e) {
+            console.warn('Error disconnecting peer analyser', e);
+          }
           peersRef.current.delete(peerId);
           setPeers((prev) => {
             const next = new Map(prev);
@@ -386,6 +516,163 @@ const VideoCall = ({ roomId, userName, onClose }) => {
     onClose?.();
   };
 
+  // ── Whiteboard Syncing & Event Handlers ───────────
+  useEffect(() => {
+    if (!roomId) return;
+    const q = query(
+      collection(db, 'rooms', roomId, 'drawings'),
+      orderBy('createdAt', 'asc')
+    );
+    return onSnapshot(q, (snap) => {
+      const remoteStrokes = snap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setStrokes(remoteStrokes);
+    });
+  }, [roomId]);
+
+  const redrawCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Premium dark canvas background color
+    ctx.fillStyle = '#0d0d1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Dynamic grid lines for that blueprint/technical feel
+    ctx.strokeStyle = 'rgba(139, 92, 246, 0.05)';
+    ctx.lineWidth = 1;
+    const gridSize = 40;
+    for (let x = 0; x < canvas.width; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+    for (let y = 0; y < canvas.height; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+
+    // Render each stroke
+    strokes.forEach((stroke) => {
+      if (!stroke.points || stroke.points.length < 2) return;
+      ctx.beginPath();
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = stroke.width;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      const first = stroke.points[0];
+      ctx.moveTo(first.x * canvas.width, first.y * canvas.height);
+
+      for (let i = 1; i < stroke.points.length; i++) {
+        const pt = stroke.points[i];
+        ctx.lineTo(pt.x * canvas.width, pt.y * canvas.height);
+      }
+      ctx.stroke();
+    });
+  }, [strokes]);
+
+  useEffect(() => {
+    redrawCanvas();
+  }, [redrawCanvas, showWhiteboard]);
+
+  const handleStartDraw = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    if (clientX === undefined || clientY === undefined) return;
+
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
+
+    setIsDrawing(true);
+    currentStrokePoints.current = [{ x, y }];
+
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.strokeStyle = isEraser ? '#0d0d1a' : brushColor;
+    ctx.lineWidth = brushWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.moveTo(x * canvas.width, y * canvas.height);
+  };
+
+  const handleDrawing = (e) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    if (clientX === undefined || clientY === undefined) return;
+
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
+
+    currentStrokePoints.current.push({ x, y });
+
+    const ctx = canvas.getContext('2d');
+    ctx.lineTo(x * canvas.width, y * canvas.height);
+    ctx.stroke();
+  };
+
+  const handleStopDraw = async () => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+
+    if (currentStrokePoints.current.length > 1 && roomId) {
+      try {
+        await addDoc(collection(db, 'rooms', roomId, 'drawings'), {
+          points: currentStrokePoints.current,
+          color: isEraser ? '#0d0d1a' : brushColor,
+          width: brushWidth,
+          createdAt: serverTimestamp(),
+        });
+      } catch (err) {
+        console.error('Failed to sync drawing:', err);
+      }
+    }
+    currentStrokePoints.current = [];
+  };
+
+  const clearCanvas = async () => {
+    if (!roomId) return;
+    try {
+      const deletePromises = strokes.map((s) =>
+        deleteDoc(doc(db, 'rooms', roomId, 'drawings', s.id))
+      );
+      await Promise.all(deletePromises);
+    } catch (err) {
+      console.error('Failed to clear canvas:', err);
+    }
+  };
+
+  const exportImage = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Convert canvas data to PNG Data URL
+    const dataUrl = canvas.toDataURL('image/png');
+
+    // Create a temporary virtual link to trigger instant download
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = `whiteboard-${roomId || 'session'}.png`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // ── Render ───────────────────────────────────────
   return (
     <div className="vc-overlay">
@@ -421,42 +708,121 @@ const VideoCall = ({ roomId, userName, onClose }) => {
           </div>
         )}
 
-        <div className="vc-grid">
-          {/* Local video tile */}
-          <div className="vc-tile vc-tile--local">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              muted
-              playsInline
-              className={`vc-video ${isScreenSharing ? 'vc-video--screen' : ''}`}
-            />
-            {isVideoOff && <div className="vc-video-off">📷 Camera Off</div>}
-            <div className="vc-tile-label">
-              {userName || 'You'} (You){isMuted ? ' 🔇' : ''}
-              {isScreenSharing ? ' (Sharing)' : ''}
-            </div>
-          </div>
+        <div className={`vc-body-layout ${showWhiteboard ? 'vc-body-layout--split' : ''}`}>
+          {showWhiteboard && (
+            <div className="vc-whiteboard-panel">
+              <div className="vc-whiteboard-tools">
+                <div className="vc-tool-section">
+                  <span className="vc-tool-label">Colors:</span>
+                  <div className="vc-color-palette">
+                    {[
+                      { value: '#a78bfa', label: 'Purple' },
+                      { value: '#38bdf8', label: 'Blue' },
+                      { value: '#4ade80', label: 'Green' },
+                      { value: '#fb7185', label: 'Coral' },
+                      { value: '#f8f8f2', label: 'White' },
+                    ].map((color) => (
+                      <button
+                        key={color.value}
+                        className={`vc-color-btn ${brushColor === color.value && !isEraser ? 'vc-color-btn--active' : ''}`}
+                        style={{ backgroundColor: color.value }}
+                        onClick={() => {
+                          setBrushColor(color.value);
+                          setIsEraser(false);
+                        }}
+                        title={color.label}
+                      />
+                    ))}
+                    <button
+                      className={`vc-eraser-btn ${isEraser ? 'vc-eraser-btn--active' : ''}`}
+                      onClick={() => setIsEraser(true)}
+                      title="Eraser"
+                    >
+                      🧽
+                    </button>
+                  </div>
+                </div>
 
-          {/* Remote peer tiles */}
-          {Array.from(peers.values()).map((peer) => (
-            <div key={peer.id} className="vc-tile">
-              <video
-                autoPlay
-                playsInline
-                className={`vc-video ${peer.isScreenSharing ? 'vc-video--screen' : ''}`}
-                ref={(el) => {
-                  if (el && peer.stream) el.srcObject = peer.stream;
-                }}
-              />
-              {peer.isVideoOff && <div className="vc-video-off">📷 Camera Off</div>}
-              <div className="vc-tile-label">
-                {peer.name || 'Peer'}
-                {peer.isMuted ? ' 🔇' : ''}
-                {peer.isScreenSharing ? ' (Sharing)' : ''}
+                <div className="vc-tool-section">
+                  <span className="vc-tool-label">Size:</span>
+                  <div className="vc-size-palette">
+                    {[2, 5, 10, 20].map((size) => (
+                      <button
+                        key={size}
+                        className={`vc-size-btn ${brushWidth === size ? 'vc-size-btn--active' : ''}`}
+                        onClick={() => setBrushWidth(size)}
+                      >
+                        {size}px
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="vc-tool-actions">
+                  <button className="vc-action-btn vc-action-btn--clear" onClick={clearCanvas} title="Clear board for everyone">
+                    🗑️ Clear
+                  </button>
+                  <button className="vc-action-btn vc-action-btn--export" onClick={exportImage} title="Export as PNG">
+                    📥 Export Image
+                  </button>
+                </div>
+              </div>
+
+              <div className="vc-canvas-wrapper">
+                <canvas
+                  ref={canvasRef}
+                  width={1200}
+                  height={900}
+                  className="vc-canvas"
+                  onMouseDown={handleStartDraw}
+                  onMouseMove={handleDrawing}
+                  onMouseUp={handleStopDraw}
+                  onMouseLeave={handleStopDraw}
+                  onTouchStart={handleStartDraw}
+                  onTouchMove={handleDrawing}
+                  onTouchEnd={handleStopDraw}
+                />
               </div>
             </div>
-          ))}
+          )}
+
+          <div className={`vc-grid ${showWhiteboard ? 'vc-grid--sidebar' : ''}`}>
+            {/* Local video tile */}
+            <div className="vc-tile vc-tile--local">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className={`vc-video ${isScreenSharing ? 'vc-video--screen' : ''}`}
+              />
+              {isVideoOff && <div className="vc-video-off">📷 Camera Off</div>}
+              <div className="vc-tile-label">
+                {userName || 'You'} (You){isMuted ? ' 🔇' : ''}
+                {isScreenSharing ? ' (Sharing)' : ''}
+              </div>
+            </div>
+
+            {/* Remote peer tiles */}
+            {Array.from(peers.values()).map((peer) => (
+              <div key={peer.id} className="vc-tile">
+                <video
+                  autoPlay
+                  playsInline
+                  className={`vc-video ${peer.isScreenSharing ? 'vc-video--screen' : ''}`}
+                  ref={(el) => {
+                    if (el && peer.stream) el.srcObject = peer.stream;
+                  }}
+                />
+                {peer.isVideoOff && <div className="vc-video-off">📷 Camera Off</div>}
+                <div className="vc-tile-label">
+                  {peer.name || 'Peer'}
+                  {peer.isMuted ? ' 🔇' : ''}
+                  {peer.isScreenSharing ? ' (Sharing)' : ''}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="vc-controls">
@@ -480,6 +846,17 @@ const VideoCall = ({ roomId, userName, onClose }) => {
             title={isScreenSharing ? 'Stop Sharing' : 'Share Screen'}
           >
             🖥️
+          </button>
+          <button
+            className={`vc-ctrl-btn ${showWhiteboard ? 'vc-ctrl-btn--active' : ''}`}
+            onClick={() => setShowWhiteboard(!showWhiteboard)}
+            title={showWhiteboard ? 'Hide Whiteboard' : 'Show Whiteboard'}
+            style={{
+              borderColor: showWhiteboard ? 'rgba(167, 139, 250, 0.4)' : undefined,
+              background: showWhiteboard ? 'rgba(167, 139, 250, 0.15)' : undefined,
+            }}
+          >
+            🎨
           </button>
           <button className="vc-ctrl-btn vc-ctrl-btn--hangup" onClick={hangUp} title="Hang Up">
             📞

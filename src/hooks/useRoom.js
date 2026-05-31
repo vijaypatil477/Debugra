@@ -5,22 +5,58 @@ import toast from 'react-hot-toast';
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
 
-async function hashRoomPassword(password, salt) {
-  const encoded = new TextEncoder().encode(`${salt}:${password}`);
-  const digest = await crypto.subtle.digest('SHA-256', encoded);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+async function verifyRoomPassword(roomId, password) {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  const res = await fetch(`${apiUrl}/api/rooms/verify-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roomId, password }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.error || 'Password verification failed.');
+  }
+
+  sessionStorage.setItem(
+    `${ROOM_AUTH_PREFIX}${roomId}`,
+    JSON.stringify({
+      accessToken: data.accessToken,
+      expiresAt: data.expiresAt,
+    })
+  );
+
+  return true;
 }
 
-function createRoomSalt() {
-  return crypto.randomUUID().replace(/-/g, '');
-}
+async function hasValidRoomAccess(roomId) {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const stored = sessionStorage.getItem(`${ROOM_AUTH_PREFIX}${roomId}`);
 
-function rememberRoomAccess(roomId) {
-  sessionStorage.setItem(`${ROOM_AUTH_PREFIX}${roomId}`, 'true');
-}
+  if (!stored) return false;
 
-function hasRememberedRoomAccess(roomId) {
-  return sessionStorage.getItem(`${ROOM_AUTH_PREFIX}${roomId}`) === 'true';
+  try {
+    const { accessToken, expiresAt } = JSON.parse(stored);
+    if (Date.now() >= expiresAt) {
+      sessionStorage.removeItem(`${ROOM_AUTH_PREFIX}${roomId}`);
+      return false;
+    }
+
+    const res = await fetch(`${apiUrl}/api/rooms/validate-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId, accessToken }),
+    });
+
+    if (res.ok) return true;
+  } catch {
+    // corrupted storage or network issue; fall through to remove token
+  }
+
+  sessionStorage.removeItem(`${ROOM_AUTH_PREFIX}${roomId}`);
+  return false;
 }
 
 /**
@@ -47,12 +83,13 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   const [showRequestsDropdown, setShowRequestsDropdown] = useState(false);
 
   // ─── Derived permissions ────────────────────────────────────────────────────
-  const isAuthor = roomData?.createdBy === user?.uid;
-  const isAllowedEditor = roomData?.allowedEditors?.includes(user?.uid);
-  const isCurrentEditor = roomData?.currentEditor === user?.uid;
-  const isReadOnly = roomId ? !isCurrentEditor : false;
-  const currentEditorName =
-    activeUsers.find((u) => u.uid === roomData?.currentEditor)?.displayName || 'None';
+  const myRole = roomId
+  ? (roomData?.roles?.[user?.uid] || (roomData?.createdBy === user?.uid ? 'host' : 'viewer'))
+  : 'host';
+  const isHost = !roomId || myRole === 'host';
+  const isEditor = !roomId || myRole === 'editor' || isHost;
+  const isReadOnly = roomId ? !isEditor : false;
+  const currentEditorName = isEditor ? (user?.displayName || 'Editor') : 'Viewer';
 
   // ─── Live sync from Firestore ───────────────────────────────────────────────
   useEffect(() => {
@@ -69,10 +106,10 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     return unsub;
   }, [roomId, user]);
 
-  // ─── Push local changes (debounced, author-gated) ──────────────────────────
+  // ─── Push local changes (debounced, editor-gated) ──────────────────────────
   useEffect(() => {
     if (!roomId || !user || !roomData) return;
-    if (roomData.currentEditor !== user.uid) return;
+    if (!isEditor) return;
     const timer = setTimeout(() => {
       updateDoc(doc(db, 'rooms', roomId), {
         code,
@@ -83,7 +120,31 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       }).catch(() => {});
     }, 300);
     return () => clearTimeout(timer);
-  }, [code, language, stdinValue, roomId, user, roomData?.currentEditor]);
+  }, [code, language, stdinValue, roomId, user, isEditor]);
+
+  // ─── Sync active file (language) for presence ───────────────────────────────
+  useEffect(() => {
+    if (!roomId || !user || !roomData) return;
+    const currentUsers = roomData.activeUsers || [];
+    const myIndex = currentUsers.findIndex((u) => u.uid === user.uid);
+    if (myIndex !== -1 && currentUsers[myIndex].activeFile !== language) {
+      const newUsers = [...currentUsers];
+      newUsers[myIndex] = { ...newUsers[myIndex], activeFile: language };
+      updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+    }
+  }, [roomId, user, roomData, language]);
+
+  // ─── Sync active file (language) for presence ───────────────────────────────
+  useEffect(() => {
+    if (!roomId || !user || !roomData) return;
+    const currentUsers = roomData.activeUsers || [];
+    const myIndex = currentUsers.findIndex((u) => u.uid === user.uid);
+    if (myIndex !== -1 && currentUsers[myIndex].activeFile !== language) {
+      const newUsers = [...currentUsers];
+      newUsers[myIndex] = { ...newUsers[myIndex], activeFile: language };
+      updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+    }
+  }, [roomId, user, roomData, language]);
 
   // ─── Auto-join from local storage ───────────────────────────────────────────
   useEffect(() => {
@@ -102,29 +163,22 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       const id = crypto.randomUUID().slice(0, 8);
       const displayName = user.displayName || user.email?.split('@')[0] || 'Guest';
       const trimmedPassword = roomPassword.trim();
-      const passwordSalt = trimmedPassword ? createRoomSalt() : null;
-      const passwordHash = trimmedPassword
-        ? await hashRoomPassword(trimmedPassword, passwordSalt)
-        : null;
+      const passwordProtected = Boolean(trimmedPassword);
 
       await setDoc(doc(db, 'rooms', id), {
         name: `Room ${id}`,
         createdBy: user.uid,
-        isPrivate: Boolean(passwordHash),
-        passwordSalt,
-        passwordHash,
+        isPrivate: passwordProtected,
+        passwordProtected,
         code,
         language,
         activeUsers: [{ uid: user.uid, displayName }],
-        allowedEditors: [user.uid],
-        currentEditor: user.uid,
-        editRequests: [],
+        roles: { [user.uid]: 'host' },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
       setRoomId(id);
       localStorage.setItem('debugra_roomId', id);
-      rememberRoomAccess(id);
       toast.success(`Room created! ID: ${id}`);
       navigator.clipboard.writeText(id);
 
@@ -136,7 +190,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
           event: 'room_created',
           roomId: id,
           userName: displayName,
-          passwordProtected: Boolean(passwordHash)
+          passwordProtected
         })
       }).catch(console.error);
 
@@ -161,32 +215,35 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         const currentUsers = data.activeUsers || [];
         const isCreator = data.createdBy === user.uid;
         const isAllowed = data.allowedEditors?.includes(user.uid);
-        const needsPassword =
-          data.passwordHash && !isCreator && !isAllowed && !hasRememberedRoomAccess(newRoomId);
+        const requiresPassword = Boolean(data.passwordProtected || data.isPrivate) && !isCreator && !isAllowed;
 
-        if (needsPassword) {
-          const suppliedPassword = roomPassword.trim();
-          if (!suppliedPassword) {
-            toast.error('Room passcode required');
-            return false;
-          }
+        if (requiresPassword) {
+          const alreadyAuthorized = await hasValidRoomAccess(newRoomId);
+          if (!alreadyAuthorized) {
+            const suppliedPassword = roomPassword.trim();
+            if (!suppliedPassword) {
+              toast.error('Room passcode required');
+              return false;
+            }
 
-          const suppliedHash = await hashRoomPassword(suppliedPassword, data.passwordSalt);
-          if (suppliedHash !== data.passwordHash) {
-            toast.error('Invalid room passcode');
-            return false;
+            await verifyRoomPassword(newRoomId, suppliedPassword);
           }
         }
 
         const displayName = user.displayName || user.email?.split('@')[0] || 'Guest';
+        const newRoles = { ...(data.roles || {}) };
+        if (!newRoles[user.uid]) newRoles[user.uid] = 'viewer';
+
         if (!currentUsers.some((u) => u.uid === user.uid)) {
           await updateDoc(roomRef, {
             activeUsers: [...currentUsers, { uid: user.uid, displayName }],
+            roles: newRoles,
           });
+        } else if (!data.roles || !data.roles[user.uid]) {
+          await updateDoc(roomRef, { roles: newRoles });
         }
         setRoomId(newRoomId);
         localStorage.setItem('debugra_roomId', newRoomId);
-        rememberRoomAccess(newRoomId);
         toast.success(`Joined room: ${newRoomId}`);
 
         // Trigger Webhook via Backend API
@@ -201,76 +258,21 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         }).catch(console.error);
 
         return true;
-      } catch {
-        toast.error('Failed to join room');
+      } catch (err) {
+        toast.error(err?.message || 'Failed to join room');
         return false;
       }
     },
     [user]
   );
 
-  // ─── Access control ─────────────────────────────────────────────────────────
-  const requestAccess = useCallback(async () => {
-    if (!user || !roomId || !roomData) return;
-    if (roomData.editRequests?.some((r) => r.uid === user.uid)) {
-      toast.error('Access request already sent.');
-      return;
-    }
-    const newRequests = [
-      ...(roomData.editRequests || []),
-      { uid: user.uid, displayName: user.displayName },
-    ];
-    await updateDoc(doc(db, 'rooms', roomId), { editRequests: newRequests });
-    toast.success('Requested edit access from the author.');
-  }, [user, roomId, roomData]);
-
-  const approveAccess = useCallback(
-    async (requestUid) => {
-      if (!roomId || !roomData || !isAuthor) return;
-      const newAllowed = [...new Set([...(roomData.allowedEditors || []), requestUid])];
-      const newRequests = (roomData.editRequests || []).filter((r) => r.uid !== requestUid);
-      await updateDoc(doc(db, 'rooms', roomId), {
-        allowedEditors: newAllowed,
-        editRequests: newRequests,
-      });
-      toast.success('Access granted.');
-    },
-    [roomId, roomData, isAuthor]
-  );
-
-  const denyAccess = useCallback(
-    async (requestUid) => {
-      if (!roomId || !roomData || !isAuthor) return;
-      const newRequests = (roomData.editRequests || []).filter((r) => r.uid !== requestUid);
-      await updateDoc(doc(db, 'rooms', roomId), { editRequests: newRequests });
-      toast('Access denied.');
-    },
-    [roomId, roomData, isAuthor]
-  );
-
-  const revokeAccess = useCallback(
-    async (revokeUid) => {
-      if (!roomId || !roomData || !isAuthor) return;
-      const newAllowed = (roomData.allowedEditors || []).filter((uid) => uid !== revokeUid);
-      const updates = { allowedEditors: newAllowed };
-      if (roomData.currentEditor === revokeUid) updates.currentEditor = null;
-      await updateDoc(doc(db, 'rooms', roomId), updates);
-      toast('Access revoked.');
-    },
-    [roomId, roomData, isAuthor]
-  );
-
-  const takeControl = useCallback(async () => {
-    if (!user || !roomId || !isAllowedEditor) return;
-    await updateDoc(doc(db, 'rooms', roomId), { currentEditor: user.uid });
-    toast.success('You are now editing.');
-  }, [user, roomId, isAllowedEditor]);
-
-  const releaseControl = useCallback(async () => {
-    if (!user || !roomId || !isCurrentEditor) return;
-    await updateDoc(doc(db, 'rooms', roomId), { currentEditor: null });
-    toast.success('You released the editor lock.');
-  }, [user, roomId, isCurrentEditor]);
+  // (Legacy access control methods removed for simpler role system)
+  const requestAccess = useCallback(() => {}, []);
+  const approveAccess = useCallback(() => {}, []);
+  const denyAccess = useCallback(() => {}, []);
+  const revokeAccess = useCallback(() => {}, []);
+  const takeControl = useCallback(() => {}, []);
+  const releaseControl = useCallback(() => {}, []);
 
   const leaveRoom = useCallback(async () => {
     if (!roomId) return;
@@ -448,9 +450,8 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     setShowOnlineDropdown,
     showRequestsDropdown,
     setShowRequestsDropdown,
-    isAuthor,
-    isAllowedEditor,
-    isCurrentEditor,
+    isHost,
+    isEditor,
     isReadOnly,
     currentEditorName,
     createRoom,
