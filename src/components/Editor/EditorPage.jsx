@@ -1,10 +1,11 @@
 import { useRef, useState, useEffect } from 'react';
+import { createMonacoVimController } from '../../utils/monacoVim';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX } from 'lucide-react';
+import { Eye, EyeOff, Settings } from 'lucide-react';
 
 import {
   useRoom,
@@ -38,8 +39,10 @@ import EditorStatusBar from './EditorStatusBar';
 import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
+import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import ComplexityOverlay from './ComplexityOverlay';
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -53,6 +56,7 @@ export default function EditorPage({ user }) {
     new URLSearchParams(window.location.search).get('testRoom') === '1';
   const navigate = useNavigate();
   const editorRef = useRef(null);
+  const monacoRef = useRef(null);
 
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
@@ -60,7 +64,10 @@ export default function EditorPage({ user }) {
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  // const [showApiKey, setShowApiKey] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [showAccount, setShowAccount] = useState(false);
   const [apiKeyStatus, setApiKeyStatus] = useState(getApiKeyStatus);
   const [mobileTab, setMobileTab] = useState(MOBILE_TABS.CODE);
@@ -68,38 +75,43 @@ export default function EditorPage({ user }) {
   const [joinId, setJoinId] = useState('');
   const [joinPassword, setJoinPassword] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
+  const [isOutputCollapsed, setIsOutputCollapsed] = useState(false);
   const [outputWidth, setOutputWidth] = useState(420);
   const [minimapSide, setMinimapSide] = useState('right');
-  const [showMinimap, setShowMinimap] = useState(true); // ✅ CHANGE 1: Added showMinimap state
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [consoleCollapsed, setConsoleCollapsed] = useState(false);
+  const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
   const resizingRef = useRef(false);
+
+  const toggleConsoleCollapsed = () => {
+    setConsoleCollapsed((prev) => !prev);
+  };
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
   const handleCopyOutput = async () => {
-  if (!execution.stdout) return;
+    if (!execution.stdout) return;
 
-      try {
-        await navigator.clipboard.writeText(execution.stdout);
+    try {
+      await navigator.clipboard.writeText(execution.stdout);
 
-        setCopied(true);
+      setCopied(true);
 
-        toast.success('Output copied!');
+      toast.success('Output copied!');
 
-        setTimeout(() => {
-          setCopied(false);
-        }, 2000);
-
-      } catch (err) {
-        toast.error('Failed to copy output');
-      }
-    };
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch (err) {
+      toast.error('Failed to copy output');
+    }
+  };
 
   const editor = useEditor({
     user,
@@ -108,6 +120,14 @@ export default function EditorPage({ user }) {
       setShowAuth(true);
     },
   });
+  const showMinimap = editor.minimapEnabled;
+
+  const vimEnabled = editor.vimEnabled;
+  const setVimEnabled = editor.setVimEnabled;
+
+  const tabSizeRef = useRef(editor.tabSize);
+  const vimControllerRef = useRef(null);
+  const [vimMode, setVimMode] = useState('NORMAL');
 
   // ─── Room/Collaboration Logic ──────────────────────────────────────────────
   const room = useRoom({
@@ -140,6 +160,10 @@ export default function EditorPage({ user }) {
     ensureEditorFontLoaded(editor.fontFamily);
   }, [editor.fontFamily]);
 
+  useEffect(() => {
+    tabSizeRef.current = editor.tabSize;
+  }, [editor.tabSize]);
+
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
     language: editor.language,
@@ -147,10 +171,12 @@ export default function EditorPage({ user }) {
     stderr: execution.stderr,
     setActiveOutputTab: execution.setActiveOutputTab,
     editorRef,
+    model: selectedModel,
   });
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
+    monacoRef.current = monaco;
     if (!window.__MONACO_SNIPPETS_REGISTERED__) {
       registerSnippets(monaco);
       window.__MONACO_SNIPPETS_REGISTERED__ = true;
@@ -260,14 +286,172 @@ export default function EditorPage({ user }) {
 
   const handleEditorMount = (editorInstance) => {
     editorRef.current = editorInstance;
+    window.__DEBUGRA_EDITOR__ = editorInstance;
+    const monaco = monacoRef.current;
+    if (!monaco) return;
+
+    const editorDomNode = editorInstance.getDomNode();
+
+    // Vim initialization is handled in effects; here we only keep non-Vim overrides.
+    // Ctrl+S and Tab indentation must remain functional even in Vim mode.
+
+    const handleDomKeyDown = (event) => {
+      if (room.isReadOnly) return;
+
+      const isSaveShortcut = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's';
+      if (isSaveShortcut) {
+        event.preventDefault();
+        event.stopPropagation();
+        void formatCurrentModel();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const spaces = ' '.repeat(tabSizeRef.current);
+      const selection = editorInstance.getSelection();
+
+      if (selection) {
+        editorInstance.executeEdits('debugra-tab-indent', [
+          {
+            range: selection,
+            text: spaces,
+            forceMoveMarkers: true,
+          },
+        ]);
+      }
+    };
+
+    editorDomNode?.addEventListener('keydown', handleDomKeyDown, true);
+    editorInstance.onDidDispose(() => {
+      editorDomNode?.removeEventListener('keydown', handleDomKeyDown, true);
+    });
+
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
+
+    // Prevent our custom Ctrl+S and Tab handlers from being blocked by Vim command-mode.
+    // These are handled via the capture-phase DOM keydown listener above, and Vim mode toggling
+    // should not override these specific shortcuts.
+
     // Ctrl+Enter → Run
     editorInstance.addCommand(2048 | 3, () => {
       if (executionRunRef.current) executionRunRef.current();
     });
+
+    const formatCurrentModel = async () => {
+      const model = editorInstance.getModel();
+      if (!model) return;
+
+      try {
+        const prettierModule = await import('prettier/standalone');
+        const prettier = prettierModule?.default ?? prettierModule;
+        const parserBabelModule = await import('prettier/plugins/babel');
+        const parserBabel = parserBabelModule?.default ?? parserBabelModule;
+        const parserEstreeModule = await import('prettier/plugins/estree');
+        const parserEstree = parserEstreeModule?.default ?? parserEstreeModule;
+        const parserTSModule = await import('prettier/plugins/typescript');
+        const parserTS = parserTSModule?.default ?? parserTSModule;
+
+        const langKey = editor.language || 'javascript';
+        const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
+        const plugins =
+          langKey === 'typescript' ? [parserTS, parserEstree] : [parserBabel, parserEstree];
+
+        const original = model.getValue();
+        const formatted = await prettier.format(original, {
+          parser: parserName,
+          plugins,
+          semi: true,
+          singleQuote: true,
+          tabWidth: editor.tabSize || 2,
+        });
+
+        model.setValue(formatted);
+        editor.setCode(formatted);
+        toast.success('Formatted');
+        return formatted;
+      } catch (err) {
+        console.error('Formatting error', err);
+        toast.error('Formatting failed');
+        return null;
+      }
+    };
+
+    window.__debugra_formatEditor = formatCurrentModel;
+
+    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, () => {
+      formatCurrentModel();
+    });
+
+    editorInstance.onKeyDown((e) => {
+      if (room.isReadOnly) return;
+      if ((e.ctrlKey || e.metaKey) && e.keyCode === monaco.KeyCode.KEY_S) {
+        e.preventDefault();
+        e.stopPropagation();
+        formatCurrentModel();
+      }
+    });
+
+    // Initialize Vim controller when enabled (after editorInstance exists).
+    if (editor.vimEnabled && !vimControllerRef.current) {
+      void createMonacoVimController({
+        monaco,
+        editor: editorInstance,
+        onModeChange: (mode) => {
+          // monaco-vim tends to pass strings like 'INSERT', 'NORMAL', 'COMMAND'
+          setVimMode(mode);
+        },
+      }).then((controller) => {
+        vimControllerRef.current = controller;
+      });
+    }
   };
+
+  useEffect(
+    () => () => {
+      if (window.__DEBUGRA_EDITOR__ === editorRef.current) {
+        window.__DEBUGRA_EDITOR__ = null;
+      }
+      if (window.__debugra_formatEditor && editorRef.current) {
+        window.__debugra_formatEditor = null;
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    editorRef.current.updateOptions({
+      minimap: {
+        enabled: showMinimap,
+        side: minimapSide,
+        showSlider: 'always',
+        renderCharacters: false,
+      },
+      rulers: [{ column: editor.rulerColumn }],
+      insertSpaces: true,
+      tabSize: editor.tabSize,
+    });
+
+    const model = editorRef.current.getModel();
+    if (model) {
+      model.updateOptions({ tabSize: editor.tabSize, insertSpaces: true });
+    }
+  }, [editor.tabSize, showMinimap, editor.rulerColumn, minimapSide]);
+
+  // ─── Monaco layout refresh after console collapse/restore animation ──────
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      editorRef.current?.layout();
+    }, 310);
+    return () => clearTimeout(timer);
+  }, [isOutputCollapsed]);
 
   // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
@@ -292,7 +476,14 @@ export default function EditorPage({ user }) {
   const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
 
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', '--blur-intensity': `${blurIntensity}px` }}>
+    <div
+      style={{
+        height: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        '--blur-intensity': `${blurIntensity}px`,
+      }}
+    >
       {/* ===== TOP BAR ===== */}
       <div className="topbar px-2 px-md-3">
         <div className="topbar-left d-flex align-items-center">
@@ -556,20 +747,39 @@ export default function EditorPage({ user }) {
             >
               Right
             </button>
-            {/* ✅ CHANGE 2: Added Show/Hide toggle button for minimap */}
             <button
               type="button"
               className={showMinimap ? 'active' : ''}
               aria-pressed={showMinimap}
-              onClick={() => setShowMinimap(!showMinimap)}
-              title="Toggle minimap visibility"
+              aria-label={showMinimap ? 'Hide minimap' : 'Show minimap'}
+              onClick={() => editor.setMinimapEnabled(!showMinimap)}
+              title={showMinimap ? 'Hide minimap' : 'Show minimap'}
             >
-              {showMinimap ? 'Hide' : 'Show'}
+              {showMinimap ? <EyeOff size={13} /> : <Eye size={13} />}
             </button>
           </div>
         </div>
         <div className="toolbar-right d-flex align-items-center gap-2">
           <div className="d-none d-md-flex align-items-center gap-2">
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              style={{
+                background: '#2d2d2d',
+                color: '#e2e8f0',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '6px',
+                padding: '4px 8px',
+                fontSize: '0.72rem',
+                cursor: 'pointer',
+                height: '32px',
+              }}
+              title="Select AI Model"
+            >
+              <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+              <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+              {/* <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>*/}
+            </select>
             <button
               className={`ai-btn api-key-toggle ${apiKeyStatus}`}
               onClick={() => setShowApiKey(true)}
@@ -626,6 +836,34 @@ export default function EditorPage({ user }) {
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
               Explain
+            </button>
+            <button
+              className="ai-btn"
+              onClick={() => {
+                ai.analyzeComplexity();
+                setShowComplexityOverlay(true);
+              }}
+              disabled={ai.isComplexityLoading}
+              title="Analyze Time & Space Complexity (Big-O)"
+              style={{
+                background: ai.isComplexityLoading
+                  ? 'rgba(99, 102, 241, 0.18)'
+                  : 'rgba(99, 102, 241, 0.08)',
+                color: '#a5b4fc',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+              }}
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
+              Big-O
             </button>
           </div>
           <button
@@ -721,111 +959,6 @@ export default function EditorPage({ user }) {
               >
                 <Settings size={14} />
               </button>
-              {showSettings && (
-                <div className="audio-settings-popover custom-layout-popover" role="dialog" aria-label="Settings">
-                  <div className="audio-settings-head">
-                    <span>Settings</span>
-                    <button
-                      className="history-action-btn"
-                      aria-label="Close Settings"
-                      onClick={() => setShowSettings(false)}
-                    >
-                      <i className="bi bi-x" />
-                    </button>
-                  </div>
-                  <div className="audio-settings-row">
-                    <div className="audio-settings-label">
-                      <i className="bi bi-type" style={{ fontSize: '14px' }} />
-                      <span>Editor font</span>
-                    </div>
-                    <select
-                      className="lang-select"
-                      value={editor.fontFamily}
-                      onChange={(e) => editor.setFontFamily(e.target.value)}
-                      aria-label="Editor font"
-                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
-                    >
-                      {EDITOR_FONTS.map((font) => (
-                        <option key={font.id} value={font.id}>
-                          {font.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="audio-settings-row">
-                    <div className="audio-settings-label">
-                      <i className="bi bi-palette" style={{ fontSize: '14px' }} />
-                      <span>Theme</span>
-                    </div>
-                    <select
-                      className="lang-select"
-                      value={editor.theme}
-                      onChange={(e) => editor.setTheme(e.target.value)}
-                      aria-label="Editor theme"
-                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
-                    >
-                      {EDITOR_THEMES.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {/* ===== WALLPAPER BLUR SETTING ROW ===== */}
-                  <div className="audio-settings-row" style={{ marginTop: '12px' }}>
-                    <div className="audio-settings-label">
-                      <i className="bi bi-sliders" style={{ fontSize: '14px' }} />
-                      <span>Wallpaper Blur</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-                      <input
-                        type="range"
-                        min="0"
-                        max="30"
-                        step="1"
-                        value={blurIntensity}
-                        onChange={(e) => setBlurIntensity(Number(e.target.value))}
-                        style={{ flex: 1, accentColor: '#00bcd4' }} 
-                      />
-                      <span style={{ fontSize: '12px', minWidth: '30px', textAlign: 'right' }}>
-                        {blurIntensity}px
-                      </span>
-                    </div>
-                  </div>
-                  <div className="audio-settings-row">
-                    <div className="audio-settings-label">
-                      {audioFeedback.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-                      <span>Audio feedback</span>
-                    </div>
-                    <button
-                      className={`audio-toggle ${audioFeedback.muted ? '' : 'active'}`}
-                      aria-pressed={!audioFeedback.muted}
-                      onClick={() => audioFeedback.setMuted(!audioFeedback.muted)}
-                    >
-                      {audioFeedback.muted ? 'Muted' : 'On'}
-                    </button>
-                  </div>
-                  <label className="audio-settings-slider">
-                    <span>Volume</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={audioFeedback.volume}
-                      onChange={(e) => audioFeedback.setVolume(e.target.value)}
-                    />
-                    <span>{Math.round(audioFeedback.volume * 100)}%</span>
-                  </label>
-                  <button
-                    className="audio-test-btn"
-                    onClick={audioFeedback.testSound}
-                    disabled={audioFeedback.muted}
-                  >
-                    Test chime
-                  </button>
-                </div>
-              )}
             </div>
           </div>
           <span className="kbd-hint d-none d-lg-inline">Ctrl+Enter</span>
@@ -860,7 +993,125 @@ export default function EditorPage({ user }) {
         </div>
       </div>
 
+      {showSettings && (
+        <div className="settings-modal-backdrop" onClick={() => setShowSettings(false)}>
+          <div className="settings-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="audio-settings-head">
+              <span>Editor Settings</span>
+              <button
+                className="history-action-btn"
+                aria-label="Close Settings"
+                onClick={() => setShowSettings(false)}
+              >
+                <i className="bi bi-x" />
+              </button>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="font-select">
+                <span>Editor font</span>
+              </label>
+              <select
+                id="font-select"
+                aria-label="Editor font"
+                className="lang-select"
+                value={editor.fontFamily}
+                onChange={(event) => editor.setFontFamily(event.target.value)}
+              >
+                {EDITOR_FONTS.map((font) => (
+                  <option key={font.id} value={font.id}>
+                    {font.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="tab-size-select">
+                <span>Tab size</span>
+              </label>
+              <select
+                id="tab-size-select"
+                aria-label="Tab size"
+                className="lang-select"
+                value={editor.tabSize}
+                onChange={(event) => editor.setTabSize(event.target.value)}
+              >
+                <option value="2">2</option>
+                <option value="4">4</option>
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="minimap-select">
+                <span>Minimap</span>
+              </label>
+              <select
+                id="minimap-select"
+                aria-label="Minimap"
+                className="lang-select"
+                value={editor.minimapEnabled ? 'enabled' : 'disabled'}
+                onChange={(event) => editor.setMinimapEnabled(event.target.value === 'enabled')}
+              >
+                <option value="enabled">enabled</option>
+                <option value="disabled">disabled</option>
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="ruler-select">
+                <span>Vertical ruler</span>
+              </label>
+              <select
+                id="ruler-select"
+                aria-label="Vertical ruler"
+                className="lang-select"
+                value={editor.rulerColumn}
+                onChange={(event) => editor.setRulerColumn(event.target.value)}
+              >
+                <option value="80">80</option>
+                <option value="120">120</option>
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="autosave-select">
+                <span>Autosave interval</span>
+              </label>
+              <select
+                id="autosave-select"
+                aria-label="Autosave interval"
+                className="lang-select"
+                value={editor.autosaveInterval}
+                onChange={(event) => editor.setAutosaveInterval(event.target.value)}
+              >
+                <option value="0">off</option>
+                <option value="5000">5000</option>
+                <option value="10000">10000</option>
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="vim-select">
+                <span>Vim mode</span>
+              </label>
+              <select
+                id="vim-select"
+                aria-label="Vim mode"
+                className="lang-select"
+                value={editor.vimEnabled ? 'enabled' : 'disabled'}
+                onChange={(event) => editor.setVimEnabled(event.target.value === 'enabled')}
+              >
+                <option value="disabled">disabled</option>
+                <option value="enabled">enabled</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== MAIN SPLIT ===== */}
+      <KeyboardShortcutsModal />
       <div className="main-split">
         {/* EDITOR PANE */}
         <div
@@ -891,6 +1142,7 @@ export default function EditorPage({ user }) {
           {/* Monaco Editor */}
           <div
             id="editor-container"
+            className={showMinimap ? '' : 'minimap-disabled'}
             style={{ flex: 1, minHeight: 0, opacity: room.isReadOnly ? 0.8 : 1 }}
           >
             {room.isReadOnly && (
@@ -924,17 +1176,20 @@ export default function EditorPage({ user }) {
                 fontSize: editor.fontSize,
                 fontFamily: getEditorFontFamily(editor.fontFamily),
                 minimap: {
-                  enabled: showMinimap, // ✅ CHANGE 3: Use showMinimap state instead of hardcoded true
+                  enabled: showMinimap,
                   side: minimapSide,
                   showSlider: 'always',
                   renderCharacters: false,
                 },
+                detectIndentation: false,
                 padding: { top: 12 },
                 scrollBeyondLastLine: false,
                 lineNumbers: 'on',
                 renderLineHighlight: room.isReadOnly ? 'none' : 'line',
                 automaticLayout: true,
-                tabSize: 4,
+                tabSize: editor.tabSize,
+                rulers: [{ column: editor.rulerColumn }],
+                insertSpaces: true,
                 wordWrap: 'on',
                 smoothScrolling: true,
                 cursorBlinking: room.isReadOnly ? 'solid' : 'smooth',
@@ -1008,7 +1263,7 @@ export default function EditorPage({ user }) {
         </div>
 
         {/* Resize Handle (desktop only) */}
-        {!isMobile && <div className="resize-handle" onMouseDown={handleResizeStart} />}
+        {!isMobile && !isOutputCollapsed && <div className="resize-handle" onMouseDown={handleResizeStart} />}
 
         {/* History Panel (desktop) */}
         {showHistory && user && !isMobile && (
@@ -1027,12 +1282,33 @@ export default function EditorPage({ user }) {
               ? mobileTab === MOBILE_TABS.OUTPUT
                 ? { display: 'flex', width: '100%' }
                 : { display: 'none' }
-              : { width: outputWidth + 'px' }
+              : { width: isOutputCollapsed ? '0px' : outputWidth + 'px', minWidth: isOutputCollapsed ? '0' : '260px', overflow: 'hidden' }
           }
         >
           <div className="output-tabs">
+            <button
+              type="button"
+              className={`console-minimize-btn ${consoleCollapsed ? 'collapsed' : ''}`}
+              onClick={() => {
+                toggleConsoleCollapsed();
+                // Let layout/animation start before forcing Monaco layout
+                setTimeout(() => {
+                  try {
+                    monacoRef.current?.layout?.();
+                    editorRef.current?.layout?.();
+                  } catch (e) {
+                    // no-op
+                  }
+                }, 0);
+              }}
+              aria-label={consoleCollapsed ? 'Restore Console' : 'Minimize Console'}
+              aria-pressed={!consoleCollapsed}
+              title={consoleCollapsed ? 'Restore Console' : 'Minimize Console'}
+            >
+              <span className="console-minimize-chevron">▾</span>
+            </button>
             {/* copy */}
-             <div
+            <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1040,9 +1316,8 @@ export default function EditorPage({ user }) {
               }}
             >
               <button
-                className={`output-tab ${
-                  execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''
-                }`}
+                className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''
+                  }`}
                 onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDOUT)}
               >
                 Output
@@ -1064,7 +1339,7 @@ export default function EditorPage({ user }) {
                   {copied ? '✓' : '📋'}
                 </button>
               )}
-             </div>
+            </div>
             {execution.stderr && (
               <div
                 style={{
@@ -1079,7 +1354,8 @@ export default function EditorPage({ user }) {
                 >
                   <span
                     style={{
-                      color: execution.activeOutputTab === OUTPUT_TABS.STDERR ? '#f44747' : undefined,
+                      color:
+                        execution.activeOutputTab === OUTPUT_TABS.STDERR ? '#f44747' : undefined,
                     }}
                   >
                     ✦ Errors
@@ -1098,10 +1374,17 @@ export default function EditorPage({ user }) {
                   title="Explain this error in plain English"
                   aria-label="Debug with AI"
                 >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="12"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
                   </svg>
                   Debug with AI
                 </button>
@@ -1121,9 +1404,46 @@ export default function EditorPage({ user }) {
                 )}
               </button>
             )}
+            <button
+              className="output-collapse-btn"
+              onClick={() => setIsOutputCollapsed(prev => !prev)}
+              title={isOutputCollapsed ? 'Restore Console' : 'Minimize Console'}
+              aria-label={isOutputCollapsed ? 'Restore Console' : 'Minimize Console'}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points={isOutputCollapsed ? "15 18 9 12 15 6" : "6 9 12 15 18 9"} />
+              </svg>
+            </button>
           </div>
 
-          <div className="output-content">
+          <div
+            className={`output-content ${consoleCollapsed ? 'console-collapsed' : ''}`}
+            data-console-collapsed={consoleCollapsed ? 'true' : 'false'}
+          >
+            <div
+              className="console-restore-banner-wrap"
+              style={{ display: consoleCollapsed ? 'flex' : 'none' }}
+            >
+              <button
+                type="button"
+                className="console-restore-banner"
+                onClick={() => {
+                  toggleConsoleCollapsed();
+                  setTimeout(() => {
+                    try {
+                      monacoRef.current?.layout?.();
+                      editorRef.current?.layout?.();
+                    } catch (e) {
+                      // no-op
+                    }
+                  }, 0);
+                }}
+                aria-label="Restore Console"
+                title="Restore Console"
+              >
+                Restore Console
+              </button>
+            </div>
             <div
               className={`output-panel ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''}`}
               id="output-stdout"
@@ -1204,6 +1524,18 @@ export default function EditorPage({ user }) {
             )}
           </div>
         </div>
+
+        {/* Restore Console strip — shown only when output pane is collapsed */}
+        {!isMobile && isOutputCollapsed && (
+          <button
+            className="restore-console-strip"
+            onClick={() => setIsOutputCollapsed(false)}
+            aria-label="Restore Console"
+            title="Restore Console"
+          >
+            <span>Console</span>
+          </button>
+        )}
       </div>
 
       {/* ===== STATUS BAR ===== */}
@@ -1211,8 +1543,11 @@ export default function EditorPage({ user }) {
         execStatus={execution.execStatus}
         langName={langConfig.name}
         cursorPos={editor.cursorPos}
+        tabSize={editor.tabSize}
         room={room}
         user={user}
+        vimEnabled={editor.vimEnabled}
+        vimMode={vimMode}
       />
 
       {/* Chat */}
@@ -1308,12 +1643,7 @@ export default function EditorPage({ user }) {
           onStatusChange={() => setApiKeyStatus(getApiKeyStatus())}
         />
       )}
-{showAccount && user && (
-  <AccountSettings
-    onClose={() => setShowAccount(false)}
-    user={user}
-  />
-)}
+      {showAccount && user && <AccountSettings onClose={() => setShowAccount(false)} user={user} />}
 
       {/* Debug Overlay */}
       <DebugOverlay
@@ -1330,21 +1660,28 @@ export default function EditorPage({ user }) {
         }}
       />
 
-{/* Video Call Overlay */}
-{showVideoCall && room.roomId && (
-  <VideoCall
-    roomId={room.roomId}
-    userName={
-      user?.displayName ||
-      user?.email?.split('@')[0] ||
-      'Guest'
-    }
-    onClose={() => setShowVideoCall(false)}
-  />
-)}
+      {/* Complexity Overlay */}
+      <ComplexityOverlay
+        isOpen={showComplexityOverlay}
+        isLoading={ai.isComplexityLoading}
+        response={ai.complexityResponse}
+        onClose={() => {
+          setShowComplexityOverlay(false);
+          ai.clearComplexity();
+        }}
+      />
 
-{/* Real-time Democratic Vote Popup */}
-<VotePopup room={room} user={user} />
+      {/* Video Call Overlay */}
+      {showVideoCall && room.roomId && (
+        <VideoCall
+          roomId={room.roomId}
+          userName={user?.displayName || user?.email?.split('@')[0] || 'Guest'}
+          onClose={() => setShowVideoCall(false)}
+        />
+      )}
+
+      {/* Real-time Democratic Vote Popup */}
+      <VotePopup room={room} user={user} />
     </div>
   );
 }

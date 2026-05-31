@@ -196,6 +196,10 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.post(
   '/api/security/csp-report',
   express.json({
@@ -218,15 +222,20 @@ app.post(
 app.use(
   cors({
     origin(origin, callback) {
-      // Allow no-Origin header only in dev (curl / server-to-server testing).
-      // In production every request must come from an explicitly allowed origin.
-      if ((!origin && !isProd) || allowedOrigins.includes(origin)) {
+      // Reject missing Origin headers consistently to avoid loosening CORS
+      // protections in development mode.
+      if (!origin) {
+        logger.warn('[CORS] Rejected request without Origin header');
+        const corsError = new Error('Not allowed by CORS');
+        corsError.status = 403;
+        return callback(corsError);
+      }
+
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      // FIX 5: Log blocked origins to help debug future CORS issues
       logger.warn(`[CORS] Blocked origin: ${origin}`);
-
       const corsError = new Error('Not allowed by CORS');
       corsError.status = 403;
       return callback(corsError);
@@ -295,10 +304,6 @@ app.use(memoryTracker);
 // ──────────────────────────────────────────────
 // Routes
 // ──────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
 app.use('/api/execute', executeLimiter, executeRoutes);
 app.use('/api/ai', aiLimiter, aiRoutes);
 app.use('/api/admin/memory-profile', memoryRoutes);

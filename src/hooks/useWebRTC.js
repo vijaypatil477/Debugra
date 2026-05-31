@@ -1,6 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Peer from 'simple-peer';
-import { collection, doc, onSnapshot, setDoc, addDoc, serverTimestamp, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  onSnapshot,
+  setDoc,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
+} from 'firebase/firestore';
 import { db } from '../services/firebase';
 import toast from 'react-hot-toast';
 
@@ -19,19 +30,19 @@ export function useWebRTC(roomId, user) {
       setStream(mediaStream);
       streamRef.current = mediaStream;
       setInCall(true);
-      toast.success("Joined Voice Channel");
+      toast.success('Joined Voice Channel');
 
       // Register self in the call
       const myParticipantRef = doc(db, 'rooms', roomId, 'voice_participants', user.uid);
       await setDoc(myParticipantRef, {
         uid: user.uid,
-        joinedAt: serverTimestamp()
+        joinedAt: serverTimestamp(),
       });
 
       // Listen for other participants to connect to
       const participantsRef = collection(db, 'rooms', roomId, 'voice_participants');
       unsubscribeRef.current = onSnapshot(participantsRef, (snapshot) => {
-        snapshot.docChanges().forEach(change => {
+        snapshot.docChanges().forEach((change) => {
           if (change.type === 'added') {
             const data = change.doc.data();
             if (data.uid !== user.uid && !peersRef.current[data.uid]) {
@@ -45,7 +56,7 @@ export function useWebRTC(roomId, user) {
             if (peersRef.current[data.uid]) {
               peersRef.current[data.uid].destroy();
               delete peersRef.current[data.uid];
-              setPeers(prev => prev.filter(p => p.peerId !== data.uid));
+              setPeers((prev) => prev.filter((p) => p.peerId !== data.uid));
             }
           }
         });
@@ -69,31 +80,40 @@ export function useWebRTC(roomId, user) {
           }
         });
       });
-
     } catch (err) {
       console.error(err);
-      toast.error("Could not access microphone.");
+      toast.error('Could not access microphone.');
     }
   };
 
   const createPeer = (userToSignal, callerID, stream) => {
     const peer = new Peer({
-      initiator: true,
+      initiator: callerID > userToSignal,
       trickle: false,
       stream,
     });
 
-    peer.on('signal', signal => {
+    peer.on('signal', (signal) => {
       addDoc(collection(db, 'rooms', roomId, 'signals'), {
         targetUid: userToSignal,
         senderUid: callerID,
         signal: JSON.stringify(signal),
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
       });
     });
 
-    peer.on('stream', peerStream => {
-      setPeers(prev => [...prev.filter(p => p.peerId !== userToSignal), { peerId: userToSignal, stream: peerStream }]);
+    peer.on('stream', (peerStream) => {
+      setPeers((prev) => [
+        ...prev.filter((p) => p.peerId !== userToSignal),
+        { peerId: userToSignal, stream: peerStream },
+      ]);
+    });
+
+    peer.on('close', () => {
+      if (peersRef.current[userToSignal]) {
+        delete peersRef.current[userToSignal];
+        setPeers((prev) => prev.filter((p) => p.peerId !== userToSignal));
+      }
     });
 
     return peer;
@@ -106,19 +126,29 @@ export function useWebRTC(roomId, user) {
       stream,
     });
 
-    peer.on('signal', signal => {
+    peer.on('signal', (signal) => {
       addDoc(collection(db, 'rooms', roomId, 'signals'), {
         targetUid: callerID,
         senderUid: user.uid,
         signal: JSON.stringify(signal),
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
       });
     });
 
     peer.signal(JSON.parse(incomingSignal.signal));
 
-    peer.on('stream', peerStream => {
-      setPeers(prev => [...prev.filter(p => p.peerId !== callerID), { peerId: callerID, stream: peerStream }]);
+    peer.on('stream', (peerStream) => {
+      setPeers((prev) => [
+        ...prev.filter((p) => p.peerId !== callerID),
+        { peerId: callerID, stream: peerStream },
+      ]);
+    });
+
+    peer.on('close', () => {
+      if (peersRef.current[callerID]) {
+        delete peersRef.current[callerID];
+        setPeers((prev) => prev.filter((p) => p.peerId !== callerID));
+      }
     });
 
     return peer;
@@ -127,12 +157,12 @@ export function useWebRTC(roomId, user) {
   const leaveCall = async () => {
     if (unsubscribeRef.current) unsubscribeRef.current();
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
     }
-    
-    Object.values(peersRef.current).forEach(peer => peer.destroy());
+
+    Object.values(peersRef.current).forEach((peer) => peer.destroy());
     peersRef.current = {};
-    
+
     setInCall(false);
     setStream(null);
     setPeers([]);

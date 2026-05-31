@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -12,6 +12,35 @@ import {
   DEFAULT_THEME,
 } from '../config/constants';
 
+const TAB_SIZE_VALUES = [2, 4];
+const RULER_VALUES = [80, 120];
+const AUTOSAVE_INTERVAL_VALUES = [0, 5000, 10000];
+
+function getStoredNumber(key, fallback, validValues) {
+  const raw = Number(localStorage.getItem(key));
+  return validValues.includes(raw) ? raw : fallback;
+}
+
+function getStoredBoolean(key, fallback) {
+  const raw = localStorage.getItem(key);
+  if (raw === null) return fallback;
+  return raw === 'true';
+}
+
+function getStoredDraft() {
+  try {
+    const raw = localStorage.getItem('debugra-editor-draft');
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.code !== 'string') return null;
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * useEditor
  * Manages local editor state:
@@ -20,18 +49,41 @@ import {
  *   - save to cloud and download as file
  */
 export function useEditor({ user, onNeedAuth }) {
-  const [code, setCode] = useState(LANGUAGES[DEFAULT_LANGUAGE].template);
-  const [language, setLanguage] = useState(DEFAULT_LANGUAGE);
+  const initialDraft = getStoredDraft();
+  const initialLanguage =
+    initialDraft?.language && LANGUAGES[initialDraft.language]
+      ? initialDraft.language
+      : DEFAULT_LANGUAGE;
+
+  const [code, setCode] = useState(initialDraft?.code ?? LANGUAGES[initialLanguage].template);
+  const [language, setLanguage] = useState(initialLanguage);
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
   const [fontFamily, setFontFamily] = useState(
     () => localStorage.getItem('debugra-editor-font') ?? DEFAULT_EDITOR_FONT
   );
   const [theme, setTheme] = useState(() => localStorage.getItem('debugra-theme') ?? DEFAULT_THEME);
+  const [tabSize, setTabSizeState] = useState(() =>
+    getStoredNumber('debugra-tab-size', 4, TAB_SIZE_VALUES)
+  );
+  const [minimapEnabled, setMinimapEnabledState] = useState(() =>
+    getStoredBoolean('debugra-minimap-enabled', true)
+  );
+  const [rulerColumn, setRulerColumnState] = useState(() =>
+    getStoredNumber('debugra-ruler-column', 80, RULER_VALUES)
+  );
+  const [autosaveInterval, setAutosaveIntervalState] = useState(() =>
+    getStoredNumber('debugra-autosave-interval', 0, AUTOSAVE_INTERVAL_VALUES)
+  );
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
-  const [stdinValue, setStdinValue] = useState('');
+  const [stdinValue, setStdinValue] = useState(initialDraft?.stdinValue ?? '');
   const [stdinOpen, setStdinOpen] = useState(false);
 
+  const [vimEnabled, setVimEnabledState] = useState(() =>
+    getStoredBoolean('debugra-vim-enabled', false)
+  );
+
   const [needsInput, setNeedsInput] = useState(false);
+  const autosaveSnapshotRef = useRef({ code, language, stdinValue });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -49,18 +101,76 @@ export function useEditor({ user, onNeedAuth }) {
     localStorage.setItem('debugra-editor-font', fontFamily);
   }, [fontFamily]);
 
+  useEffect(() => {
+    localStorage.setItem('debugra-tab-size', String(tabSize));
+  }, [tabSize]);
+
+  useEffect(() => {
+    localStorage.setItem('debugra-minimap-enabled', String(minimapEnabled));
+  }, [minimapEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('debugra-ruler-column', String(rulerColumn));
+  }, [rulerColumn]);
+
+  useEffect(() => {
+    localStorage.setItem('debugra-autosave-interval', String(autosaveInterval));
+  }, [autosaveInterval]);
+
+  useEffect(() => {
+    localStorage.setItem('debugra-vim-enabled', String(vimEnabled));
+  }, [vimEnabled]);
+
+  useEffect(() => {
+    autosaveSnapshotRef.current = { code, language, stdinValue };
+  }, [code, language, stdinValue]);
+
+  useEffect(() => {
+    if (!autosaveInterval) return undefined;
+
+    const timer = window.setInterval(() => {
+      localStorage.setItem(
+        'debugra-editor-draft',
+        JSON.stringify({
+          ...autosaveSnapshotRef.current,
+          savedAt: Date.now(),
+        })
+      );
+    }, autosaveInterval);
+
+    return () => window.clearInterval(timer);
+  }, [autosaveInterval]);
+
   // Auto-open stdin panel when input-reading functions are detected
   useEffect(() => {
     if (needsInput && !stdinOpen) setStdinOpen(true);
-  }, [needsInput]);
+  }, [needsInput, stdinOpen]);
 
   const changeLanguage = useCallback((newLang) => {
     setLanguage(newLang);
     setCode(LANGUAGES[newLang].template);
   }, []);
 
+  const setVimEnabled = useCallback((value) => setVimEnabledState(Boolean(value)), []);
+
   const increaseFontSize = useCallback(() => setFontSize((f) => Math.min(f + 1, 28)), []);
   const decreaseFontSize = useCallback(() => setFontSize((f) => Math.max(f - 1, 10)), []);
+  const setTabSize = useCallback(
+    (value) => setTabSizeState(TAB_SIZE_VALUES.includes(Number(value)) ? Number(value) : 4),
+    []
+  );
+  const setMinimapEnabled = useCallback((value) => setMinimapEnabledState(Boolean(value)), []);
+  const setRulerColumn = useCallback(
+    (value) => setRulerColumnState(RULER_VALUES.includes(Number(value)) ? Number(value) : 80),
+    []
+  );
+  const setAutosaveInterval = useCallback(
+    (value) =>
+      setAutosaveIntervalState(
+        AUTOSAVE_INTERVAL_VALUES.includes(Number(value)) ? Number(value) : 0
+      ),
+    []
+  );
 
   const downloadCode = useCallback(() => {
     const filename = LANG_FILE_NAMES[language] || 'code.txt';
@@ -107,6 +217,7 @@ export function useEditor({ user, onNeedAuth }) {
     code,
     setCode,
     language,
+
     setLanguage,
     fontSize,
     setFontSize,
@@ -114,6 +225,14 @@ export function useEditor({ user, onNeedAuth }) {
     setFontFamily,
     theme,
     setTheme,
+    tabSize,
+    setTabSize,
+    minimapEnabled,
+    setMinimapEnabled,
+    rulerColumn,
+    setRulerColumn,
+    autosaveInterval,
+    setAutosaveInterval,
     cursorPos,
     setCursorPos,
     stdinValue,
@@ -127,5 +246,8 @@ export function useEditor({ user, onNeedAuth }) {
     downloadCode,
     saveToCloud,
     loadCode,
+
+    vimEnabled,
+    setVimEnabled,
   };
 }
