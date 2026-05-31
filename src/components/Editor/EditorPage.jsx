@@ -41,6 +41,8 @@ import VotePopup from './VotePopup';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import DiffViewer from './DiffViewer';
+import MindMapCanvas from './MindMapCanvas';
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -78,6 +80,7 @@ export default function EditorPage({ user }) {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [showMindMap, setShowMindMap] = useState(false);
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -810,6 +813,25 @@ export default function EditorPage({ user }) {
           <div className="d-flex align-items-center gap-1">
             <button
               className="toolbar-icon-btn"
+              aria-label="Mind Map"
+              onClick={() => setShowMindMap(true)}
+              title="Mind Map"
+              style={showMindMap ? { background: 'var(--bg-active)', color: 'var(--accent)' } : {}}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="3" />
+                <circle cx="4" cy="6" r="2" />
+                <circle cx="20" cy="6" r="2" />
+                <circle cx="4" cy="18" r="2" />
+                <circle cx="20" cy="18" r="2" />
+                <line x1="6" y1="6" x2="10" y2="11" />
+                <line x1="18" y1="6" x2="14" y2="11" />
+                <line x1="6" y1="18" x2="10" y2="13" />
+                <line x1="18" y1="18" x2="14" y2="13" />
+              </svg>
+            </button>
+            <button
+              className="toolbar-icon-btn"
               aria-label="Download Code"
               onClick={editor.downloadCode}
               title="Download"
@@ -1481,6 +1503,29 @@ export default function EditorPage({ user }) {
         />
       )}
       {showAccount && user && <AccountSettings onClose={() => setShowAccount(false)} user={user} />}
+
+      {/* Mind Map Canvas */}
+      {showMindMap && (
+        <MindMapCanvas
+          roomId={room.roomId}
+          user={user}
+          onClose={() => setShowMindMap(false)}
+        />
+      )}
+
+      {/* Diff Viewer */}
+      {ai.refactorDiff && (
+        <DiffViewer
+          original={ai.refactorDiff.original}
+          refactored={ai.refactorDiff.refactored}
+          onApply={() => {
+            editor.setCode(ai.refactorDiff.refactored);
+            ai.clearRefactorDiff();
+            toast.success('Refactor applied!');
+          }}
+          onDiscard={ai.clearRefactorDiff}
+        />
+      )}
 
       {/* Debug Overlay */}
       <DebugOverlay
