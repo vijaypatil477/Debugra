@@ -13,6 +13,8 @@ const memoryProfiler = require('./services/memoryProfiler');
 const errorHandler = require('./middleware/errorHandler');
 const webhookRoutes = require('./routes/webhooks');
 const { executeLimiter, aiLimiter } = require('./middleware/rateLimiters');
+const attachUserIdentity = require('./middleware/attachUserIdentity');
+const { getRateLimitKey } = require('./middleware/rateLimitKey');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -38,6 +40,7 @@ function recordRateLimitEvent(req) {
   const event = {
     timestamp: new Date().toISOString(),
     ip: getClientIp(req),
+    userId: req.user?.uid ?? null,
     method: req.method,
     path: req.originalUrl || req.url,
     userAgent: req.get('user-agent') || 'unknown',
@@ -51,7 +54,8 @@ function recordRateLimitEvent(req) {
     rateLimitEvents.length = rateLimitEventBufferSize;
   }
 
-  logger.warn(`[rate-limit] blocked ${event.method} ${event.path} from ${event.ip}`);
+  const identity = event.userId ? `user ${event.userId}` : event.ip;
+  logger.warn(`[rate-limit] blocked ${event.method} ${event.path} from ${identity}`);
   return event;
 }
 
@@ -238,7 +242,7 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Groq-Api-Key', 'x-admin-token', 'x-security-diagnostics-token'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Groq-Api-Key', 'X-User-Id', 'x-admin-token', 'x-security-diagnostics-token'],
     optionsSuccessStatus: 204,
   })
 );
@@ -263,6 +267,8 @@ app.use((req, res, next) => {
 // ──────────────────────────────────────────────
 // Rate Limiting
 // ──────────────────────────────────────────────
+app.use('/api', attachUserIdentity);
+
 app.get('/api/security/rate-limit-events', requireSecurityDiagnosticsAccess, (req, res) => {
   res.json({
     total: rateLimitEvents.length,
@@ -276,6 +282,7 @@ const globalLimiter = rateLimit({
   limit: 100,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  keyGenerator: (req) => getRateLimitKey(req),
   handler: (req, res) => {
     const event = recordRateLimitEvent(req);
     res.status(429).json({

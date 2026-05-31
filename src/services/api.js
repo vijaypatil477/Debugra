@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getSessionApiKey } from './secureApiKeyStore';
+import { auth } from './firebase';
 
 const API_URL = import.meta.env.VITE_API_URL || 
   (import.meta.env.MODE !== 'production' ? 'http://localhost:3001' : '');
@@ -19,9 +20,14 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor — attach a session-only user Groq key when unlocked
+// Request interceptor — attach user identity and session-only Groq key when unlocked
 api.interceptors.request.use(
   (config) => {
+    const uid = auth.currentUser?.uid;
+    if (uid) {
+      config.headers['X-User-Id'] = uid;
+    }
+
     const apiKey = getSessionApiKey();
     if (apiKey && config.url?.startsWith('/api/ai/')) {
       config.headers['X-Groq-Api-Key'] = apiKey;

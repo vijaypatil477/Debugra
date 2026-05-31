@@ -1,4 +1,5 @@
 const { rateLimit } = require('express-rate-limit');
+const { getRateLimitKey } = require('./rateLimitKey');
 
 function retryAfterSeconds(req) {
   const resetTime = req.rateLimit?.resetTime;
@@ -13,6 +14,7 @@ function createExecuteLimiter() {
     limit: 10,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
+    keyGenerator: (req) => getRateLimitKey(req),
     handler(req, res) {
       const retryAfter = retryAfterSeconds(req);
       res.set('Retry-After', String(retryAfter));
@@ -30,6 +32,7 @@ function createAiLimiter() {
     limit: 5,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
+    keyGenerator: (req) => getRateLimitKey(req),
     handler(req, res) {
       const retryAfter = retryAfterSeconds(req);
       res.set('Retry-After', String(retryAfter));
