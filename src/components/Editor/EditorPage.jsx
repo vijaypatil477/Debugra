@@ -64,11 +64,9 @@ export default function EditorPage({ user }) {
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  // const [showApiKey, setShowApiKey] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
-  const [showAccount, setShowAccount] = useState(false);
   const [apiKeyStatus, setApiKeyStatus] = useState(getApiKeyStatus);
   const [mobileTab, setMobileTab] = useState(MOBILE_TABS.CODE);
   const [showJoin, setShowJoin] = useState(false);
@@ -138,6 +136,7 @@ export default function EditorPage({ user }) {
     setCode: editor.setCode,
     setLanguage: editor.setLanguage,
     setStdinValue: editor.setStdinValue,
+    onKicked: () => navigate('/'),
   });
 
   const execution = useExecution({
@@ -1263,7 +1262,9 @@ export default function EditorPage({ user }) {
         </div>
 
         {/* Resize Handle (desktop only) */}
-        {!isMobile && !isOutputCollapsed && <div className="resize-handle" onMouseDown={handleResizeStart} />}
+        {!isMobile && !isOutputCollapsed && (
+          <div className="resize-handle" onMouseDown={handleResizeStart} />
+        )}
 
         {/* History Panel (desktop) */}
         {showHistory && user && !isMobile && (
@@ -1282,7 +1283,11 @@ export default function EditorPage({ user }) {
               ? mobileTab === MOBILE_TABS.OUTPUT
                 ? { display: 'flex', width: '100%' }
                 : { display: 'none' }
-              : { width: isOutputCollapsed ? '0px' : outputWidth + 'px', minWidth: isOutputCollapsed ? '0' : '260px', overflow: 'hidden' }
+              : {
+                  width: isOutputCollapsed ? '0px' : outputWidth + 'px',
+                  minWidth: isOutputCollapsed ? '0' : '260px',
+                  overflow: 'hidden',
+                }
           }
         >
           <div className="output-tabs">
@@ -1316,8 +1321,9 @@ export default function EditorPage({ user }) {
               }}
             >
               <button
-                className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''
-                  }`}
+                className={`output-tab ${
+                  execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''
+                }`}
                 onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDOUT)}
               >
                 Output
@@ -1406,12 +1412,19 @@ export default function EditorPage({ user }) {
             )}
             <button
               className="output-collapse-btn"
-              onClick={() => setIsOutputCollapsed(prev => !prev)}
+              onClick={() => setIsOutputCollapsed((prev) => !prev)}
               title={isOutputCollapsed ? 'Restore Console' : 'Minimize Console'}
               aria-label={isOutputCollapsed ? 'Restore Console' : 'Minimize Console'}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points={isOutputCollapsed ? "15 18 9 12 15 6" : "6 9 12 15 18 9"} />
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <polyline points={isOutputCollapsed ? '15 18 9 12 15 6' : '6 9 12 15 18 9'} />
               </svg>
             </button>
           </div>

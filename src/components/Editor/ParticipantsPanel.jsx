@@ -90,21 +90,46 @@ export default function ParticipantsPanel({ room, user, onClose }) {
               </span>
 
               {isHost && u.uid !== user?.uid ? (
-                <select
-                  value={userRole}
-                  onChange={(e) => handleRoleChange(u.uid, e.target.value)}
-                  style={{
-                    background: 'var(--bg-3)',
-                    color: 'var(--text-1)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '4px',
-                    padding: '2px 4px',
-                    fontSize: '0.75rem',
-                  }}
-                >
-                  <option value="editor">Editor</option>
-                  <option value="viewer">Viewer</option>
-                </select>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <select
+                    value={userRole}
+                    onChange={(e) => handleRoleChange(u.uid, e.target.value)}
+                    style={{
+                      background: 'var(--bg-3)',
+                      color: 'var(--text-1)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '4px',
+                      padding: '2px 4px',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    <option value="editor">Editor</option>
+                    <option value="viewer">Viewer</option>
+                  </select>
+                  <button
+                    onClick={() => room.kickUser(u.uid)}
+                    style={{
+                      background: 'rgba(244, 71, 71, 0.1)',
+                      color: '#f44747',
+                      border: '1px solid rgba(244, 71, 71, 0.3)',
+                      borderRadius: '4px',
+                      padding: '2px 6px',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(244, 71, 71, 0.2)';
+                      e.currentTarget.style.borderColor = '#f44747';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(244, 71, 71, 0.1)';
+                      e.currentTarget.style.borderColor = 'rgba(244, 71, 71, 0.3)';
+                    }}
+                  >
+                    Kick
+                  </button>
+                </div>
               ) : (
                 <span
                   style={{

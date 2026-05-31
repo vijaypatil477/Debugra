@@ -83,7 +83,16 @@ async function hasValidRoomAccess(roomId) {
  * @param {Function} setLanguage - to apply remote language changes
  * @param {Function} setStdinValue - to apply remote stdin changes
  */
-export function useRoom({ user, code, language, stdinValue, setCode, setLanguage, setStdinValue }) {
+export function useRoom({
+  user,
+  code,
+  language,
+  stdinValue,
+  setCode,
+  setLanguage,
+  setStdinValue,
+  onKicked,
+}) {
   const [roomId, setRoomId] = useState(null);
   const [roomData, setRoomData] = useState(null);
   const [activeUsers, setActiveUsers] = useState([]);
@@ -105,6 +114,22 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     const unsub = onSnapshot(doc(db, 'rooms', roomId), (snap) => {
       if (!snap.exists()) return;
       const data = snap.data();
+
+      // Instant kick check
+      if (user && data.blockedUsers && data.blockedUsers.includes(user.uid)) {
+        toast.error('You have been kicked from the room by the host');
+        localStorage.removeItem('debugra_roomId');
+        setRoomId(null);
+        setRoomData(null);
+        setActiveUsers([]);
+        if (onKicked) {
+          onKicked();
+        } else {
+          window.location.replace('/');
+        }
+        return;
+      }
+
       setRoomData(data);
       if (data.code !== undefined && data._lastEditor !== user?.uid) setCode(data.code);
       if (data.language) setLanguage(data.language);
@@ -112,7 +137,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       setActiveUsers(data.activeUsers || []);
     });
     return unsub;
-  }, [roomId, user]);
+  }, [roomId, user, setCode, setLanguage, setStdinValue, onKicked]);
 
   // ─── Push local changes (debounced, editor-gated) ──────────────────────────
   useEffect(() => {
@@ -219,9 +244,20 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
           toast.error('Room not found');
           return false;
         }
+
         const data = roomSnap.data();
-        const currentUsers = data.activeUsers || [];
+        if (data.blockedUsers && data.blockedUsers.includes(user.uid)) {
+          toast.error('You are banned from joining this room');
+          return false;
+        }
+
         const isCreator = data.createdBy === user.uid;
+        if (data.isLocked && !isCreator) {
+          toast.error('This room is locked by the host');
+          return false;
+        }
+
+        const currentUsers = data.activeUsers || [];
         const isAllowed = data.allowedEditors?.includes(user.uid);
         const requiresPassword =
           Boolean(data.passwordProtected || data.isPrivate) && !isCreator && !isAllowed;
@@ -282,6 +318,41 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   const revokeAccess = useCallback(() => {}, []);
   const takeControl = useCallback(() => {}, []);
   const releaseControl = useCallback(() => {}, []);
+
+  const toggleRoomLock = useCallback(async () => {
+    if (!roomId || !isHost) return;
+    try {
+      const newLockedState = !roomData?.isLocked;
+      await updateDoc(doc(db, 'rooms', roomId), { isLocked: newLockedState });
+      toast.success(newLockedState ? 'Room locked' : 'Room unlocked');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to toggle room lock');
+    }
+  }, [roomId, isHost, roomData?.isLocked]);
+
+  const kickUser = useCallback(
+    async (targetUid) => {
+      if (!roomId || !isHost || !targetUid) return;
+      try {
+        const newActiveUsers = (roomData?.activeUsers || []).filter((u) => u.uid !== targetUid);
+        const blockedUsers = roomData?.blockedUsers || [];
+        const newBlockedUsers = blockedUsers.includes(targetUid)
+          ? blockedUsers
+          : [...blockedUsers, targetUid];
+
+        await updateDoc(doc(db, 'rooms', roomId), {
+          activeUsers: newActiveUsers,
+          blockedUsers: newBlockedUsers,
+        });
+        toast.success('User kicked successfully');
+      } catch (e) {
+        console.error(e);
+        toast.error('Failed to kick user');
+      }
+    },
+    [roomId, isHost, roomData?.activeUsers, roomData?.blockedUsers]
+  );
 
   const leaveRoom = useCallback(async () => {
     if (!roomId) return;
@@ -498,5 +569,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     clearExecutionResult,
     fetchFullVotePayload,
     transitionVoteToExecuting,
+    toggleRoomLock,
+    kickUser,
   };
 }

@@ -42,6 +42,30 @@ export default function CollaborationControls({ room, user }) {
         Participants ({activeUsers.length})
       </button>
 
+      {/* Lock Room toggle for host */}
+      {isHost && (
+        <button
+          onClick={room.toggleRoomLock}
+          style={{
+            background: roomData?.isLocked ? 'rgba(244, 71, 71, 0.15)' : 'var(--bg-1)',
+            color: roomData?.isLocked ? '#f44747' : 'var(--text-1)',
+            border: roomData?.isLocked ? '1px solid #f44747' : '1px solid var(--border)',
+            padding: '2px 8px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            flexShrink: 0,
+            transition: 'all 0.2s ease',
+          }}
+          title={
+            roomData?.isLocked
+              ? 'Room is locked. Click to unlock.'
+              : 'Room is unlocked. Click to lock.'
+          }
+        >
+          {roomData?.isLocked ? '🔒 Locked' : '🔓 Unlocked'}
+        </button>
+      )}
+
       {showParticipants && (
         <ParticipantsPanel room={room} user={user} onClose={() => setShowParticipants(false)} />
       )}

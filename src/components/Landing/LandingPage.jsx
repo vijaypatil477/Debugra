@@ -247,7 +247,7 @@ const LANGUAGES = [
 ];
 <a href="#reviews" className="landing-nav-link">
   Reviews
-</a>
+</a>;
 const STATS = [
   { value: '18+', label: 'Languages' },
   { value: '5', label: 'AI Features' },
@@ -787,115 +787,100 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
-<section id="reviews" className="landing-section container">
-  <div className="section-header">
-    <p className="section-eyebrow">Community</p>
-    <h2 className="section-title">Feedback & Reviews</h2>
-    <p className="section-subtitle">
-      Hear what developers think about Debugra and share your own experience.
-    </p>
-  </div>
-
-      {/* ===== FAQ ===== */}
-      <section id="faq" className="landing-section container">
+      <section id="reviews" className="landing-section container">
         <div className="section-header">
-          <p className="section-eyebrow">FAQ</p>
-          <h2 className="section-title">
-            Common questions,
-            <br />
-            <span style={{ color: 'var(--text-mid)' }}>answered in one place.</span>
-          </h2>
+          <p className="section-eyebrow">Community</p>
+          <h2 className="section-title">Feedback & Reviews</h2>
           <p className="section-subtitle">
-            Quick answers about the platform, accounts, collaboration, and privacy.
+            Hear what developers think about Debugra and share your own experience.
           </p>
         </div>
 
-        <div className="faq-list">
-          {FAQ_ITEMS.map((item, index) => {
-            const isOpen = openFaq === index;
-            return (
-              <div key={item.question} className={`faq-item ${isOpen ? 'is-open' : ''}`}>
-                <button
-                  type="button"
-                  className="faq-question"
-                  aria-expanded={isOpen}
-                  aria-controls={`faq-answer-${index}`}
-                  onClick={() => setOpenFaq(isOpen ? -1 : index)}
-                >
-                  <span>{item.question}</span>
-                  <span className="faq-toggle" aria-hidden="true">
-                    {isOpen ? '−' : '+'}
-                  </span>
-                </button>
-                <div id={`faq-answer-${index}`} className="faq-answer" hidden={!isOpen}>
-                  <p>{item.answer}</p>
+        {/* ===== FAQ ===== */}
+        <section id="faq" className="landing-section container">
+          <div className="section-header">
+            <p className="section-eyebrow">FAQ</p>
+            <h2 className="section-title">
+              Common questions,
+              <br />
+              <span style={{ color: 'var(--text-mid)' }}>answered in one place.</span>
+            </h2>
+            <p className="section-subtitle">
+              Quick answers about the platform, accounts, collaboration, and privacy.
+            </p>
+          </div>
+
+          <div className="faq-list">
+            {FAQ_ITEMS.map((item, index) => {
+              const isOpen = openFaq === index;
+              return (
+                <div key={item.question} className={`faq-item ${isOpen ? 'is-open' : ''}`}>
+                  <button
+                    type="button"
+                    className="faq-question"
+                    aria-expanded={isOpen}
+                    aria-controls={`faq-answer-${index}`}
+                    onClick={() => setOpenFaq(isOpen ? -1 : index)}
+                  >
+                    <span>{item.question}</span>
+                    <span className="faq-toggle" aria-hidden="true">
+                      {isOpen ? '−' : '+'}
+                    </span>
+                  </button>
+                  <div id={`faq-answer-${index}`} className="faq-answer" hidden={!isOpen}>
+                    <p>{item.answer}</p>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        </section>
+
+        <div className="reviews-grid">
+          {REVIEWS.map((review, index) => (
+            <div key={index} className="review-card">
+              <div className="review-stars">{'★'.repeat(review.rating)}</div>
+
+              <p className="review-text">&quot;{review.review}&quot;</p>
+
+              <span className="review-author">— {review.name}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="feedback-form-card">
+          <h3 style={{ marginBottom: '16px' }}>Share Your Feedback</h3>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              toast.success('Thank you for your feedback!');
+            }}
+          >
+            <input type="text" placeholder="Your Name" className="modal-input" required />
+
+            <select className="modal-input" required>
+              <option value="">Select Rating</option>
+              <option value="5">★★★★★ (5)</option>
+              <option value="4">★★★★☆ (4)</option>
+              <option value="3">★★★☆☆ (3)</option>
+              <option value="2">★★☆☆☆ (2)</option>
+              <option value="1">★☆☆☆☆ (1)</option>
+            </select>
+
+            <textarea
+              placeholder="Tell us about your experience..."
+              className="modal-input"
+              rows="4"
+              required
+            />
+
+            <button type="submit" className="landing-btn-primary" style={{ width: 'fit-content' }}>
+              Submit Feedback
+            </button>
+          </form>
         </div>
       </section>
-
-  <div className="reviews-grid">
-    {REVIEWS.map((review, index) => (
-      <div key={index} className="review-card">
-        <div className="review-stars">
-          {'★'.repeat(review.rating)}
-        </div>
-
-        <p className="review-text">
-          "{review.review}"
-        </p>
-
-        <span className="review-author">
-          — {review.name}
-        </span>
-      </div>
-    ))}
-  </div>
-
-  <div className="feedback-form-card">
-    <h3 style={{ marginBottom: '16px' }}>Share Your Feedback</h3>
-
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        toast.success('Thank you for your feedback!');
-      }}
-    >
-      <input
-        type="text"
-        placeholder="Your Name"
-        className="modal-input"
-        required
-      />
-
-      <select className="modal-input" required>
-        <option value="">Select Rating</option>
-        <option value="5">★★★★★ (5)</option>
-        <option value="4">★★★★☆ (4)</option>
-        <option value="3">★★★☆☆ (3)</option>
-        <option value="2">★★☆☆☆ (2)</option>
-        <option value="1">★☆☆☆☆ (1)</option>
-      </select>
-
-      <textarea
-        placeholder="Tell us about your experience..."
-        className="modal-input"
-        rows="4"
-        required
-      />
-
-      <button
-        type="submit"
-        className="landing-btn-primary"
-        style={{ width: 'fit-content' }}
-      >
-        Submit Feedback
-      </button>
-    </form>
-  </div>
-</section>
       {/* ===== CTA ===== */}
       <section className="landing-cta-section">
         <div className="cta-glow" />
@@ -941,23 +926,22 @@ export default function LandingPage() {
       </section>
 
       {/* ===== FOOTER ===== */}
-<footer className="landing-footer">
-  <div className="d-flex align-items-center gap-2 justify-content-center mb-1">
-    <img src="/icon-dark.svg" height="14" alt="Debugra Logo" />
-    <span style={{ fontWeight: 600, color: '#e2e8f0' }}>Debugra</span>
-  </div>
+      <footer className="landing-footer">
+        <div className="d-flex align-items-center gap-2 justify-content-center mb-1">
+          <img src="/icon-dark.svg" height="14" alt="Debugra Logo" />
+          <span style={{ fontWeight: 600, color: '#e2e8f0' }}>Debugra</span>
+        </div>
 
-  <p style={{ margin: 0, fontSize: '0.72rem', color: '#4a4a6a' }}>
-    © {new Date().getFullYear()} Debugra · Built for Hackathon SVKM 2026 ·{" "}
-    <a
-      href="https://github.com/omkhandare55/Debugra"
-      style={{ color: '#6a6a8a', textDecoration: 'none' }}
-    >
-      GitHub
-    </a>
-  </p>
-</footer>
-
+        <p style={{ margin: 0, fontSize: '0.72rem', color: '#4a4a6a' }}>
+          © {new Date().getFullYear()} Debugra · Built for Hackathon SVKM 2026 ·{' '}
+          <a
+            href="https://github.com/omkhandare55/Debugra"
+            style={{ color: '#6a6a8a', textDecoration: 'none' }}
+          >
+            GitHub
+          </a>
+        </p>
+      </footer>
 
       {/* ===== LOGIN MODAL ===== */}
       {showLogin && (
