@@ -79,7 +79,12 @@ export default function EditorPage({ user }) {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [consoleCollapsed, setConsoleCollapsed] = useState(false);
   const resizingRef = useRef(false);
+
+  const toggleConsoleCollapsed = () => {
+    setConsoleCollapsed((prev) => !prev);
+  };
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
@@ -155,7 +160,7 @@ export default function EditorPage({ user }) {
     stderr: execution.stderr,
     setActiveOutputTab: execution.setActiveOutputTab,
     editorRef,
-     model: selectedModel
+    model: selectedModel,
   });
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
@@ -715,24 +720,24 @@ export default function EditorPage({ user }) {
         <div className="toolbar-right d-flex align-items-center gap-2">
           <div className="d-none d-md-flex align-items-center gap-2">
             <select
-  value={selectedModel}
-  onChange={(e) => setSelectedModel(e.target.value)}
-  style={{
-    background: '#2d2d2d',
-    color: '#e2e8f0',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '6px',
-    padding: '4px 8px',
-    fontSize: '0.72rem',
-    cursor: 'pointer',
-    height: '32px',
-  }}
-  title="Select AI Model"
->
-  <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-<option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
-{/* <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>*/}
-</select>
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              style={{
+                background: '#2d2d2d',
+                color: '#e2e8f0',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '6px',
+                padding: '4px 8px',
+                fontSize: '0.72rem',
+                cursor: 'pointer',
+                height: '32px',
+              }}
+              title="Select AI Model"
+            >
+              <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+              <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+              {/* <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>*/}
+            </select>
             <button
               className={`ai-btn api-key-toggle ${apiKeyStatus}`}
               onClick={() => setShowApiKey(true)}
@@ -1020,7 +1025,7 @@ export default function EditorPage({ user }) {
       )}
 
       {/* ===== MAIN SPLIT ===== */}
-            <KeyboardShortcutsModal />
+      <KeyboardShortcutsModal />
       <div className="main-split">
         {/* EDITOR PANE */}
         <div
@@ -1195,6 +1200,27 @@ export default function EditorPage({ user }) {
           }
         >
           <div className="output-tabs">
+            <button
+              type="button"
+              className={`console-minimize-btn ${consoleCollapsed ? 'collapsed' : ''}`}
+              onClick={() => {
+                toggleConsoleCollapsed();
+                // Let layout/animation start before forcing Monaco layout
+                setTimeout(() => {
+                  try {
+                    monacoRef.current?.layout?.();
+                    editorRef.current?.layout?.();
+                  } catch (e) {
+                    // no-op
+                  }
+                }, 0);
+              }}
+              aria-label={consoleCollapsed ? 'Restore Console' : 'Minimize Console'}
+              aria-pressed={!consoleCollapsed}
+              title={consoleCollapsed ? 'Restore Console' : 'Minimize Console'}
+            >
+              <span className="console-minimize-chevron">▾</span>
+            </button>
             {/* copy */}
             <div
               style={{
@@ -1295,7 +1321,34 @@ export default function EditorPage({ user }) {
             )}
           </div>
 
-          <div className="output-content">
+          <div
+            className={`output-content ${consoleCollapsed ? 'console-collapsed' : ''}`}
+            data-console-collapsed={consoleCollapsed ? 'true' : 'false'}
+          >
+            <div
+              className="console-restore-banner-wrap"
+              style={{ display: consoleCollapsed ? 'flex' : 'none' }}
+            >
+              <button
+                type="button"
+                className="console-restore-banner"
+                onClick={() => {
+                  toggleConsoleCollapsed();
+                  setTimeout(() => {
+                    try {
+                      monacoRef.current?.layout?.();
+                      editorRef.current?.layout?.();
+                    } catch (e) {
+                      // no-op
+                    }
+                  }, 0);
+                }}
+                aria-label="Restore Console"
+                title="Restore Console"
+              >
+                Restore Console
+              </button>
+            </div>
             <div
               className={`output-panel ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''}`}
               id="output-stdout"
