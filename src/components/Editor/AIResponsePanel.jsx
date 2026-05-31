@@ -30,8 +30,8 @@ function TestCard({ tc, i }) {
         </button>
       </div>
       <div className="ai-card-content">
-        <div>Input: <code style={{ color: 'var(--text-0)' }}>{tc.input}</code></div>
-        <div>Expected: <code style={{ color: 'var(--green)' }}>{tc.expected}</code></div>
+        <div>Input: <code style={{ color: 'var(--text-0)' }}>{typeof tc.input === 'object' ? JSON.stringify(tc.input) : String(tc.input ?? '')}</code></div>
+<div>Expected: <code style={{ color: 'var(--green)' }}>{typeof tc.expected === 'object' ? JSON.stringify(tc.expected) : String(tc.expected ?? '')}</code></div>
         {tc.description && <div style={{ marginTop: '4px', color: 'var(--text-2)', fontSize: '0.7rem' }}>{tc.description}</div>}
       </div>
     </div>
@@ -399,6 +399,10 @@ export default function AIResponsePanel({ isLoading, response: rawResponse, onAp
      {Array.isArray(response.testCases) && (
         <TestCasesPanel testCases={response.testCases} />
       )}
+            {Array.isArray(response.testCases) && (
+        <TestCasesPanel testCases={response.testCases} />
+      )}
+        
       {auditFindings && (
         <div style={{ marginBottom: '10px' }}>
           <div

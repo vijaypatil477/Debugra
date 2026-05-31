@@ -6,9 +6,9 @@
     "auditLog": "/Users/shwetasingh/Debugra/server/logs/.e1e6f32d50f191d81728e032ee0f377e91455cd5-audit.json",
     "files": [
         {
-            "date": 1779949478658,
+            "date": 1779957151105,
             "name": "/Users/shwetasingh/Debugra/server/logs/error-2026-05-28.log",
-            "hash": "41f3272ef13d1f3c0a9613b1488eb27e9c3dd05fbee14405b409501e3fd26338"
+            "hash": "097140d47b6022e503485361a4fa2bb0370c52f3f86a59d2ca6c11fb47314459"
         }
     ],
     "hashType": "sha256"
