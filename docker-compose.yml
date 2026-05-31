@@ -1,37 +1,50 @@
-version: '3.8'
-
 services:
   frontend:
+    container_name: debugra-frontend
     build:
       context: .
       dockerfile: Dockerfile.dev
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_URL=http://localhost:3001
       - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    env_file:
+      - .env
     volumes:
       - .:/app
       - /app/node_modules
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
+    networks:
+      - debugra-network
 
   backend:
+    container_name: debugra-backend
     build:
       context: ./server
       dockerfile: Dockerfile.dev
     ports:
-      - "3001:8080"
-    volumes:
-      - ./server:/app
-      - /app/node_modules
+      - "3001:3001"
     env_file:
       - ./server/.env
     environment:
       - NODE_ENV=development
-      - PORT=8080
-      # Provide dummy values for local development if .env is missing
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-dummy_key}
-      - CORS_ORIGINS=http://localhost:5173
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
+    networks:
+      - debugra-network
+
+networks:
+  debugra-network:
+    driver: bridge

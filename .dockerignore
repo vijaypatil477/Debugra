@@ -1,0 +1,35 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Version control
+.git
+.github
+
+# IDE
+.vscode
+.idea
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment files (secrets)
+.env
+.env.local
+
+# Test artifacts
+playwright-report
+test-results
+tests
+
+# Documentation (not needed in container)
+docs
+
+# Server has its own Dockerfile
+server
