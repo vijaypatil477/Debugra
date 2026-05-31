@@ -10,6 +10,7 @@ import {
   DEFAULT_FONT_SIZE,
   DEFAULT_EDITOR_FONT,
   DEFAULT_THEME,
+  EDITOR_THEMES,
 } from '../config/constants';
 
 const TAB_SIZE_VALUES = [2, 4];
@@ -61,7 +62,18 @@ export function useEditor({ user, onNeedAuth }) {
   const [fontFamily, setFontFamily] = useState(
     () => localStorage.getItem('debugra-editor-font') ?? DEFAULT_EDITOR_FONT
   );
-  const [theme, setTheme] = useState(() => localStorage.getItem('debugra-theme') ?? DEFAULT_THEME);
+  const VALID_THEME_IDS = EDITOR_THEMES.map((t) => t.id);
+  const [theme, setThemeRaw] = useState(() => {
+    const stored = localStorage.getItem('debugra-theme');
+    return stored && VALID_THEME_IDS.includes(stored) ? stored : DEFAULT_THEME;
+  });
+  const setTheme = useCallback(
+    (value) => {
+      if (VALID_THEME_IDS.includes(value)) setThemeRaw(value);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
   const [tabSize, setTabSizeState] = useState(() =>
     getStoredNumber('debugra-tab-size', 4, TAB_SIZE_VALUES)
   );
