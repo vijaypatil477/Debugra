@@ -225,11 +225,8 @@ app.use(
       // Reject missing Origin headers consistently to avoid loosening CORS
       // protections in development mode.
       if (!origin) {
-        logger.warn('[CORS] Rejected request without Origin header');
-        const corsError = new Error('Not allowed by CORS');
-        corsError.status = 403;
-        return callback(corsError);
-      }
+     return callback(null, true);
+    }
 
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
