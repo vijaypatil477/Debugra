@@ -62,7 +62,9 @@ export default function EditorPage({ user }) {
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  // const [showApiKey, setShowApiKey] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
   const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [showAccount, setShowAccount] = useState(false);
   const [apiKeyStatus, setApiKeyStatus] = useState(getApiKeyStatus);
