@@ -314,7 +314,7 @@ export default function LandingPage() {
               color: '#888888',
               fontFamily: 'JetBrains Mono, monospace',
               marginLeft: '4px',
-              paddingBottom: '1px',
+              lineHeight: '1',
             }}
           >
             v1.0
