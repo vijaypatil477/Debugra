@@ -36,6 +36,7 @@
 }
 
 /* Console Output Copy Button Styles */
+
 .console-container {
   position: relative; /* Crucial for absolute positioning of the child button */
 }

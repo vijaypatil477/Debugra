@@ -5,6 +5,8 @@ import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
 import { Settings, Volume2, VolumeX } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 import {
   useRoom,
@@ -57,6 +59,7 @@ export default function EditorPage({ user }) {
   const monacoRef = useRef(null);
 
   // ─── UI State ──────────────────────────────────────────────────────────────
+  const exportRef = useRef(null);
   const [copied, setCopied] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
@@ -85,6 +88,48 @@ export default function EditorPage({ user }) {
   const audioFeedback = useAudioFeedback();
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
+
+  const handleExportPDF = async () => {
+  const canvas = await html2canvas(exportRef.current, {
+    scale: 2,
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    const imgWidth = 190;
+
+    const pageHeight = 295;
+
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+
+    pdf.save('debugra-code.pdf');
+
+    toast.success('PDF exported!');
+  };
+
+
+  const handleExportPNG = async () => {
+  const canvas = await html2canvas(exportRef.current, {
+    scale: 2,
+    });
+
+    const image = canvas.toDataURL('image/png');
+
+    const link = document.createElement('a');
+
+    link.href = image;
+    link.download = 'debugra-code.png';
+
+    link.click();
+
+    toast.success('PNG exported!');
+  };
+
+
   const handleCopyOutput = async () => {
     if (!execution.stdout) return;
 
@@ -897,6 +942,21 @@ export default function EditorPage({ user }) {
           >
             Clear
           </button>
+          {/* export */}
+         <button
+            className="ai-btn"
+            onClick={handleExportPNG}
+          >
+            Export PNG
+          </button>
+
+          <button
+            className="ai-btn"
+            onClick={handleExportPDF}
+          >
+            Export PDF
+          </button>
+          {/* run */}
           <button
             className="run-btn d-none d-sm-flex align-items-center"
             onClick={execution.run}
@@ -1020,8 +1080,9 @@ export default function EditorPage({ user }) {
       )}
 
       {/* ===== MAIN SPLIT ===== */}
-            <KeyboardShortcutsModal />
-      <div className="main-split">
+      <KeyboardShortcutsModal />
+
+      <div ref={exportRef} className="main-split">
         {/* EDITOR PANE */}
         <div
           className="editor-pane glass-panel"
