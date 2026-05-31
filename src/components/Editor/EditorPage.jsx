@@ -1023,6 +1023,17 @@ export default function EditorPage({ user }) {
                 }
               >
                 <Settings size={14} />
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: -9999,
+                    width: 1,
+                    height: 1,
+                    overflow: 'hidden',
+                  }}
+                >
+                  Open Settings
+                </span>
               </button>
               {showSettings && (
                 <div

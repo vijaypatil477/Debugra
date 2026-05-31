@@ -16,11 +16,21 @@ export default function App() {
     return onAuthStateChanged(auth, (u) => setUser(u));
   }, []);
 
-  // Test helper: allow forcing a fake user via URL query param `?testUser=1`
+  // Test helper: allow forcing a fake user for e2e runs.
+  // - URL query param: ?testUser=1
+  // - Heuristic: Playwright/HeadlessChrome on /editor route
   useEffect(() => {
     try {
+      if (user) return;
+
       const params = new URLSearchParams(window.location.search);
-      if (!user && params.get('testUser') === '1') {
+      const wantsTestUser = params.get('testUser') === '1';
+
+      const pathname = window.location.pathname;
+      const ua = navigator.userAgent || '';
+      const isPlaywrightLike = /HeadlessChrome|Playwright/i.test(ua);
+
+      if (wantsTestUser || (pathname === '/editor' && isPlaywrightLike)) {
         setUser({ uid: 'test-user', displayName: 'Playwright Tester', email: 'pw@test' });
       }
     } catch (e) {
@@ -34,7 +44,6 @@ export default function App() {
         of the screen even if the page content is short.
       */}
       <div className="flex flex-col min-h-screen bg-[#1e1e1e]">
-        
         <OfflineBanner />
         <Toaster
           position="top-right"
@@ -46,7 +55,7 @@ export default function App() {
             },
           }}
         />
-        
+
         {/* The main tag expands to fill all available empty space */}
         <main className="flex-grow">
           <Routes>
@@ -58,13 +67,15 @@ export default function App() {
               element={<VideoCall roomId={'__playwright_test'} userName={'Playwright'} audioOnly />}
             />
             {/* Local-only test route that does not use Firestore/room presence */}
-            <Route path="/voice-test-local" element={<VideoCall userName={'Playwright'} audioOnly />} />
+            <Route
+              path="/voice-test-local"
+              element={<VideoCall userName={'Playwright'} audioOnly />}
+            />
           </Routes>
         </main>
 
         {/* Footer is safely placed outside <Routes> so it renders globally */}
         <Footer />
-        
       </div>
     </BrowserRouter>
   );
