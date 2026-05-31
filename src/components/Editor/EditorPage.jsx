@@ -1080,11 +1080,9 @@ export default function EditorPage({ user }) {
       )}
 
       {/* ===== MAIN SPLIT ===== */}
+      <KeyboardShortcutsModal />
+
       <div ref={exportRef} className="main-split">
-        {/* EDITOR PANE */}
-        <div  className="editor-pane"
-            <KeyboardShortcutsModal />
-      <div className="main-split">
         {/* EDITOR PANE */}
         <div
           className="editor-pane glass-panel"
