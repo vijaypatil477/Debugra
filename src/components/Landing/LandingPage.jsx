@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import {
   signInWithPopup,
@@ -271,6 +271,13 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [theme, setTheme] = useState(
+    localStorage.getItem('theme') || 'dark');
+  useEffect(() => {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+}, [theme]);
+
 
   const handleGoogle = async () => {
     try {
@@ -327,6 +334,14 @@ export default function LandingPage() {
           <a href="#languages" className="landing-nav-link">
             Languages
           </a>
+          <button
+          onClick={() =>
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
+  }
+  className="landing-btn-outline"
+>
+  {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+</button>
           <button onClick={() => setShowLogin(true)} className="landing-btn-outline">
             Log In
           </button>

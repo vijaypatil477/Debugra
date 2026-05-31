@@ -4,13 +4,31 @@
   --brand: #4ec9b0; /* VS Code teal — already in the editor */
   --brand-dim: rgba(78, 201, 176, 0.12);
   --brand-border: rgba(78, 201, 176, 0.2);
-  --surface: rgba(255, 255, 255, 0.025);
+  --surface: #0a0a0f;
   --surface-hover: rgba(255, 255, 255, 0.045);
   --border-subtle: rgba(255, 255, 255, 0.07);
   --border-hover: rgba(255, 255, 255, 0.14);
   --text-hi: #f4f4f5;
   --text-mid: #a1a1aa;
   --text-lo: #888888;
+}
+
+[data-theme='light'] {
+  --surface: #ffffff;
+  --surface-hover: #f3f4f6;
+
+  --border-subtle: rgba(0, 0, 0, 0.12);
+  --border-hover: rgba(0, 0, 0, 0.22);
+
+  --text-hi: #111827;
+  --text-mid: #4b5563;
+  --text-lo: #6b7280;
+}
+
+.landing-root {
+  background: var(--surface);
+  color: var(--text-hi);
+  min-height: 100vh;
 }
 
 /* ─── Kill every glow blob — no exceptions ───────────────────────── */
@@ -176,7 +194,7 @@
   position: relative;
   overflow: hidden;
   padding: 32px 28px;
-  background: #0c0c0e;
+  background: var(--surface);
   border: none;
   border-right: 1px solid var(--border-subtle);
   border-bottom: 1px solid var(--border-subtle);
@@ -194,7 +212,7 @@
 }
 
 .bento-card:hover {
-  background: #111115;
+  background: var(--surface-hover);
 }
 /* teal left stripe on hover — the ONLY color on hover */
 .bento-card::before {

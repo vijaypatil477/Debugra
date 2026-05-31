@@ -35,6 +35,46 @@
   --info: #0078d4;
 }
 
+[data-theme='light'] {
+  --bg-0: #ffffff;
+  --bg-1: #f8f9fa;
+  --bg-2: #f1f3f5;
+  --bg-3: #e9ecef;
+  --bg-active: #dee2e6;
+
+  --border: #ced4da;
+
+  --text-0: #212529;
+  --text-1: #495057;
+  --text-2: #6c757d;
+
+  --accent: #0078d4;
+  --accent-hover: #1a8ceb;
+
+  --green: #198754;
+  --red: #dc3545;
+  --yellow: #ffc107;
+  --orange: #fd7e14;
+
+  --status-bar: #0078d4;
+
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #f1f3f5;
+  --bg-card: #ffffff;
+  --bg-header: #f8f9fa;
+  --bg-hover: rgba(0, 0, 0, 0.05);
+
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --text-muted: #6c757d;
+
+  --success: #198754;
+  --warning: #ffc107;
+  --error: #dc3545;
+  --info: #0078d4;
+}
+
 /* Console Output Copy Button Styles */
 .console-container {
   position: relative; /* Crucial for absolute positioning of the child button */
@@ -80,7 +120,7 @@ body,
 }
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background: linear-gradient(135deg, #0f0c20 0%, #15102a 50%, #06040a 100%);
+  background: var(--bg-0);
   color: var(--text-0);
   -webkit-font-smoothing: antialiased;
 }
@@ -1295,6 +1335,7 @@ body {
   gap: 10px;
 }
 .landing-logo {
+  color: #ffffff;
   font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: -0.02em;
