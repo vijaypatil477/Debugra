@@ -10,7 +10,7 @@
   --border-hover: rgba(255, 255, 255, 0.14);
   --text-hi: #f4f4f5;
   --text-mid: #a1a1aa;
-  --text-lo: #52525b;
+  --text-lo: #888888;
 }
 
 /* ─── Kill every glow blob — no exceptions ───────────────────────── */
@@ -172,41 +172,60 @@
   padding: 0 !important;
 }
 
-/* ─── Bento grid — hairline border grid, all one surface ─────────── */
-.bento-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  overflow: hidden;
-  gap: 0;
-}
-.bento-card {
-  position: relative;
-  overflow: hidden;
-  padding: 32px 28px;
-  background: #0c0c0e;
-  border: none;
-  border-right: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
-  transition: background 0.2s;
-  cursor: default;
-  border-radius: 0;
-}
-/* remove right border on last in each row */
-.bento-card:nth-child(3n) {
-  border-right: none;
-}
-/* remove bottom on last row - approximate via last 3 */
-.bento-card:nth-last-child(-n + 3) {
-  border-bottom: none;
+/* ─── Features carousel — horizontal, snap-based, accessible ────── */
+.features-carousel-shell {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-.bento-card:hover {
-  background: #111115;
+.features-carousel {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  outline: none;
 }
-/* teal left stripe on hover — the ONLY color on hover */
-.bento-card::before {
+.features-carousel::-webkit-scrollbar {
+  display: none;
+}
+.features-carousel:focus-visible {
+  box-shadow: 0 0 0 2px rgba(78, 201, 176, 0.28);
+  border-radius: 16px;
+}
+
+.features-carousel-track {
+  display: flex;
+  gap: 18px;
+  padding: 8px 2px 16px;
+  min-height: 100%;
+}
+
+.feature-card {
+  flex: 0 0 clamp(280px, 34vw, 360px);
+  position: relative;
+  overflow: hidden;
+  padding: 32px 28px 30px;
+  background: #0c0c0e;
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  transition:
+    transform 0.22s ease,
+    border-color 0.22s ease,
+    background 0.22s ease;
+}
+.feature-card:hover {
+  transform: translateY(-2px);
+  background: #111115;
+  border-color: var(--border-hover);
+}
+.feature-card::before {
   content: '';
   position: absolute;
   left: 0;
@@ -219,18 +238,17 @@
   transform-origin: bottom;
   transition: transform 0.22s ease;
 }
-.bento-card:hover::before {
+.feature-card:hover::before {
   transform: scaleY(1);
 }
-.bento-large {
-  grid-column: span 2;
+.feature-card-wide {
+  flex-basis: clamp(320px, 40vw, 440px);
 }
 
-/* Icon: same dim white for all cards, teal only on hover */
-.bento-icon {
+.feature-card-icon {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -241,14 +259,14 @@
     color 0.2s,
     background 0.2s;
 }
-.bento-card:hover .bento-icon {
+.feature-card:hover .feature-card-icon {
   color: var(--brand) !important;
   background: var(--brand-dim) !important;
 }
 
-/* Tag: same neutral for all */
-.bento-tag {
-  display: inline-block;
+.feature-card-tag {
+  display: inline-flex;
+  width: fit-content;
   font-size: 0.57rem;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -260,17 +278,61 @@
   color: var(--text-lo) !important;
   border: 1px solid var(--border-subtle) !important;
 }
-.bento-title {
-  font-size: 0.93rem;
+.feature-card-title {
+  font-size: 0.96rem;
   font-weight: 700;
   margin-bottom: 8px;
   color: var(--text-hi);
   letter-spacing: -0.02em;
 }
-.bento-desc {
+.feature-card-desc {
   font-size: 0.81rem;
   color: var(--text-mid);
   line-height: 1.65;
+  margin: 0;
+}
+
+.feature-card-glow {
+  position: absolute;
+  inset: auto -16px -48px auto;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  opacity: 0.08;
+  filter: blur(14px);
+  pointer-events: none;
+}
+
+.features-carousel-nav {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-hi);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    opacity 0.18s ease;
+}
+.features-carousel-nav:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+.features-carousel-nav:focus-visible {
+  outline: 2px solid rgba(78, 201, 176, 0.35);
+  outline-offset: 2px;
+}
+.features-carousel-nav:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* ─── Languages ────────────────────────────────────────────────────── */
@@ -298,7 +360,31 @@
   border-color: var(--brand-border);
   color: var(--brand);
 }
+/* ─── Modal Close Button ─────────────────────────────────────────── */
 
+.modal-close-btn {
+  position: relative;
+  top: 10px;
+  right: 14px;
+  left: 300px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-mid);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-hi);
+  border-color: var(--border-hover);
+}
 /* ─── CTA ──────────────────────────────────────────────────────────── */
 .landing-cta-section {
   padding: 100px 24px;
@@ -369,4 +455,44 @@
   .landing-cta-section {
     padding: 64px 24px;
   }
+}
+/* ─── Password Toggle ───────────────────────── */
+
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-wrapper .modal-input {
+  padding-right: 48px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+
+  width: 32px;
+  height: 32px;
+
+  border: none;
+  background: transparent;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  color: var(--text-mid);
+
+  transition: all 0.2s ease;
+}
+
+.password-toggle:hover {
+  color: var(--brand);
+}
+
+.password-toggle:focus {
+  outline: none;
 }
