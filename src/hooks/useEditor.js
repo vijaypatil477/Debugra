@@ -31,10 +31,8 @@ function getStoredDraft() {
   try {
     const raw = localStorage.getItem('debugra-editor-draft');
     if (!raw) return null;
-
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed.code !== 'string') return null;
-
     return parsed;
   } catch {
     return null;
@@ -48,7 +46,6 @@ function getStoredDraft() {
  *   - stdin detection and management
  *   - save to cloud and download as file
  */
-
 export function useEditor({ user, onNeedAuth }) {
   // Per-file Monaco model cache — keyed by language
   // Preserves undo/redo history when switching languages
@@ -94,6 +91,10 @@ export function useEditor({ user, onNeedAuth }) {
   const [stdinValue, setStdinValue] = useState(initialDraft?.stdinValue ?? '');
   const [stdinOpen, setStdinOpen] = useState(false);
 
+  const [vimEnabled, setVimEnabledState] = useState(() =>
+    getStoredBoolean('debugra-vim-enabled', false)
+  );
+
   const [needsInput, setNeedsInput] = useState(false);
   const autosaveSnapshotRef = useRef({ code, language, stdinValue });
 
@@ -130,12 +131,15 @@ export function useEditor({ user, onNeedAuth }) {
   }, [autosaveInterval]);
 
   useEffect(() => {
+    localStorage.setItem('debugra-vim-enabled', String(vimEnabled));
+  }, [vimEnabled]);
+
+  useEffect(() => {
     autosaveSnapshotRef.current = { code, language, stdinValue };
   }, [code, language, stdinValue]);
 
   useEffect(() => {
     if (!autosaveInterval) return undefined;
-
     const timer = window.setInterval(() => {
       localStorage.setItem(
         'debugra-editor-draft',
@@ -145,7 +149,6 @@ export function useEditor({ user, onNeedAuth }) {
         })
       );
     }, autosaveInterval);
-
     return () => window.clearInterval(timer);
   }, [autosaveInterval]);
 
@@ -161,6 +164,8 @@ export function useEditor({ user, onNeedAuth }) {
       setCode(LANGUAGES[newLang].template);
     }
   }, []);
+
+  const setVimEnabled = useCallback((value) => setVimEnabledState(Boolean(value)), []);
 
   const increaseFontSize = useCallback(() => setFontSize((f) => Math.min(f + 1, 28)), []);
   const decreaseFontSize = useCallback(() => setFontSize((f) => Math.max(f - 1, 10)), []);
@@ -199,11 +204,9 @@ export function useEditor({ user, onNeedAuth }) {
       toast.error('Sign in to save code');
       return;
     }
-
     const defaultName = LANG_FILE_NAMES[language] || 'code.txt';
     const fileName = window.prompt('Enter a name for this file:', defaultName);
-    if (!fileName) return; // User cancelled
-
+    if (!fileName) return;
     try {
       await addDoc(collection(db, 'users', user.uid, 'savedCode'), {
         code,
@@ -256,5 +259,7 @@ export function useEditor({ user, onNeedAuth }) {
     loadCode,
     getModelCache,
     disposeModel,
+    vimEnabled,
+    setVimEnabled,
   };
 }

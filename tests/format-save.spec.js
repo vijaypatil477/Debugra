@@ -26,6 +26,9 @@ test('format on save', async ({ page }) => {
     }
   });
 
+  // Wait for the 'Formatted' toast to appear, ensuring Prettier finishes execution
+  await expect(page.getByText('Formatted')).toBeVisible({ timeout: 6000 });
+
   // Wait for prettier to finish — poll until semicolon appears
   await page.waitForFunction(
     () => {

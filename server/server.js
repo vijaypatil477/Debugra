@@ -199,6 +199,10 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.post(
   '/api/security/csp-report',
   express.json({
@@ -303,10 +307,6 @@ app.use(memoryTracker);
 // ──────────────────────────────────────────────
 // Routes
 // ──────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
 app.use('/api/execute', executeLimiter, executeRoutes);
 app.use('/api/ai', aiLimiter, aiRoutes);
 app.use('/api/admin/memory-profile', memoryRoutes);

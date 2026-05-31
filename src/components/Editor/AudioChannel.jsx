@@ -25,7 +25,7 @@ export default function AudioChannel({ room, user }) {
       {peers.map((peer, idx) => (
         <AudioPeer key={idx} stream={peer.stream} />
       ))}
-      
+
       {!inCall ? (
         <button
           onClick={joinCall}
@@ -39,15 +39,23 @@ export default function AudioChannel({ room, user }) {
             display: 'flex',
             alignItems: 'center',
             gap: '4px',
-            fontSize: '0.7rem'
+            fontSize: '0.7rem',
           }}
         >
           <PhoneCall size={12} /> Join Voice
         </button>
       ) : (
         <>
-          <span style={{ fontSize: '0.7rem', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span className="stdin-pulse-dot" style={{ background: 'var(--green)' }} /> 
+          <span
+            style={{
+              fontSize: '0.7rem',
+              color: 'var(--green)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <span className="stdin-pulse-dot" style={{ background: 'var(--green)' }} />
             Voice ({peers.length + 1})
           </span>
           <button
@@ -62,7 +70,7 @@ export default function AudioChannel({ room, user }) {
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              fontSize: '0.7rem'
+              fontSize: '0.7rem',
             }}
           >
             {isMuted ? <MicOff size={12} /> : <Mic size={12} />}
@@ -79,12 +87,12 @@ export default function AudioChannel({ room, user }) {
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              fontSize: '0.7rem'
+              fontSize: '0.7rem',
             }}
           >
             <PhoneOff size={12} />
           </button>
-        </  >
+        </>
       )}
     </div>
   );
