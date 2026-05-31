@@ -2,9 +2,9 @@ import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
-import Editor from '@monaco-editor/react';
+import Editor, { DiffEditor } from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX } from 'lucide-react';
+import { Settings, Volume2, VolumeX, Menu, GitCompare } from 'lucide-react';
 
 import {
   useRoom,
@@ -39,6 +39,7 @@ import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
+import MobileDrawer from './MobileDrawer';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
 
@@ -79,6 +80,9 @@ export default function EditorPage({ user }) {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [compareMode, setCompareMode] = useState(false);
+  const [originalCode, setOriginalCode] = useState('');
   const resizingRef = useRef(false);
 
   const isMobile = useIsMobile();
@@ -111,6 +115,11 @@ export default function EditorPage({ user }) {
     },
   });
 
+  const handleLoadCode = (newCode, newLang) => {
+    editor.loadCode(newCode, newLang);
+    setOriginalCode(newCode);
+  };
+
   const tabSizeRef = useRef(editor.tabSize);
 
   // ─── Room/Collaboration Logic ──────────────────────────────────────────────
@@ -123,6 +132,28 @@ export default function EditorPage({ user }) {
     setLanguage: editor.setLanguage,
     setStdinValue: editor.setStdinValue,
   });
+
+  // Initialize starting snapshot if empty and editor.code is available
+  useEffect(() => {
+    if (editor.code && !originalCode) {
+      setOriginalCode(editor.code);
+    }
+  }, [editor.code, originalCode]);
+
+  // Sync snapshot when room code first loads
+  const roomDataLoadedRef = useRef(false);
+  useEffect(() => {
+    if (room.roomId) {
+      if (room.roomData && !roomDataLoadedRef.current) {
+        if (room.roomData.code !== undefined) {
+          setOriginalCode(room.roomData.code);
+          roomDataLoadedRef.current = true;
+        }
+      }
+    } else {
+      roomDataLoadedRef.current = false;
+    }
+  }, [room.roomId, room.roomData]);
 
   const execution = useExecution({
     language: editor.language,
@@ -373,6 +404,31 @@ export default function EditorPage({ user }) {
     });
   };
 
+  const diffEditorRef = useRef(null);
+
+  const handleDiffEditorMount = (diffEditorInstance) => {
+    diffEditorRef.current = diffEditorInstance;
+    const modifiedEditor = diffEditorInstance.getModifiedEditor();
+
+    // Propagate modified content changes back to editor.setCode state
+    modifiedEditor.onDidChangeModelContent(() => {
+      const val = modifiedEditor.getValue();
+      if (!room.isReadOnly) {
+        editor.setCode(val || '');
+      }
+    });
+
+    // Propagate cursor position back to EditorStatusBar
+    modifiedEditor.onDidChangeCursorPosition((e) => {
+      editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
+    });
+
+    // Ctrl+Enter → Run code from compare split view
+    modifiedEditor.addCommand(2048 | 3, () => {
+      if (executionRunRef.current) executionRunRef.current();
+    });
+  };
+
   useEffect(
     () => () => {
       if (window.__DEBUGRA_EDITOR__ === editorRef.current) {
@@ -440,6 +496,17 @@ export default function EditorPage({ user }) {
       {/* ===== TOP BAR ===== */}
       <div className="topbar px-2 px-md-3">
         <div className="topbar-left d-flex align-items-center">
+          {isMobile && (
+            <button
+              className="mobile-drawer-toggle"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={drawerOpen}
+              title="Menu"
+            >
+              <Menu size={18} />
+            </button>
+          )}
           <button
             onClick={() => navigate('/')}
             className="topbar-logo d-flex align-items-center gap-2"
@@ -622,7 +689,7 @@ export default function EditorPage({ user }) {
               </span>
             </div>
           ) : (
-            <div className="d-flex gap-2">
+            <div className="d-none d-md-flex gap-2">
               <button
                 className="topbar-link"
                 onClick={() => {
@@ -653,7 +720,13 @@ export default function EditorPage({ user }) {
           <select
             className="lang-select"
             value={editor.language}
-            onChange={(e) => editor.changeLanguage(e.target.value)}
+            onChange={(e) => {
+              const newLang = e.target.value;
+              editor.changeLanguage(newLang);
+              if (LANGUAGES[newLang]) {
+                setOriginalCode(LANGUAGES[newLang].template);
+              }
+            }}
             disabled={room.isReadOnly}
           >
             {Object.entries(LANGUAGES).map(([key, lang]) => (
@@ -871,6 +944,15 @@ export default function EditorPage({ user }) {
                 </svg>
               </button>
             )}
+            <button
+              className="toolbar-icon-btn"
+              aria-label="Compare Changes"
+              onClick={() => setCompareMode(!compareMode)}
+              title={compareMode ? 'Show Editor' : 'Compare Changes'}
+              style={compareMode ? { background: 'var(--bg-active)', color: 'var(--accent)' } : {}}
+            >
+              <GitCompare size={14} />
+            </button>
             <div className="audio-settings-wrap">
               <button
                 className="toolbar-icon-btn"
@@ -1020,7 +1102,7 @@ export default function EditorPage({ user }) {
       )}
 
       {/* ===== MAIN SPLIT ===== */}
-            <KeyboardShortcutsModal />
+      <KeyboardShortcutsModal />
       <div className="main-split">
         {/* EDITOR PANE */}
         <div
@@ -1048,6 +1130,30 @@ export default function EditorPage({ user }) {
             )}
           </div>
 
+          {compareMode && (
+            <div className="compare-banner">
+              <div className="d-flex align-items-center gap-2">
+                <span className="compare-badge">Compare Mode</span>
+                <span className="compare-text">Comparing changes with snapshot baseline</span>
+              </div>
+              <div className="d-flex align-items-center gap-2">
+                <button
+                  className="compare-action-btn"
+                  onClick={() => {
+                    setOriginalCode(editor.code);
+                    toast.success('Snapshot updated to current code!');
+                  }}
+                  title="Update the baseline snapshot to current code"
+                >
+                  Update Snapshot
+                </button>
+                <button className="compare-action-btn close" onClick={() => setCompareMode(false)}>
+                  Exit Compare
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Monaco Editor */}
           <div
             id="editor-container"
@@ -1070,54 +1176,81 @@ export default function EditorPage({ user }) {
                 Read Only
               </div>
             )}
-            <Editor
-              height="100%"
-              language={langConfig.monacoLang}
-              value={editor.code}
-              onChange={(val) => {
-                if (!room.isReadOnly) editor.setCode(val || '');
-              }}
-              beforeMount={handleEditorWillMount}
-              onMount={handleEditorMount}
-              theme={editor.theme}
-              options={{
-                readOnly: room.isReadOnly,
-                fontSize: editor.fontSize,
-                fontFamily: getEditorFontFamily(editor.fontFamily),
-                minimap: {
-                  enabled: showMinimap && editor.minimapEnabled,
-                  side: minimapSide,
-                  showSlider: 'always',
-                  renderCharacters: false,
-                },
-                detectIndentation: false,
-                padding: { top: 12 },
-                scrollBeyondLastLine: false,
-                lineNumbers: 'on',
-                renderLineHighlight: room.isReadOnly ? 'none' : 'line',
-                automaticLayout: true,
-                tabSize: editor.tabSize,
-                rulers: [{ column: editor.rulerColumn }],
-                insertSpaces: true,
-                wordWrap: 'on',
-                smoothScrolling: true,
-                cursorBlinking: room.isReadOnly ? 'solid' : 'smooth',
-                cursorSmoothCaretAnimation: 'on',
-                matchBrackets: 'always',
-                renderIndentGuides: true,
-                bracketPairColorization: { enabled: true },
-                guides: {
-                  indentation: true,
-                  highlightActiveIndentation: 'always',
-                  bracketPairs: true,
-                  bracketPairsHorizontal: true,
-                  highlightActiveBracketPair: true,
-                },
-                suggestOnTriggerCharacters: true,
-                quickSuggestions: true,
-                formatOnPaste: true,
-              }}
-            />
+            {compareMode ? (
+              <DiffEditor
+                height="100%"
+                language={langConfig.monacoLang}
+                original={originalCode}
+                modified={editor.code}
+                onMount={handleDiffEditorMount}
+                theme={editor.theme}
+                options={{
+                  readOnly: room.isReadOnly,
+                  originalEditable: false,
+                  fontSize: editor.fontSize,
+                  fontFamily: getEditorFontFamily(editor.fontFamily),
+                  minimap: {
+                    enabled: showMinimap && editor.minimapEnabled,
+                    side: minimapSide,
+                  },
+                  renderSideBySide: true,
+                  automaticLayout: true,
+                  wordWrap: 'on',
+                  scrollBeyondLastLine: false,
+                  smoothScrolling: true,
+                  tabSize: editor.tabSize,
+                }}
+              />
+            ) : (
+              <Editor
+                height="100%"
+                language={langConfig.monacoLang}
+                value={editor.code}
+                onChange={(val) => {
+                  if (!room.isReadOnly) editor.setCode(val || '');
+                }}
+                beforeMount={handleEditorWillMount}
+                onMount={handleEditorMount}
+                theme={editor.theme}
+                options={{
+                  readOnly: room.isReadOnly,
+                  fontSize: editor.fontSize,
+                  fontFamily: getEditorFontFamily(editor.fontFamily),
+                  minimap: {
+                    enabled: showMinimap && editor.minimapEnabled,
+                    side: minimapSide,
+                    showSlider: 'always',
+                    renderCharacters: false,
+                  },
+                  detectIndentation: false,
+                  padding: { top: 12 },
+                  scrollBeyondLastLine: false,
+                  lineNumbers: 'on',
+                  renderLineHighlight: room.isReadOnly ? 'none' : 'line',
+                  automaticLayout: true,
+                  tabSize: editor.tabSize,
+                  rulers: [{ column: editor.rulerColumn }],
+                  insertSpaces: true,
+                  wordWrap: 'on',
+                  smoothScrolling: true,
+                  cursorBlinking: room.isReadOnly ? 'solid' : 'smooth',
+                  cursorSmoothCaretAnimation: 'on',
+                  matchBrackets: 'always',
+                  renderIndentGuides: true,
+                  bracketPairColorization: { enabled: true },
+                  guides: {
+                    indentation: true,
+                    highlightActiveIndentation: 'always',
+                    bracketPairs: true,
+                    bracketPairsHorizontal: true,
+                    highlightActiveBracketPair: true,
+                  },
+                  suggestOnTriggerCharacters: true,
+                  quickSuggestions: true,
+                  formatOnPaste: true,
+                }}
+              />
+            )}
           </div>
 
           {/* Stdin Panel */}
@@ -1178,7 +1311,7 @@ export default function EditorPage({ user }) {
         {showHistory && user && !isMobile && (
           <HistoryPanel
             user={user}
-            onLoadCode={editor.loadCode}
+            onLoadCode={handleLoadCode}
             onClose={() => setShowHistory(false)}
           />
         )}
@@ -1449,7 +1582,7 @@ export default function EditorPage({ user }) {
             <HistoryPanel
               user={user}
               onLoadCode={(c, l) => {
-                editor.loadCode(c, l);
+                handleLoadCode(c, l);
                 setMobileTab(MOBILE_TABS.CODE);
               }}
               onClose={() => setMobileTab(MOBILE_TABS.CODE)}
@@ -1509,6 +1642,32 @@ export default function EditorPage({ user }) {
 
       {/* Real-time Democratic Vote Popup */}
       <VotePopup room={room} user={user} />
+
+      {/* Mobile Drawer */}
+      <MobileDrawer
+        isMobile={isMobile}
+        isOpen={drawerOpen}
+        onOpen={() => setDrawerOpen(true)}
+        onClose={() => setDrawerOpen(false)}
+        user={user}
+        editor={editor}
+        audioFeedback={audioFeedback}
+        showHistory={showHistory}
+        setShowHistory={setShowHistory}
+        onLoadCode={(code, language) => {
+          handleLoadCode(code, language);
+        }}
+        onSignIn={() => {
+          setAuthMode('login');
+          setShowAuth(true);
+          setDrawerOpen(false);
+        }}
+        onSignUp={() => {
+          setAuthMode('signup');
+          setShowAuth(true);
+          setDrawerOpen(false);
+        }}
+      />
     </div>
   );
 }

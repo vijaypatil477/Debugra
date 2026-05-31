@@ -519,10 +519,7 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
   // ── Whiteboard Syncing & Event Handlers ───────────
   useEffect(() => {
     if (!roomId) return;
-    const q = query(
-      collection(db, 'rooms', roomId, 'drawings'),
-      orderBy('createdAt', 'asc')
-    );
+    const q = query(collection(db, 'rooms', roomId, 'drawings'), orderBy('createdAt', 'asc'));
     return onSnapshot(q, (snap) => {
       const remoteStrokes = snap.docs.map((doc) => ({
         id: doc.id,
@@ -759,10 +756,18 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
                 </div>
 
                 <div className="vc-tool-actions">
-                  <button className="vc-action-btn vc-action-btn--clear" onClick={clearCanvas} title="Clear board for everyone">
+                  <button
+                    className="vc-action-btn vc-action-btn--clear"
+                    onClick={clearCanvas}
+                    title="Clear board for everyone"
+                  >
                     🗑️ Clear
                   </button>
-                  <button className="vc-action-btn vc-action-btn--export" onClick={exportImage} title="Export as PNG">
+                  <button
+                    className="vc-action-btn vc-action-btn--export"
+                    onClick={exportImage}
+                    title="Export as PNG"
+                  >
                     📥 Export Image
                   </button>
                 </div>
