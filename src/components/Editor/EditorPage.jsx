@@ -41,6 +41,7 @@ import VotePopup from './VotePopup';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import ThemeToggle from '../ThemeToggle';
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -48,7 +49,7 @@ function getApiKeyStatus() {
   return 'empty';
 }
 
-export default function EditorPage({ user }) {
+export default function EditorPage({ user, appTheme }) {
   const isTestRoom =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('testRoom') === '1';
@@ -109,6 +110,7 @@ export default function EditorPage({ user }) {
       setShowAuth(true);
     },
   });
+  const { theme: editorTheme, setTheme: setEditorTheme } = editor;
 
   const tabSizeRef = useRef(editor.tabSize);
 
@@ -142,6 +144,17 @@ export default function EditorPage({ user }) {
   useEffect(() => {
     ensureEditorFontLoaded(editor.fontFamily);
   }, [editor.fontFamily]);
+
+  useEffect(() => {
+    if (appTheme.theme === 'light' && editorTheme !== 'vs') {
+      setEditorTheme('vs');
+      return;
+    }
+
+    if (appTheme.theme === 'dark' && editorTheme === 'vs') {
+      setEditorTheme('debugra-dark');
+    }
+  }, [appTheme.theme, editorTheme, setEditorTheme]);
 
   useEffect(() => {
     tabSizeRef.current = editor.tabSize;
@@ -506,6 +519,7 @@ export default function EditorPage({ user }) {
         </div>
 
         <div className="topbar-right d-flex align-items-center gap-2">
+          <ThemeToggle theme={appTheme.theme} onToggle={appTheme.toggleTheme} />
           {!(room.roomId || isTestRoom) && (
             <div className="room-controls d-flex align-items-center gap-2">
               <button

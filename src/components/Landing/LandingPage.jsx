@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider } from '../../services/firebase';
 import toast from 'react-hot-toast';
+import ThemeToggle from '../ThemeToggle';
 import './LandingPage.css';
 
 // ─── Inline SVG Icons ─────────────────────────────────────────────────────────
@@ -260,7 +261,7 @@ const TAG_COLORS = {
   Engine: { bg: 'rgba(249,115,22,0.12)', color: '#fb923c' },
 };
 
-export default function LandingPage() {
+export default function LandingPage({ appTheme }) {
   const navigate = useNavigate();
   const [showLogin, setShowLogin] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
@@ -328,6 +329,7 @@ export default function LandingPage() {
           <button onClick={() => setShowLogin(true)} className="landing-btn-outline">
             Log In
           </button>
+          <ThemeToggle theme={appTheme.theme} onToggle={appTheme.toggleTheme} />
           <button
             onClick={() => {
               setIsSignUp(true);
@@ -390,6 +392,14 @@ export default function LandingPage() {
           >
             Log In
           </button>
+          <ThemeToggle
+            theme={appTheme.theme}
+            onToggle={() => {
+              appTheme.toggleTheme();
+              setMobileMenu(false);
+            }}
+            className="mobile-theme-toggle"
+          />
           <button
             onClick={() => {
               setIsSignUp(true);

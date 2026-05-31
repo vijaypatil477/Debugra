@@ -33,6 +33,48 @@
   --warning: #dcdcaa;
   --error: #f44747;
   --info: #0078d4;
+  --app-body-bg: linear-gradient(135deg, #0f0c20 0%, #15102a 50%, #06040a 100%);
+  --panel-glass-bg: rgba(30, 30, 30, 0.45);
+  --glass-panel-bg: rgba(30, 30, 30, 0.75);
+  --chrome-soft-bg: rgba(20, 20, 20, 0.3);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme='light'] {
+  --bg-0: #f5f7fb;
+  --bg-1: #ffffff;
+  --bg-2: #eef2f7;
+  --bg-3: #dbe3ee;
+  --bg-active: #e8f1fb;
+  --border: #d6dee8;
+  --text-0: #1f2937;
+  --text-1: #526072;
+  --text-2: #7a8797;
+  --accent: #0969da;
+  --accent-hover: #0550ae;
+  --green: #0f8b72;
+  --red: #cf222e;
+  --yellow: #8a6d00;
+  --orange: #b45309;
+  --status-bar: #0969da;
+  --bg-primary: #f5f7fb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #eef2f7;
+  --bg-card: #ffffff;
+  --bg-header: #ffffff;
+  --bg-hover: rgba(9, 105, 218, 0.07);
+  --text-primary: #1f2937;
+  --text-secondary: #526072;
+  --text-muted: #7a8797;
+  --success: #0f8b72;
+  --warning: #8a6d00;
+  --error: #cf222e;
+  --info: #0969da;
+  --app-body-bg: linear-gradient(135deg, #f7fbff 0%, #eef6f4 52%, #fdfefe 100%);
+  --panel-glass-bg: rgba(255, 255, 255, 0.74);
+  --glass-panel-bg: rgba(255, 255, 255, 0.78);
+  --chrome-soft-bg: rgba(255, 255, 255, 0.64);
+  --scrollbar-thumb: rgba(31, 41, 55, 0.18);
 }
 
 /* Console Output Copy Button Styles */
@@ -80,7 +122,7 @@ body,
 }
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background: linear-gradient(135deg, #0f0c20 0%, #15102a 50%, #06040a 100%);
+  background: var(--app-body-bg);
   color: var(--text-0);
   -webkit-font-smoothing: antialiased;
 }
@@ -94,8 +136,46 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 34px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text-1);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+  color: var(--text-0);
+}
+
+.theme-toggle:active {
+  transform: scale(0.96);
+}
+
+.theme-toggle svg {
+  flex-shrink: 0;
 }
 
 .hide-scrollbar::-webkit-scrollbar {
@@ -2153,7 +2233,7 @@ body {
   align-items: center;
   justify-content: space-around;
   height: 56px;
-  background: #1a1a1a;
+  background: var(--bg-1);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
   padding: 0 8px;
@@ -2202,7 +2282,7 @@ body {
   height: 48px;
   border-radius: 50%;
   background: #2ea043;
-  border: 3px solid #1a1a1a;
+  border: 3px solid var(--bg-1);
   color: white;
   display: flex;
   align-items: center;
@@ -2698,7 +2778,7 @@ details[open] .debug-stderr-summary::before {
 /* ===== GLASSMORPHISM BACKDROP EFFECT ===== */
 .glass-panel {
   /* Semi-transparent overlay color tint */
-  background-color: rgba(30, 30, 30, 0.75) !important;
+  background-color: var(--glass-panel-bg) !important;
 
   /* Link browser engine filtering directly to your dynamic custom property hook */
   backdrop-filter: blur(var(--blur-intensity, 10px)) !important;
@@ -2721,7 +2801,7 @@ details[open] .debug-stderr-summary::before {
 /* 1. Target the left-side editor panel and right-side output panel wrappers */
 .editor-pane.glass-panel,
 .output-pane.glass-panel {
-  background-color: rgba(30, 30, 30, 0.45) !important; /* Semi-transparent base tint */
+  background-color: var(--panel-glass-bg) !important; /* Semi-transparent base tint */
   backdrop-filter: blur(var(--blur-intensity)) !important;
   -webkit-backdrop-filter: blur(var(--blur-intensity)) !important; /* Safari support */
   transition: backdrop-filter 0.1s ease-out;
@@ -2737,6 +2817,6 @@ details[open] .debug-stderr-summary::before {
 /* 3. Soften the top tab headers for the glassy look */
 .editor-tab-bar,
 .output-tabs {
-  background-color: rgba(20, 20, 20, 0.3) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  background-color: var(--chrome-soft-bg) !important;
+  border-bottom: 1px solid var(--border) !important;
 }

@@ -7,9 +7,11 @@ import LandingPage from './components/Landing/LandingPage';
 import EditorPage from './components/Editor/EditorPage';
 import VideoCall from './components/Editor/VideoCall';
 import OfflineBanner from './components/Editor/OfflineBanner';
+import { useTheme } from './hooks';
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const appTheme = useTheme();
 
   useEffect(() => {
     return onAuthStateChanged(auth, (u) => setUser(u));
@@ -34,15 +36,15 @@ export default function App() {
         position="top-right"
         toastOptions={{
           style: {
-            background: '#1e1e3a',
-            color: '#e2e8f0',
-            border: '1px solid #2a2a4a',
+            background: appTheme.isDark ? '#1e1e3a' : '#ffffff',
+            color: appTheme.isDark ? '#e2e8f0' : '#1f2937',
+            border: appTheme.isDark ? '1px solid #2a2a4a' : '1px solid #d7dee8',
           },
         }}
       />
       <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/editor" element={<EditorPage user={user} />} />
+        <Route path="/" element={<LandingPage appTheme={appTheme} />} />
+        <Route path="/editor" element={<EditorPage user={user} appTheme={appTheme} />} />
         {/* Test route to render VideoCall directly for e2e tests */}
         <Route
           path="/voice-test"
