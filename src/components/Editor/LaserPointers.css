@@ -1,0 +1,104 @@
+/* ─── Laser Pointer Overlay ──────────────────────────────────────────────────── */
+
+.laser-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* ─── Individual Laser Dot ──────────────────────────────────────────────────── */
+
+.laser-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: left 0.1s ease-out, top 0.1s ease-out;
+  animation: laserPulse 1.8s ease-in-out infinite;
+  will-change: left, top;
+}
+
+.laser-dot::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0.35;
+  filter: blur(6px);
+  animation: laserGlowOuter 1.8s ease-in-out infinite alternate;
+}
+
+.laser-dot::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* ─── Trail Dots ────────────────────────────────────────────────────────────── */
+
+.laser-trail {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: left 0.15s ease-out, top 0.15s ease-out, opacity 0.3s ease-out;
+  pointer-events: none;
+  will-change: left, top, opacity;
+}
+
+/* ─── User Name Label ───────────────────────────────────────────────────────── */
+
+.laser-label {
+  position: absolute;
+  left: 14px;
+  top: -4px;
+  white-space: nowrap;
+  font-size: 0.6rem;
+  font-weight: 600;
+  font-family: 'Inter', 'JetBrains Mono', sans-serif;
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: #fff;
+  letter-spacing: 0.02em;
+  opacity: 0.9;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* ─── Animations ────────────────────────────────────────────────────────────── */
+
+@keyframes laserPulse {
+  0%,
+  100% {
+    /* Fallback for browsers that do not support color-mix() */
+    box-shadow: 0 0 6px 2px var(--laser-color), 0 0 12px 4px var(--laser-color);
+    box-shadow: 0 0 6px 2px var(--laser-color), 0 0 12px 4px var(--laser-color),
+      0 0 20px 6px color-mix(in srgb, var(--laser-color) 40%, transparent);
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    /* Fallback for browsers that do not support color-mix() */
+    box-shadow: 0 0 8px 3px var(--laser-color), 0 0 16px 6px var(--laser-color);
+    box-shadow: 0 0 8px 3px var(--laser-color), 0 0 16px 6px var(--laser-color),
+      0 0 28px 10px color-mix(in srgb, var(--laser-color) 50%, transparent);
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+}
+
+@keyframes laserGlowOuter {
+  0% {
+    opacity: 0.25;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.45;
+    transform: scale(1.3);
+  }
+}
