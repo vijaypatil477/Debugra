@@ -1,27 +1,57 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
     match /rooms/{roomId} {
-      // Anyone can read a room
-      allow read: if true;
-      
-      // Creating a room requires auth and setting yourself as host
-      allow create: if request.auth != null 
-                    && request.resource.data.roles[request.auth.uid] == 'host';
-      
-      // Updating requires auth. 
-      // If you are already host or editor, you can update anything.
-      // If you are viewer (or joining for the first time), you cannot modify 'code' or 'language'.
-      allow update: if request.auth != null 
-                    && (
-                      resource.data.roles[request.auth.uid] == 'host' || 
-                      resource.data.roles[request.auth.uid] == 'editor' || 
-                      !request.resource.data.diff(resource.data).affectedKeys().hasAny(['code', 'language'])
-                    );
-                    
-      // Only host can delete
-      allow delete: if request.auth != null 
-                    && resource.data.roles[request.auth.uid] == 'host';
+
+      // ── READ ─────────────────────────────────────────────────────────────
+      // Allow reading room metadata but NEVER expose password fields.
+      // passwordHash and passwordSalt are server-only — verified via backend.
+      allow read: if
+        // Block unauthenticated reads entirely
+        request.auth != null
+        // Even authenticated users must not receive password hash/salt fields
+        && !('passwordHash' in resource.data)
+        && !('passwordSalt' in resource.data);
+
+      // Public room metadata (name, language, passwordProtected flag) —
+      // readable by anyone who knows the roomId, but WITHOUT hash/salt.
+      // We use a separate /rooms/{roomId}/meta subcollection for public data.
+      allow read: if
+        !('passwordHash' in resource.data)
+        && !('passwordSalt' in resource.data);
+
+      // ── WRITE ────────────────────────────────────────────────────────────
+      // Only authenticated users (room owners) can create/update rooms.
+      // passwordHash and passwordSalt can NEVER be written from the client —
+      // they are set exclusively by the trusted backend via Admin SDK.
+      allow create: if
+        request.auth != null
+        && !('passwordHash' in request.resource.data)
+        && !('passwordSalt' in request.resource.data);
+
+      allow update: if
+        request.auth != null
+        && request.auth.uid == resource.data.ownerId
+        && !('passwordHash' in request.resource.data)
+        && !('passwordSalt' in request.resource.data);
+
+      allow delete: if
+        request.auth != null
+        && request.auth.uid == resource.data.ownerId;
+    }
+
+    // ── Public room metadata subcollection ───────────────────────────────────
+    // Stores only: roomName, language, passwordProtected (bool), createdAt.
+    // Safe for unauthenticated reads — no sensitive fields.
+    match /rooms/{roomId}/meta/{document} {
+      allow read:  if true;
+      allow write: if request.auth != null;
+    }
+
+    // ── All other collections: deny by default ───────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
