@@ -963,15 +963,11 @@ export default function LandingPage() {
       {showLogin && (
         <div className="modal-backdrop" onClick={() => setShowLogin(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-              {/* CLOSE BUTTON - ADD HERE */}
-  <button
-    className="modal-close-btn"
-    onClick={() => setShowLogin(false)}
-  >
-    ✕
-  </button>
+            {/* CLOSE BUTTON - ADD HERE */}
+            <button className="modal-close-btn" onClick={() => setShowLogin(false)}>
+              ✕
+            </button>
 
-  
             <h2 className="modal-title">{isSignUp ? 'Create Account' : 'Welcome Back'}</h2>
             <p className="modal-subtitle">
               {isSignUp ? 'Sign up to save code & collaborate' : 'Sign in to access saved code'}
@@ -1025,29 +1021,29 @@ export default function LandingPage() {
                 className="modal-input"
                 required
               />
-              <div className='password-wrapper'>
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                aria-label="Password"
-                placeholder="Password"
-                type={showPassword ? 'text' : 'password'}
-                className="modal-input"
-                required
-                minLength={6}
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-               {showPassword ? (
-      <EyeOff size={18} strokeWidth={2} />
-    ) : (
-      <Eye size={18} strokeWidth={2} />
-    )}
-  </button>
-</div>
+              <div className="password-wrapper">
+                <input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  aria-label="Password"
+                  placeholder="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  className="modal-input"
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff size={18} strokeWidth={2} />
+                  ) : (
+                    <Eye size={18} strokeWidth={2} />
+                  )}
+                </button>
+              </div>
             </form>
 
             <p className="modal-toggle">

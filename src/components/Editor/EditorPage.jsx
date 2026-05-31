@@ -83,8 +83,13 @@ export default function EditorPage({ user }) {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [consoleCollapsed, setConsoleCollapsed] = useState(false);
   const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
   const resizingRef = useRef(false);
+
+  const toggleConsoleCollapsed = () => {
+    setConsoleCollapsed((prev) => !prev);
+  };
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
@@ -1281,6 +1286,27 @@ export default function EditorPage({ user }) {
           }
         >
           <div className="output-tabs">
+            <button
+              type="button"
+              className={`console-minimize-btn ${consoleCollapsed ? 'collapsed' : ''}`}
+              onClick={() => {
+                toggleConsoleCollapsed();
+                // Let layout/animation start before forcing Monaco layout
+                setTimeout(() => {
+                  try {
+                    monacoRef.current?.layout?.();
+                    editorRef.current?.layout?.();
+                  } catch (e) {
+                    // no-op
+                  }
+                }, 0);
+              }}
+              aria-label={consoleCollapsed ? 'Restore Console' : 'Minimize Console'}
+              aria-pressed={!consoleCollapsed}
+              title={consoleCollapsed ? 'Restore Console' : 'Minimize Console'}
+            >
+              <span className="console-minimize-chevron">▾</span>
+            </button>
             {/* copy */}
             <div
               style={{
@@ -1390,7 +1416,34 @@ export default function EditorPage({ user }) {
             </button>
           </div>
 
-          <div className="output-content">
+          <div
+            className={`output-content ${consoleCollapsed ? 'console-collapsed' : ''}`}
+            data-console-collapsed={consoleCollapsed ? 'true' : 'false'}
+          >
+            <div
+              className="console-restore-banner-wrap"
+              style={{ display: consoleCollapsed ? 'flex' : 'none' }}
+            >
+              <button
+                type="button"
+                className="console-restore-banner"
+                onClick={() => {
+                  toggleConsoleCollapsed();
+                  setTimeout(() => {
+                    try {
+                      monacoRef.current?.layout?.();
+                      editorRef.current?.layout?.();
+                    } catch (e) {
+                      // no-op
+                    }
+                  }, 0);
+                }}
+                aria-label="Restore Console"
+                title="Restore Console"
+              >
+                Restore Console
+              </button>
+            </div>
             <div
               className={`output-panel ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''}`}
               id="output-stdout"
