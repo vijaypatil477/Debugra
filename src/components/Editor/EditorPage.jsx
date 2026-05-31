@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
@@ -38,9 +38,15 @@ import EditorStatusBar from './EditorStatusBar';
 import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
-import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
-import DebugOverlay from './DebugOverlay';
+
+const TAB_SIZE_OPTIONS = [2, 4];
+const RULER_OPTIONS = [80, 120];
+const AUTOSAVE_INTERVAL_OPTIONS = [0, 5000, 10000];
+const MINIMAP_OPTIONS = [
+  { value: 'enabled', label: 'Enabled' },
+  { value: 'disabled', label: 'Disabled' },
+];
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -78,8 +84,9 @@ export default function EditorPage({ user }) {
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
-  const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const resizingRef = useRef(false);
+  const reviewDecorationsRef = useRef([]);
+  const tabSizeRef = useRef(4);
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
@@ -110,8 +117,6 @@ export default function EditorPage({ user }) {
       setShowAuth(true);
     },
   });
-
-  const tabSizeRef = useRef(editor.tabSize);
 
   // ─── Room/Collaboration Logic ──────────────────────────────────────────────
   const room = useRoom({
@@ -147,6 +152,27 @@ export default function EditorPage({ user }) {
   useEffect(() => {
     tabSizeRef.current = editor.tabSize;
   }, [editor.tabSize]);
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    editorRef.current.updateOptions({
+      minimap: {
+        enabled: editor.minimapEnabled,
+        side: minimapSide,
+        showSlider: 'always',
+        renderCharacters: false,
+      },
+      rulers: [{ column: editor.rulerColumn }],
+      insertSpaces: true,
+      tabSize: editor.tabSize,
+    });
+
+    const model = editorRef.current.getModel();
+    if (model) {
+      model.updateOptions({ tabSize: editor.tabSize, insertSpaces: true });
+    }
+  }, [editor.tabSize, editor.minimapEnabled, editor.rulerColumn, minimapSide]);
 
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
@@ -271,8 +297,54 @@ export default function EditorPage({ user }) {
   const handleEditorMount = (editorInstance) => {
     editorRef.current = editorInstance;
     window.__DEBUGRA_EDITOR__ = editorInstance;
-    const monaco = monacoRef.current;
-    if (!monaco) return;
+
+    const formatCurrentModel = async () => {
+      const model = editorInstance.getModel();
+      if (!model) return null;
+
+      try {
+        const prettierModule = await import('prettier/standalone');
+        const prettier = prettierModule?.default ?? prettierModule;
+        const parserBabelModule = await import('prettier/plugins/babel');
+        const parserBabel = parserBabelModule?.default ?? parserBabelModule;
+        const parserEstreeModule = await import('prettier/plugins/estree');
+        const parserEstree = parserEstreeModule?.default ?? parserEstreeModule;
+        const parserTSModule = await import('prettier/plugins/typescript');
+        const parserTS = parserTSModule?.default ?? parserTSModule;
+
+        const langKey = editor.language || 'javascript';
+        const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
+        const plugins =
+          langKey === 'typescript' ? [parserTS, parserEstree] : [parserBabel, parserEstree];
+
+        const formatted = await prettier.format(model.getValue(), {
+          parser: parserName,
+          plugins,
+          semi: true,
+          singleQuote: true,
+          tabWidth: editor.tabSize || 2,
+        });
+
+        model.setValue(formatted);
+        editor.setCode(formatted);
+        toast.success('Formatted');
+        return formatted;
+      } catch (err) {
+        console.error('Formatting error', err);
+        toast.error('Formatting failed');
+        return null;
+      }
+    };
+
+    window.__debugra_formatEditor = formatCurrentModel;
+
+    editorInstance.onDidChangeCursorPosition((e) => {
+      editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
+    });
+
+    editorInstance.addCommand(2048 | 3, () => {
+      if (executionRunRef.current) executionRunRef.current();
+    });
 
     const editorDomNode = editorInstance.getDomNode();
     const handleDomKeyDown = (event) => {
@@ -309,68 +381,6 @@ export default function EditorPage({ user }) {
     editorInstance.onDidDispose(() => {
       editorDomNode?.removeEventListener('keydown', handleDomKeyDown, true);
     });
-
-    editorInstance.onDidChangeCursorPosition((e) => {
-      editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
-    });
-    // Ctrl+Enter → Run
-    editorInstance.addCommand(2048 | 3, () => {
-      if (executionRunRef.current) executionRunRef.current();
-    });
-
-    const formatCurrentModel = async () => {
-      const model = editorInstance.getModel();
-      if (!model) return;
-
-      try {
-        const prettierModule = await import('prettier/standalone');
-        const prettier = prettierModule?.default ?? prettierModule;
-        const parserBabelModule = await import('prettier/plugins/babel');
-        const parserBabel = parserBabelModule?.default ?? parserBabelModule;
-        const parserEstreeModule = await import('prettier/plugins/estree');
-        const parserEstree = parserEstreeModule?.default ?? parserEstreeModule;
-        const parserTSModule = await import('prettier/plugins/typescript');
-        const parserTS = parserTSModule?.default ?? parserTSModule;
-
-        const langKey = editor.language || 'javascript';
-        const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
-        const plugins =
-          langKey === 'typescript' ? [parserTS, parserEstree] : [parserBabel, parserEstree];
-
-        const original = model.getValue();
-        const formatted = await prettier.format(original, {
-          parser: parserName,
-          plugins,
-          semi: true,
-          singleQuote: true,
-          tabWidth: editor.tabSize || 2,
-        });
-
-        model.setValue(formatted);
-        editor.setCode(formatted);
-        toast.success('Formatted');
-        return formatted;
-      } catch (err) {
-        console.error('Formatting error', err);
-        toast.error('Formatting failed');
-        return null;
-      }
-    };
-
-    window.__debugra_formatEditor = formatCurrentModel;
-
-    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, () => {
-      formatCurrentModel();
-    });
-
-    editorInstance.onKeyDown((e) => {
-      if (room.isReadOnly) return;
-      if ((e.ctrlKey || e.metaKey) && e.keyCode === monaco.KeyCode.KEY_S) {
-        e.preventDefault();
-        e.stopPropagation();
-        formatCurrentModel();
-      }
-    });
   };
 
   useEffect(
@@ -378,33 +388,12 @@ export default function EditorPage({ user }) {
       if (window.__DEBUGRA_EDITOR__ === editorRef.current) {
         window.__DEBUGRA_EDITOR__ = null;
       }
-      if (window.__debugra_formatEditor && editorRef.current) {
+      if (window.__debugra_formatEditor) {
         window.__debugra_formatEditor = null;
       }
     },
     []
   );
-
-  useEffect(() => {
-    if (!editorRef.current) return;
-
-    editorRef.current.updateOptions({
-      minimap: {
-        enabled: editor.minimapEnabled,
-        side: minimapSide,
-        showSlider: 'always',
-        renderCharacters: false,
-      },
-      rulers: [{ column: editor.rulerColumn }],
-      insertSpaces: true,
-      tabSize: editor.tabSize,
-    });
-
-    const model = editorRef.current.getModel();
-    if (model) {
-      model.updateOptions({ tabSize: editor.tabSize, insertSpaces: true });
-    }
-  }, [editor.tabSize, editor.minimapEnabled, editor.rulerColumn, minimapSide]);
 
   // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
@@ -427,6 +416,54 @@ export default function EditorPage({ user }) {
 
   const langConfig = LANGUAGES[editor.language];
   const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
+
+  const clearReviewDecorations = useCallback(() => {
+    const editorInstance = editorRef.current;
+    if (!editorInstance) return;
+
+    reviewDecorationsRef.current = editorInstance.deltaDecorations(
+      reviewDecorationsRef.current,
+      []
+    );
+  }, [editorRef]);
+
+  useEffect(() => {
+    const editorInstance = editorRef.current;
+    const monaco = monacoRef.current;
+    const findings = ai.aiResponse?.content?.findings || ai.aiResponse?.findings || [];
+
+    if (!editorInstance || !monaco || !Array.isArray(findings) || findings.length === 0) {
+      clearReviewDecorations();
+      return undefined;
+    }
+
+    const decorations = findings
+      .map((finding) => {
+        const startLine = Number(finding.startLine || finding.line || 0);
+        const endLine = Number(finding.endLine || finding.line || startLine || 0);
+        if (!startLine || !endLine) return null;
+
+        const severity = String(finding.severity || 'Low').toLowerCase();
+        return {
+          range: new monaco.Range(startLine, 1, endLine, 1),
+          options: {
+            isWholeLine: true,
+            className: `review-line-highlight review-line-highlight--${severity}`,
+            linesDecorationsClassName: `review-line-marker review-line-marker--${severity}`,
+          },
+        };
+      })
+      .filter(Boolean);
+
+    reviewDecorationsRef.current = editorInstance.deltaDecorations(
+      reviewDecorationsRef.current,
+      decorations
+    );
+
+    return () => {
+      clearReviewDecorations();
+    };
+  }, [ai.aiResponse, clearReviewDecorations]);
 
   return (
     <div
@@ -705,7 +742,11 @@ export default function EditorPage({ user }) {
               type="button"
               className={showMinimap ? 'active' : ''}
               aria-pressed={showMinimap}
-              onClick={() => setShowMinimap(!showMinimap)}
+              onClick={() => {
+                const nextValue = !showMinimap;
+                setShowMinimap(nextValue);
+                editor.setMinimapEnabled(nextValue);
+              }}
               title="Toggle minimap visibility"
             >
               {showMinimap ? 'Hide' : 'Show'}
@@ -747,7 +788,7 @@ export default function EditorPage({ user }) {
             >
               Tests
             </button>
-            <button className="ai-btn" onClick={ai.audit} disabled={ai.isAILoading}>
+            <button className="ai-btn" onClick={ai.review} disabled={ai.isAILoading}>
               <svg
                 width="12"
                 height="12"
@@ -759,7 +800,7 @@ export default function EditorPage({ user }) {
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 <path d="M9 12l2 2 4-5" />
               </svg>
-              Audit
+              Review Code
             </button>
             <button className="ai-btn" onClick={ai.visualize} disabled={ai.isAILoading}>
               <svg
@@ -884,6 +925,197 @@ export default function EditorPage({ user }) {
               >
                 <Settings size={14} />
               </button>
+              {showSettings && (
+                <div
+                  className="audio-settings-popover custom-layout-popover"
+                  role="dialog"
+                  aria-label="Settings"
+                >
+                  <div className="audio-settings-head">
+                    <span>Settings</span>
+                    <button
+                      className="history-action-btn"
+                      aria-label="Close Settings"
+                      onClick={() => setShowSettings(false)}
+                    >
+                      <i className="bi bi-x" />
+                    </button>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-type" style={{ fontSize: '14px' }} />
+                      <span>Editor font</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.fontFamily}
+                      onChange={(e) => editor.setFontFamily(e.target.value)}
+                      aria-label="Editor font"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {EDITOR_FONTS.map((font) => (
+                        <option key={font.id} value={font.id}>
+                          {font.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-arrow-right-short" style={{ fontSize: '16px' }} />
+                      <span>Tab size</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.tabSize}
+                      onChange={(e) => editor.setTabSize(e.target.value)}
+                      aria-label="Tab size"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {TAB_SIZE_OPTIONS.map((size) => (
+                        <option key={size} value={size}>
+                          {size} spaces
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-grid-3x3-gap" style={{ fontSize: '14px' }} />
+                      <span>Minimap</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.minimapEnabled ? 'enabled' : 'disabled'}
+                      onChange={(e) => {
+                        const nextValue = e.target.value === 'enabled';
+                        setShowMinimap(nextValue);
+                        editor.setMinimapEnabled(nextValue);
+                      }}
+                      aria-label="Minimap"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {MINIMAP_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-rulers" style={{ fontSize: '14px' }} />
+                      <span>Vertical ruler</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.rulerColumn}
+                      onChange={(e) => editor.setRulerColumn(e.target.value)}
+                      aria-label="Vertical ruler"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {RULER_OPTIONS.map((column) => (
+                        <option key={column} value={column}>
+                          {column}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-clock-history" style={{ fontSize: '14px' }} />
+                      <span>Autosave interval</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.autosaveInterval}
+                      onChange={(e) => editor.setAutosaveInterval(e.target.value)}
+                      aria-label="Autosave interval"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {AUTOSAVE_INTERVAL_OPTIONS.map((interval) => (
+                        <option key={interval} value={interval}>
+                          {interval === 0 ? 'Off' : `${interval / 1000}s`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-palette" style={{ fontSize: '14px' }} />
+                      <span>Theme</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.theme}
+                      onChange={(e) => editor.setTheme(e.target.value)}
+                      aria-label="Editor theme"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {EDITOR_THEMES.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* ===== WALLPAPER BLUR SETTING ROW ===== */}
+                  <div className="audio-settings-row" style={{ marginTop: '12px' }}>
+                    <div className="audio-settings-label">
+                      <i className="bi bi-sliders" style={{ fontSize: '14px' }} />
+                      <span>Wallpaper Blur</span>
+                    </div>
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}
+                    >
+                      <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        step="1"
+                        value={blurIntensity}
+                        onChange={(e) => setBlurIntensity(Number(e.target.value))}
+                        style={{ flex: 1, accentColor: '#00bcd4' }}
+                      />
+                      <span style={{ fontSize: '12px', minWidth: '30px', textAlign: 'right' }}>
+                        {blurIntensity}px
+                      </span>
+                    </div>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      {audioFeedback.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                      <span>Audio feedback</span>
+                    </div>
+                    <button
+                      className={`audio-toggle ${audioFeedback.muted ? '' : 'active'}`}
+                      aria-pressed={!audioFeedback.muted}
+                      onClick={() => audioFeedback.setMuted(!audioFeedback.muted)}
+                    >
+                      {audioFeedback.muted ? 'Muted' : 'On'}
+                    </button>
+                  </div>
+                  <label className="audio-settings-slider">
+                    <span>Volume</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={audioFeedback.volume}
+                      onChange={(e) => audioFeedback.setVolume(e.target.value)}
+                    />
+                    <span>{Math.round(audioFeedback.volume * 100)}%</span>
+                  </label>
+                  <button
+                    className="audio-test-btn"
+                    onClick={audioFeedback.testSound}
+                    disabled={audioFeedback.muted}
+                  >
+                    Test chime
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <span className="kbd-hint d-none d-lg-inline">Ctrl+Enter</span>
@@ -918,109 +1150,7 @@ export default function EditorPage({ user }) {
         </div>
       </div>
 
-      {showSettings && (
-        <div className="settings-modal-backdrop" onClick={() => setShowSettings(false)}>
-          <div className="settings-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="audio-settings-head">
-              <span>Editor Settings</span>
-              <button
-                className="history-action-btn"
-                aria-label="Close Settings"
-                onClick={() => setShowSettings(false)}
-              >
-                <i className="bi bi-x" />
-              </button>
-            </div>
-
-            <div className="audio-settings-row">
-              <label className="audio-settings-label" htmlFor="font-select">
-                <span>Editor font</span>
-              </label>
-              <select
-                id="font-select"
-                aria-label="Editor font"
-                className="lang-select"
-                value={editor.fontFamily}
-                onChange={(event) => editor.setFontFamily(event.target.value)}
-              >
-                {EDITOR_FONTS.map((font) => (
-                  <option key={font.id} value={font.id}>
-                    {font.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="audio-settings-row">
-              <label className="audio-settings-label" htmlFor="tab-size-select">
-                <span>Tab size</span>
-              </label>
-              <select
-                id="tab-size-select"
-                aria-label="Tab size"
-                className="lang-select"
-                value={editor.tabSize}
-                onChange={(event) => editor.setTabSize(event.target.value)}
-              >
-                <option value="2">2</option>
-                <option value="4">4</option>
-              </select>
-            </div>
-
-            <div className="audio-settings-row">
-              <label className="audio-settings-label" htmlFor="minimap-select">
-                <span>Minimap</span>
-              </label>
-              <select
-                id="minimap-select"
-                aria-label="Minimap"
-                className="lang-select"
-                value={editor.minimapEnabled ? 'enabled' : 'disabled'}
-                onChange={(event) => editor.setMinimapEnabled(event.target.value === 'enabled')}
-              >
-                <option value="enabled">enabled</option>
-                <option value="disabled">disabled</option>
-              </select>
-            </div>
-
-            <div className="audio-settings-row">
-              <label className="audio-settings-label" htmlFor="ruler-select">
-                <span>Vertical ruler</span>
-              </label>
-              <select
-                id="ruler-select"
-                aria-label="Vertical ruler"
-                className="lang-select"
-                value={editor.rulerColumn}
-                onChange={(event) => editor.setRulerColumn(event.target.value)}
-              >
-                <option value="80">80</option>
-                <option value="120">120</option>
-              </select>
-            </div>
-
-            <div className="audio-settings-row">
-              <label className="audio-settings-label" htmlFor="autosave-select">
-                <span>Autosave interval</span>
-              </label>
-              <select
-                id="autosave-select"
-                aria-label="Autosave interval"
-                className="lang-select"
-                value={editor.autosaveInterval}
-                onChange={(event) => editor.setAutosaveInterval(event.target.value)}
-              >
-                <option value="0">off</option>
-                <option value="5000">5000</option>
-                <option value="10000">10000</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ===== MAIN SPLIT ===== */}
-            <KeyboardShortcutsModal />
       <div className="main-split">
         {/* EDITOR PANE */}
         <div
@@ -1051,7 +1181,7 @@ export default function EditorPage({ user }) {
           {/* Monaco Editor */}
           <div
             id="editor-container"
-            className={editor.minimapEnabled ? '' : 'minimap-disabled'}
+            className={showMinimap ? '' : 'minimap-disabled'}
             style={{ flex: 1, minHeight: 0, opacity: room.isReadOnly ? 0.8 : 1 }}
           >
             {room.isReadOnly && (
@@ -1085,19 +1215,17 @@ export default function EditorPage({ user }) {
                 fontSize: editor.fontSize,
                 fontFamily: getEditorFontFamily(editor.fontFamily),
                 minimap: {
-                  enabled: showMinimap && editor.minimapEnabled,
+                  enabled: showMinimap,
                   side: minimapSide,
                   showSlider: 'always',
                   renderCharacters: false,
                 },
-                detectIndentation: false,
                 padding: { top: 12 },
                 scrollBeyondLastLine: false,
                 lineNumbers: 'on',
                 renderLineHighlight: room.isReadOnly ? 'none' : 'line',
                 automaticLayout: true,
                 tabSize: editor.tabSize,
-                rulers: [{ column: editor.rulerColumn }],
                 insertSpaces: true,
                 wordWrap: 'on',
                 smoothScrolling: true,
@@ -1115,7 +1243,9 @@ export default function EditorPage({ user }) {
                 },
                 suggestOnTriggerCharacters: true,
                 quickSuggestions: true,
-                formatOnPaste: true,
+                // Only format on explicit save (Cmd/Ctrl+S). Disable automatic
+                // formatting when pasting so pasted code isn't reformatted immediately.
+                formatOnPaste: false,
               }}
             />
           </div>
@@ -1167,131 +1297,6 @@ export default function EditorPage({ user }) {
                   </p>
                 )}
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Resize Handle (desktop only) */}
-        {!isMobile && <div className="resize-handle" onMouseDown={handleResizeStart} />}
-
-        {/* History Panel (desktop) */}
-        {showHistory && user && !isMobile && (
-          <HistoryPanel
-            user={user}
-            onLoadCode={editor.loadCode}
-            onClose={() => setShowHistory(false)}
-          />
-        )}
-
-        {/* OUTPUT PANE */}
-        <div
-          className="output-pane glass-panel"
-          style={
-            isMobile
-              ? mobileTab === MOBILE_TABS.OUTPUT
-                ? { display: 'flex', width: '100%' }
-                : { display: 'none' }
-              : { width: outputWidth + 'px' }
-          }
-        >
-          <div className="output-tabs">
-            {/* copy */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
-              <button
-                className={`output-tab ${
-                  execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''
-                }`}
-                onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDOUT)}
-              >
-                Output
-              </button>
-
-              {execution.stdout && (
-                <button
-                  onClick={handleCopyOutput}
-                  title="Copy Output"
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#aaa',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  {copied ? '✓' : '📋'}
-                </button>
-              )}
-            </div>
-            {execution.stderr && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <button
-                  className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDERR ? 'active' : ''}`}
-                  onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDERR)}
-                >
-                  <span
-                    style={{
-                      color:
-                        execution.activeOutputTab === OUTPUT_TABS.STDERR ? '#f44747' : undefined,
-                    }}
-                  >
-                    ✦ Errors
-                  </span>
-                </button>
-                {/* ── Debug with AI inline button ── */}
-                <button
-                  id="debug-with-ai-btn"
-                  className="debug-ai-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    execution.setActiveOutputTab(OUTPUT_TABS.STDERR);
-                    ai.debugError();
-                    setShowDebugOverlay(true);
-                  }}
-                  title="Explain this error in plain English"
-                  aria-label="Debug with AI"
-                >
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                  Debug with AI
-                </button>
-              </div>
-            )}
-            {(ai.aiResponse || ai.isAILoading) && (
-              <button
-                className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.AI ? 'active' : ''}`}
-                onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.AI)}
-              >
-                AI{' '}
-                {ai.isAILoading && (
-                  <span
-                    className="spinner"
-                    style={{ width: '8px', height: '8px', borderWidth: '1.5px', marginLeft: '4px' }}
-                  />
-                )}
-              </button>
             )}
           </div>
 
@@ -1383,7 +1388,6 @@ export default function EditorPage({ user }) {
         execStatus={execution.execStatus}
         langName={langConfig.name}
         cursorPos={editor.cursorPos}
-        tabSize={editor.tabSize}
         room={room}
         user={user}
       />
@@ -1482,21 +1486,6 @@ export default function EditorPage({ user }) {
         />
       )}
       {showAccount && user && <AccountSettings onClose={() => setShowAccount(false)} user={user} />}
-
-      {/* Debug Overlay */}
-      <DebugOverlay
-        isOpen={showDebugOverlay}
-        isLoading={ai.isDebugLoading}
-        response={ai.debugResponse}
-        stderr={execution.stderr}
-        onClose={() => {
-          setShowDebugOverlay(false);
-          ai.clearDebug();
-        }}
-        onApplyFix={() => {
-          ai.fix();
-        }}
-      />
 
       {/* Video Call Overlay */}
       {showVideoCall && room.roomId && (
