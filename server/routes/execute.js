@@ -18,6 +18,10 @@ const executeCache = new NodeCache({
 });
 const executeCacheInsertionOrder = new Map();
 
+executeCache.on("expired", (key) => {
+  executeCacheInsertionOrder.delete(key);
+});
+
 function buildCacheKey(languageId, stdin, sourceCode) {
   const payload = JSON.stringify({
     languageId,
