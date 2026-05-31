@@ -1,3 +1,5 @@
+import { LANG_FILE_NAMES } from '../../config/constants';
+
 /**
  * EditorStatusBar
  * Renders the VS Code-style bottom status bar showing:
@@ -7,7 +9,7 @@
  * - Online users count (clickable dropdown)
  * - Wandbox + Debugra labels
  */
-export default function EditorStatusBar({ execStatus, langName, cursorPos, room, user }) {
+export default function EditorStatusBar({ execStatus, langName, cursorPos, tabSize, room, user }) {
   const { roomId, activeUsers, showOnlineDropdown, setShowOnlineDropdown } = room;
 
   return (
@@ -102,7 +104,7 @@ export default function EditorStatusBar({ execStatus, langName, cursorPos, room,
         <span>
           Ln {cursorPos.line}, Col {cursorPos.col}
         </span>
-        <span>Spaces: 4</span>
+        <span>Spaces: {tabSize}</span>
       </div>
 
       <div className="statusbar-right">
@@ -186,6 +188,11 @@ export default function EditorStatusBar({ execStatus, langName, cursorPos, room,
                       }}
                     />
                     {u.displayName} {u.uid === user?.uid ? '(You)' : ''}
+                    {u.activeFile && (
+                      <span style={{ color: 'var(--text-2)', fontSize: '0.65rem', marginLeft: 'auto' }}>
+                        [{LANG_FILE_NAMES[u.activeFile] || u.activeFile}]
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>

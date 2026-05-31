@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import {
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -269,6 +270,7 @@ export default function LandingPage() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleGoogle = async () => {
     try {
@@ -309,7 +311,7 @@ export default function LandingPage() {
           <span
             style={{
               fontSize: '0.6rem',
-              color: '#6a6a6a',
+              color: '#888888',
               fontFamily: 'JetBrains Mono, monospace',
               marginLeft: '4px',
               paddingBottom: '1px',
@@ -690,6 +692,15 @@ export default function LandingPage() {
       {showLogin && (
         <div className="modal-backdrop" onClick={() => setShowLogin(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+              {/* CLOSE BUTTON - ADD HERE */}
+  <button
+    className="modal-close-btn"
+    onClick={() => setShowLogin(false)}
+  >
+    ✕
+  </button>
+
+  
             <h2 className="modal-title">{isSignUp ? 'Create Account' : 'Welcome Back'}</h2>
             <p className="modal-subtitle">
               {isSignUp ? 'Sign up to save code & collaborate' : 'Sign in to access saved code'}
@@ -743,24 +754,29 @@ export default function LandingPage() {
                 className="modal-input"
                 required
               />
+              <div className='password-wrapper'>
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 aria-label="Password"
                 placeholder="Password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 className="modal-input"
                 required
                 minLength={6}
               />
               <button
-                type="submit"
-                disabled={loading}
-                className="landing-btn-primary"
-                style={{ width: '100%', padding: '10px', marginTop: '4px' }}
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
               >
-                {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
-              </button>
+               {showPassword ? (
+      <EyeOff size={18} strokeWidth={2} />
+    ) : (
+      <Eye size={18} strokeWidth={2} />
+    )}
+  </button>
+</div>
             </form>
 
             <p className="modal-toggle">

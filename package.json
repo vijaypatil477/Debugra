@@ -12,14 +12,17 @@
     "format:fix": "prettier --write \"src/**/*.{js,jsx,css,json}\""
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.1",
+    "@playwright/test": "^1.60.0",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.1",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",
-    "prettier": "^3.2.5",
     "vite": "^8.0.10"
   },
   "dependencies": {
+    "@emnapi/core": "^1.10.0",
+    "@emnapi/runtime": "^1.10.0",
     "@monaco-editor/react": "^4.7.0",
     "@tailwindcss/vite": "^4.2.4",
     "@vitejs/plugin-react": "^6.0.1",
@@ -30,11 +33,15 @@
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.8.0",
+    "firebase": "^12.13.0",
+    "lucide-react": "^1.17.0",
+    "prettier": "^3.2.5",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-hot-toast": "^2.6.0",
     "react-icons": "^5.6.0",
     "react-router-dom": "^7.14.2",
+    "simple-peer": "^9.11.1",
     "tailwindcss": "^4.2.4"
   }
 }

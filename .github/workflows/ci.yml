@@ -1,3 +1,4 @@
+
 name: CI Pipeline
 
 on:
@@ -24,13 +25,16 @@ jobs:
             server/package-lock.json
 
       - name: Install Frontend Dependencies
-        run: npm ci
+        run: npm install
 
       - name: Verify Frontend Production Build
         run: npm run build
 
+      - name: Run Lighthouse CI
+        run: npx @lhci/cli@0.15.x autorun
+
       - name: Install Backend Dependencies
-        run: npm ci --prefix server
+        run: npm install --prefix server
 
       - name: Verify Backend Syntax
         run: |
