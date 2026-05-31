@@ -24,7 +24,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: 'node server/server.js',
+      command: 'cd server && cp .env.test .env && node server.js',
       url: 'http://localhost:3001/api/health',
       reuseExistingServer: !process.env.CI,
     },
