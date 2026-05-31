@@ -83,10 +83,12 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   const [showRequestsDropdown, setShowRequestsDropdown] = useState(false);
 
   // ─── Derived permissions ────────────────────────────────────────────────────
-  const myRole = roomData?.roles?.[user?.uid] || (roomData?.createdBy === user?.uid ? 'host' : 'viewer');
-  const isHost = myRole === 'host';
-  const isEditor = myRole === 'editor' || isHost;
-  const isReadOnly = !isEditor;
+  const myRole = roomId
+  ? (roomData?.roles?.[user?.uid] || (roomData?.createdBy === user?.uid ? 'host' : 'viewer'))
+  : 'host';
+  const isHost = !roomId || myRole === 'host';
+  const isEditor = !roomId || myRole === 'editor' || isHost;
+  const isReadOnly = roomId ? !isEditor : false;
   const currentEditorName = isEditor ? (user?.displayName || 'Editor') : 'Viewer';
 
   // ─── Live sync from Firestore ───────────────────────────────────────────────

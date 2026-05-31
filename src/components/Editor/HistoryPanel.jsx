@@ -151,11 +151,15 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
 
       <div className="history-list p-2 overflow-auto flex-grow-1">
         {loading ? (
-          <div className="history-empty d-flex flex-column align-items-center justify-content-center py-5">
-            <div className="spinner-border spinner-border-sm text-secondary" role="status">
+          <div className="d-flex flex-column align-items-center justify-content-center py-5 gap-2">
+            {/* Themed Spinner using Bootstrap theme colors */}
+            <div className="spinner-border text-success" role="status" style={{ width: "1.5rem", height: "1.5rem" }}>
               <span className="visually-hidden">Loading...</span>
             </div>
-            <span className="small text-secondary mt-2">Loading...</span>
+            {/* Pulsing Loading Text Label */}
+            <span className="small text-muted text-uppercase tracking-wider placeholder-glow">
+              Loading History...
+            </span>
           </div>
         ) : history.length === 0 ? (
           <div className="history-empty d-flex flex-column align-items-center justify-content-center py-5 opacity-50">
