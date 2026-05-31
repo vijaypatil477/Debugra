@@ -1184,6 +1184,36 @@ export default function EditorPage({ user }) {
         )}
 
         {/* OUTPUT PANE */}
+        <div className={`output-pane ${editor.isConsoleCollapsed ? 'output-pane-collapsed' : ''}`}
+          style={isMobile
+            ? (mobileTab === MOBILE_TABS.OUTPUT ? { display: 'flex', width: '100%' } : { display: 'none' })
+            : { width: outputWidth + 'px' }}>
+          <div className="output-tabs">
+            <div className="output-tabs-left">
+              <button className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''}`}
+                onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDOUT)}>Output</button>
+              {execution.stderr && (
+                <button className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDERR ? 'active' : ''}`}
+                  onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDERR)}>
+                  <span style={{ color: execution.activeOutputTab === OUTPUT_TABS.STDERR ? '#f44747' : undefined }}>✦ Errors</span>
+                </button>
+              )}
+              {(ai.aiResponse || ai.isAILoading) && (
+                <button className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.AI ? 'active' : ''}`}
+                  onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.AI)}>
+                  AI {ai.isAILoading && <span className="spinner" style={{ width: '8px', height: '8px', borderWidth: '1.5px', marginLeft: '4px' }} />}
+                </button>
+              )}
+            </div>
+            {/* Console Minimize Toggle */}
+            {!isMobile && (
+              <button
+                className="console-minimize-btn"
+                onClick={editor.toggleConsoleCollapse}
+                aria-expanded={!editor.isConsoleCollapsed}
+                aria-controls="output-content"
+                title={editor.isConsoleCollapsed ? 'Expand Console' : 'Collapse Console'}>
+                <svg className="console-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
         <div
           className="output-pane glass-panel"
           style={
@@ -1375,6 +1405,20 @@ export default function EditorPage({ user }) {
               </div>
             )}
           </div>
+
+          {/* Restore Console Banner */}
+          {editor.isConsoleCollapsed && !isMobile && (
+            <div
+              className="console-restore-banner"
+              onClick={editor.toggleConsoleCollapse}
+              role="button"
+              tabIndex="0"
+              aria-label="Restore Console"
+              onKeyDown={(e) => e.key === 'Enter' && editor.toggleConsoleCollapse()}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="12 5 19 12 12 19"/><line x1="19" y1="12" x2="5" y2="12"/></svg>
+              Restore Console
+            </div>
+          )}
         </div>
       </div>
 
