@@ -746,6 +746,46 @@ body {
   flex-direction: column;
   background: var(--bg-0);
   flex-shrink: 0;
+  transition: width 0.3s ease;
+}
+.output-collapse-btn {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.output-collapse-btn:hover {
+  color: var(--text-0);
+  background: var(--bg-active);
+}
+.restore-console-strip {
+  width: 20px;
+  background: var(--bg-1);
+  border: none;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  writing-mode: vertical-rl;
+  font-size: 0.65rem;
+  color: var(--text-2);
+  letter-spacing: 1px;
+  flex-shrink: 0;
+  transition: background 0.2s;
+  user-select: none;
+  padding: 0;
+}
+.restore-console-strip:hover {
+  background: var(--bg-active);
+  color: var(--text-0);
 }
 .output-tabs {
   height: 30px;
@@ -2729,7 +2769,7 @@ details[open] .debug-stderr-summary::before {
   background-color: rgba(30, 30, 30, 0.45) !important; /* Semi-transparent base tint */
   backdrop-filter: blur(var(--blur-intensity)) !important;
   -webkit-backdrop-filter: blur(var(--blur-intensity)) !important; /* Safari support */
-  transition: backdrop-filter 0.1s ease-out;
+  transition: backdrop-filter 0.1s ease-out, width 0.3s ease;
 }
 
 /* 2. Target internal console and execution panel backgrounds */
