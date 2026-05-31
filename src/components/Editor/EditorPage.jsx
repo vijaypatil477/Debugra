@@ -6,6 +6,7 @@ import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
 import { Settings, Volume2, VolumeX } from 'lucide-react';
 
+
 import {
   useRoom,
   useAI,
@@ -41,6 +42,7 @@ import VotePopup from './VotePopup';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -135,6 +137,10 @@ export default function EditorPage({ user }) {
     room,
   });
 
+  const [theme, setTheme] = useState(
+  localStorage.getItem('theme') || 'dark'
+);
+
   const executionRunRef = useRef(execution.run);
   useEffect(() => {
     executionRunRef.current = execution.run;
@@ -147,6 +153,11 @@ export default function EditorPage({ user }) {
   useEffect(() => {
     tabSizeRef.current = editor.tabSize;
   }, [editor.tabSize]);
+
+  useEffect(() => {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+}, [theme]);
 
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
@@ -507,6 +518,14 @@ export default function EditorPage({ user }) {
         </div>
 
         <div className="topbar-right d-flex align-items-center gap-2">
+          <button
+  className="topbar-link"
+  onClick={() =>
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
+  }
+>
+  {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+</button>
           {!(room.roomId || isTestRoom) && (
             <div className="room-controls d-flex align-items-center gap-2">
               <button
