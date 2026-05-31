@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { createMonacoVimController } from '../../utils/monacoVim';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
@@ -114,7 +115,12 @@ export default function EditorPage({ user }) {
   });
   const showMinimap = editor.minimapEnabled;
 
+  const vimEnabled = editor.vimEnabled;
+  const setVimEnabled = editor.setVimEnabled;
+
   const tabSizeRef = useRef(editor.tabSize);
+  const vimControllerRef = useRef(null);
+  const [vimMode, setVimMode] = useState('NORMAL');
 
   // ─── Room/Collaboration Logic ──────────────────────────────────────────────
   const room = useRoom({
@@ -158,7 +164,7 @@ export default function EditorPage({ user }) {
     stderr: execution.stderr,
     setActiveOutputTab: execution.setActiveOutputTab,
     editorRef,
-     model: selectedModel
+    model: selectedModel,
   });
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
@@ -278,6 +284,10 @@ export default function EditorPage({ user }) {
     if (!monaco) return;
 
     const editorDomNode = editorInstance.getDomNode();
+
+    // Vim initialization is handled in effects; here we only keep non-Vim overrides.
+    // Ctrl+S and Tab indentation must remain functional even in Vim mode.
+
     const handleDomKeyDown = (event) => {
       if (room.isReadOnly) return;
 
@@ -316,6 +326,11 @@ export default function EditorPage({ user }) {
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
+
+    // Prevent our custom Ctrl+S and Tab handlers from being blocked by Vim command-mode.
+    // These are handled via the capture-phase DOM keydown listener above, and Vim mode toggling
+    // should not override these specific shortcuts.
+
     // Ctrl+Enter → Run
     editorInstance.addCommand(2048 | 3, () => {
       if (executionRunRef.current) executionRunRef.current();
@@ -374,6 +389,20 @@ export default function EditorPage({ user }) {
         formatCurrentModel();
       }
     });
+
+    // Initialize Vim controller when enabled (after editorInstance exists).
+    if (editor.vimEnabled && !vimControllerRef.current) {
+      void createMonacoVimController({
+        monaco,
+        editor: editorInstance,
+        onModeChange: (mode) => {
+          // monaco-vim tends to pass strings like 'INSERT', 'NORMAL', 'COMMAND'
+          setVimMode(mode);
+        },
+      }).then((controller) => {
+        vimControllerRef.current = controller;
+      });
+    }
   };
 
   useEffect(
@@ -726,24 +755,24 @@ export default function EditorPage({ user }) {
         <div className="toolbar-right d-flex align-items-center gap-2">
           <div className="d-none d-md-flex align-items-center gap-2">
             <select
-  value={selectedModel}
-  onChange={(e) => setSelectedModel(e.target.value)}
-  style={{
-    background: '#2d2d2d',
-    color: '#e2e8f0',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '6px',
-    padding: '4px 8px',
-    fontSize: '0.72rem',
-    cursor: 'pointer',
-    height: '32px',
-  }}
-  title="Select AI Model"
->
-  <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-<option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
-{/* <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>*/}
-</select>
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              style={{
+                background: '#2d2d2d',
+                color: '#e2e8f0',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '6px',
+                padding: '4px 8px',
+                fontSize: '0.72rem',
+                cursor: 'pointer',
+                height: '32px',
+              }}
+              title="Select AI Model"
+            >
+              <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+              <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+              {/* <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>*/}
+            </select>
             <button
               className={`ai-btn api-key-toggle ${apiKeyStatus}`}
               onClick={() => setShowApiKey(true)}
@@ -1052,6 +1081,22 @@ export default function EditorPage({ user }) {
                 <option value="0">off</option>
                 <option value="5000">5000</option>
                 <option value="10000">10000</option>
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="vim-select">
+                <span>Vim mode</span>
+              </label>
+              <select
+                id="vim-select"
+                aria-label="Vim mode"
+                className="lang-select"
+                value={editor.vimEnabled ? 'enabled' : 'disabled'}
+                onChange={(event) => editor.setVimEnabled(event.target.value === 'enabled')}
+              >
+                <option value="disabled">disabled</option>
+                <option value="enabled">enabled</option>
               </select>
             </div>
           </div>
@@ -1446,6 +1491,8 @@ export default function EditorPage({ user }) {
         tabSize={editor.tabSize}
         room={room}
         user={user}
+        vimEnabled={editor.vimEnabled}
+        vimMode={vimMode}
       />
 
       {/* Chat */}
