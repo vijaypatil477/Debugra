@@ -10,7 +10,7 @@
   --border-hover: rgba(255, 255, 255, 0.14);
   --text-hi: #f4f4f5;
   --text-mid: #a1a1aa;
-  --text-lo: #52525b;
+  --text-lo: #888888;
 }
 
 /* ─── Kill every glow blob — no exceptions ───────────────────────── */
@@ -289,7 +289,31 @@
   border-color: var(--brand-border);
   color: var(--brand);
 }
+/* ─── Modal Close Button ─────────────────────────────────────────── */
 
+.modal-close-btn {
+  position: relative;
+  top: 10px;
+  right: 14px;
+  left: 300px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-mid);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-hi);
+  border-color: var(--border-hover);
+}
 /* ─── CTA ──────────────────────────────────────────────────────────── */
 .landing-cta-section {
   padding: 100px 24px;
@@ -360,4 +384,44 @@
   .landing-cta-section {
     padding: 64px 24px;
   }
+}
+/* ─── Password Toggle ───────────────────────── */
+
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-wrapper .modal-input {
+  padding-right: 48px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+
+  width: 32px;
+  height: 32px;
+
+  border: none;
+  background: transparent;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  color: var(--text-mid);
+
+  transition: all 0.2s ease;
+}
+
+.password-toggle:hover {
+  color: var(--brand);
+}
+
+.password-toggle:focus {
+  outline: none;
 }
