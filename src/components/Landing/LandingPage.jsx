@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import {
   signInWithPopup,
@@ -245,12 +245,64 @@ const LANGUAGES = [
   'SQL',
   'Bash',
 ];
-
+<a href="#reviews" className="landing-nav-link">
+  Reviews
+</a>
 const STATS = [
   { value: '18+', label: 'Languages' },
   { value: '5', label: 'AI Features' },
   { value: '∞', label: 'Free Forever' },
   { value: '0', label: 'Setup Required' },
+];
+const REVIEWS = [
+  {
+    name: 'Alex',
+    rating: 5,
+    review: 'The AI debugging tools helped me identify issues much faster.',
+  },
+  {
+    name: 'Priya',
+    rating: 5,
+    review: 'Real-time collaboration is smooth and easy to use.',
+  },
+  {
+    name: 'Rahul',
+    rating: 4,
+    review: 'Clean interface and excellent language support.',
+  },
+];
+
+const FAQ_ITEMS = [
+  {
+    question: 'What is Debugra?',
+    answer:
+      'Debugra is a browser-based coding workspace with an editor, execution engine, AI debugging tools, and real-time collaboration.',
+  },
+  {
+    question: 'Do I need an account to try it?',
+    answer:
+      'No. You can open the editor and start coding right away. An account is only needed if you want to save code or use sign-in features.',
+  },
+  {
+    question: 'Can I use Debugra for job applications or recruiter reviews?',
+    answer:
+      'Debugra is built for coding, debugging, and collaboration. It is not a job-application portal, but you can use it to prepare code samples, demos, and live walkthroughs for interviews or reviews.',
+  },
+  {
+    question: 'How does shared access work?',
+    answer:
+      'You can create a room and share the room ID with collaborators. Room owners control access and can manage who joins and edits.',
+  },
+  {
+    question: 'What happens to saved code and account data?',
+    answer:
+      'Signed-in users can save snippets and revisit them later. Authentication and saved content are handled through the app’s Firebase-backed services.',
+  },
+  {
+    question: 'How is privacy handled?',
+    answer:
+      'Use the editor without sharing anything sensitive. For saved code, room data, and authentication, Debugra only keeps what is needed to support those features. If a formal privacy policy is required, it should be published alongside the site.',
+  },
 ];
 
 // ─── Tag accent colors ─────────────────────────────────────────────────────────
@@ -263,6 +315,7 @@ const TAG_COLORS = {
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const featuresCarouselRef = useRef(null);
   const [showLogin, setShowLogin] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -270,6 +323,60 @@ export default function LandingPage() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [openFaq, setOpenFaq] = useState(0);
+  const [canScrollFeaturesLeft, setCanScrollFeaturesLeft] = useState(false);
+  const [canScrollFeaturesRight, setCanScrollFeaturesRight] = useState(false);
+
+  const updateFeaturesCarouselState = () => {
+    const carousel = featuresCarouselRef.current;
+
+    if (!carousel) {
+      setCanScrollFeaturesLeft(false);
+      setCanScrollFeaturesRight(false);
+      return;
+    }
+
+    const { scrollLeft, scrollWidth, clientWidth } = carousel;
+    const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
+
+    setCanScrollFeaturesLeft(scrollLeft > 4);
+    setCanScrollFeaturesRight(scrollLeft < maxScrollLeft - 4);
+  };
+
+  useEffect(() => {
+    updateFeaturesCarouselState();
+
+    const carousel = featuresCarouselRef.current;
+    if (!carousel) return undefined;
+
+    carousel.addEventListener('scroll', updateFeaturesCarouselState, { passive: true });
+    window.addEventListener('resize', updateFeaturesCarouselState);
+
+    return () => {
+      carousel.removeEventListener('scroll', updateFeaturesCarouselState);
+      window.removeEventListener('resize', updateFeaturesCarouselState);
+    };
+  }, []);
+
+  const scrollFeaturesCarousel = (direction) => {
+    const carousel = featuresCarouselRef.current;
+    if (!carousel) return;
+
+    const scrollAmount = Math.max(280, Math.floor(carousel.clientWidth * 0.82));
+    carousel.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+  };
+
+  const handleFeaturesKeyDown = (event) => {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      scrollFeaturesCarousel(-1);
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      scrollFeaturesCarousel(1);
+    }
+  };
   const [showPassword, setShowPassword] = useState(false);
 
   const handleGoogle = async () => {
@@ -327,6 +434,9 @@ export default function LandingPage() {
           <a href="#languages" className="landing-nav-link">
             Languages
           </a>
+          <a href="#faq" className="landing-nav-link">
+            FAQ
+          </a>
           <button onClick={() => setShowLogin(true)} className="landing-btn-outline">
             Log In
           </button>
@@ -382,6 +492,9 @@ export default function LandingPage() {
             onClick={() => setMobileMenu(false)}
           >
             Languages
+          </a>
+          <a href="#faq" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>
+            FAQ
           </a>
           <button
             onClick={() => {
@@ -440,7 +553,7 @@ export default function LandingPage() {
               >
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
-              Open Editor — it&apos;s free 
+              Open Editor — it&apos;s free
             </button>
             <button onClick={() => setShowLogin(true)} className="landing-btn-ghost landing-btn-lg">
               Sign in to save code
@@ -575,33 +688,81 @@ export default function LandingPage() {
           </h2>
         </div>
 
-        <div className="bento-grid">
-          {FEATURES.map((f, i) => {
-            const tagStyle = TAG_COLORS[f.tag] || {};
-            return (
-              <div
-                key={i}
-                className={`bento-card ${f.size === 'large' ? 'bento-large' : ''}`}
-                style={{ '--card-accent': f.accent }}
-              >
-                <div
-                  className="bento-icon"
-                  style={{ color: f.accent, background: `${f.accent}18` }}
-                >
-                  {f.icon}
-                </div>
-                <div
-                  className="bento-tag"
-                  style={{ background: tagStyle.bg, color: tagStyle.color }}
-                >
-                  {f.tag}
-                </div>
-                <h3 className="bento-title">{f.title}</h3>
-                <p className="bento-desc">{f.desc}</p>
-                <div className="bento-glow" style={{ background: f.accent }} />
-              </div>
-            );
-          })}
+        <div className="features-carousel-shell">
+          <button
+            type="button"
+            className="features-carousel-nav features-carousel-nav-left"
+            onClick={() => scrollFeaturesCarousel(-1)}
+            disabled={!canScrollFeaturesLeft}
+            aria-label="Scroll features left"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M15 6l-6 6 6 6"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+
+          <div
+            ref={featuresCarouselRef}
+            className="features-carousel"
+            tabIndex={0}
+            role="region"
+            aria-label="Feature cards carousel"
+            onKeyDown={handleFeaturesKeyDown}
+            onScroll={updateFeaturesCarouselState}
+          >
+            <div className="features-carousel-track">
+              {FEATURES.map((f, i) => {
+                const tagStyle = TAG_COLORS[f.tag] || {};
+                return (
+                  <div
+                    key={i}
+                    className={`feature-card ${f.size === 'large' ? 'feature-card-wide' : ''}`}
+                    style={{ '--card-accent': f.accent }}
+                  >
+                    <div
+                      className="feature-card-icon"
+                      style={{ color: f.accent, background: `${f.accent}18` }}
+                    >
+                      {f.icon}
+                    </div>
+                    <div
+                      className="feature-card-tag"
+                      style={{ background: tagStyle.bg, color: tagStyle.color }}
+                    >
+                      {f.tag}
+                    </div>
+                    <h3 className="feature-card-title">{f.title}</h3>
+                    <p className="feature-card-desc">{f.desc}</p>
+                    <div className="feature-card-glow" style={{ background: f.accent }} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="features-carousel-nav features-carousel-nav-right"
+            onClick={() => scrollFeaturesCarousel(1)}
+            disabled={!canScrollFeaturesRight}
+            aria-label="Scroll features right"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M9 6l6 6-6 6"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
         </div>
       </section>
 
@@ -626,7 +787,115 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+<section id="reviews" className="landing-section container">
+  <div className="section-header">
+    <p className="section-eyebrow">Community</p>
+    <h2 className="section-title">Feedback & Reviews</h2>
+    <p className="section-subtitle">
+      Hear what developers think about Debugra and share your own experience.
+    </p>
+  </div>
 
+      {/* ===== FAQ ===== */}
+      <section id="faq" className="landing-section container">
+        <div className="section-header">
+          <p className="section-eyebrow">FAQ</p>
+          <h2 className="section-title">
+            Common questions,
+            <br />
+            <span style={{ color: 'var(--text-mid)' }}>answered in one place.</span>
+          </h2>
+          <p className="section-subtitle">
+            Quick answers about the platform, accounts, collaboration, and privacy.
+          </p>
+        </div>
+
+        <div className="faq-list">
+          {FAQ_ITEMS.map((item, index) => {
+            const isOpen = openFaq === index;
+            return (
+              <div key={item.question} className={`faq-item ${isOpen ? 'is-open' : ''}`}>
+                <button
+                  type="button"
+                  className="faq-question"
+                  aria-expanded={isOpen}
+                  aria-controls={`faq-answer-${index}`}
+                  onClick={() => setOpenFaq(isOpen ? -1 : index)}
+                >
+                  <span>{item.question}</span>
+                  <span className="faq-toggle" aria-hidden="true">
+                    {isOpen ? '−' : '+'}
+                  </span>
+                </button>
+                <div id={`faq-answer-${index}`} className="faq-answer" hidden={!isOpen}>
+                  <p>{item.answer}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+  <div className="reviews-grid">
+    {REVIEWS.map((review, index) => (
+      <div key={index} className="review-card">
+        <div className="review-stars">
+          {'★'.repeat(review.rating)}
+        </div>
+
+        <p className="review-text">
+          "{review.review}"
+        </p>
+
+        <span className="review-author">
+          — {review.name}
+        </span>
+      </div>
+    ))}
+  </div>
+
+  <div className="feedback-form-card">
+    <h3 style={{ marginBottom: '16px' }}>Share Your Feedback</h3>
+
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        toast.success('Thank you for your feedback!');
+      }}
+    >
+      <input
+        type="text"
+        placeholder="Your Name"
+        className="modal-input"
+        required
+      />
+
+      <select className="modal-input" required>
+        <option value="">Select Rating</option>
+        <option value="5">★★★★★ (5)</option>
+        <option value="4">★★★★☆ (4)</option>
+        <option value="3">★★★☆☆ (3)</option>
+        <option value="2">★★☆☆☆ (2)</option>
+        <option value="1">★☆☆☆☆ (1)</option>
+      </select>
+
+      <textarea
+        placeholder="Tell us about your experience..."
+        className="modal-input"
+        rows="4"
+        required
+      />
+
+      <button
+        type="submit"
+        className="landing-btn-primary"
+        style={{ width: 'fit-content' }}
+      >
+        Submit Feedback
+      </button>
+    </form>
+  </div>
+</section>
       {/* ===== CTA ===== */}
       <section className="landing-cta-section">
         <div className="cta-glow" />
@@ -672,35 +941,33 @@ export default function LandingPage() {
       </section>
 
       {/* ===== FOOTER ===== */}
-      <footer className="landing-footer">
-        <div className="d-flex align-items-center gap-2 justify-content-center mb-1">
-          <img src="/icon-dark.svg" height="14" alt="Debugra Logo" />
-          <span style={{ fontWeight: 600, color: '#e2e8f0' }}>Debugra</span>
-        </div>
-        <p style={{ margin: 0, fontSize: '0.72rem', color: '#4a4a6a' }}>
-          Built for Hackathon SVKM 2026 ·{' '}
-          <a
-            href="https://github.com/omkhandare55/Debugra"
-            style={{ color: '#6a6a8a', textDecoration: 'none' }}
-          >
-            GitHub
-          </a>
-        </p>
-      </footer>
+<footer className="landing-footer">
+  <div className="d-flex align-items-center gap-2 justify-content-center mb-1">
+    <img src="/icon-dark.svg" height="14" alt="Debugra Logo" />
+    <span style={{ fontWeight: 600, color: '#e2e8f0' }}>Debugra</span>
+  </div>
+
+  <p style={{ margin: 0, fontSize: '0.72rem', color: '#4a4a6a' }}>
+    © {new Date().getFullYear()} Debugra · Built for Hackathon SVKM 2026 ·{" "}
+    <a
+      href="https://github.com/omkhandare55/Debugra"
+      style={{ color: '#6a6a8a', textDecoration: 'none' }}
+    >
+      GitHub
+    </a>
+  </p>
+</footer>
+
 
       {/* ===== LOGIN MODAL ===== */}
       {showLogin && (
         <div className="modal-backdrop" onClick={() => setShowLogin(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-              {/* CLOSE BUTTON - ADD HERE */}
-  <button
-    className="modal-close-btn"
-    onClick={() => setShowLogin(false)}
-  >
-    ✕
-  </button>
+            {/* CLOSE BUTTON - ADD HERE */}
+            <button className="modal-close-btn" onClick={() => setShowLogin(false)}>
+              ✕
+            </button>
 
-  
             <h2 className="modal-title">{isSignUp ? 'Create Account' : 'Welcome Back'}</h2>
             <p className="modal-subtitle">
               {isSignUp ? 'Sign up to save code & collaborate' : 'Sign in to access saved code'}
@@ -754,29 +1021,29 @@ export default function LandingPage() {
                 className="modal-input"
                 required
               />
-              <div className='password-wrapper'>
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                aria-label="Password"
-                placeholder="Password"
-                type={showPassword ? 'text' : 'password'}
-                className="modal-input"
-                required
-                minLength={6}
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-               {showPassword ? (
-      <EyeOff size={18} strokeWidth={2} />
-    ) : (
-      <Eye size={18} strokeWidth={2} />
-    )}
-  </button>
-</div>
+              <div className="password-wrapper">
+                <input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  aria-label="Password"
+                  placeholder="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  className="modal-input"
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff size={18} strokeWidth={2} />
+                  ) : (
+                    <Eye size={18} strokeWidth={2} />
+                  )}
+                </button>
+              </div>
             </form>
 
             <p className="modal-toggle">

@@ -56,7 +56,7 @@ export function useExecution({
       // Fetch full code execution payload from the separate Firestore document to avoid size limit
       const payload = await room.fetchFullVotePayload(voteId);
       if (!payload) {
-        toast.error("Failed to retrieve code payload for this vote.");
+        toast.error('Failed to retrieve code payload for this vote.');
         await room.clearVote();
         return;
       }
@@ -245,4 +245,3 @@ export function useExecution({
     clear,
   };
 }
-
