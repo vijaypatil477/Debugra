@@ -396,6 +396,9 @@ export default function AIResponsePanel({ isLoading, response: rawResponse, onAp
           })}
         </div>
       )}
+     {Array.isArray(response.testCases) && (
+        <TestCasesPanel testCases={response.testCases} />
+      )}
             {Array.isArray(response.testCases) && (
         <TestCasesPanel testCases={response.testCases} />
       )}
