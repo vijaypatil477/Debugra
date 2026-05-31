@@ -23,7 +23,7 @@ import { OUTPUT_TABS } from '../config/constants';
  * @param {Function} setActiveOutputTab - to auto-switch to AI tab
  * @param {React.RefObject} editorRef - Monaco editor ref (for selection)
  */
-export function useAI({ language, code, stderr, setActiveOutputTab, editorRef , model }) {
+export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, model }) {
   const [aiResponse, setAiResponse] = useState(null);
   const [isAILoading, setIsAILoading] = useState(false);
 
@@ -79,12 +79,6 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef , 
         return await aiReviewCode(getSelectedOrFullCode(), LANGUAGES[language].name);
       }),
     [withAI, language, getSelectedOrFullCode]
-        const sel = editorRef?.current?.getSelection();
-        const selectedCode =
-          sel && !sel.isEmpty() ? editorRef.current.getModel().getValueInRange(sel) : code;
-        return await aiExplainLogic(selectedCode, LANGUAGES[language].name, model);
-      }),
-    [withAI, code, language, editorRef, model]
   );
 
   const visualize = useCallback(
