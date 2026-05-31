@@ -7,14 +7,7 @@ import ParticipantsPanel from './ParticipantsPanel';
  * Handles: participants list panel, role management.
  */
 export default function CollaborationControls({ room, user }) {
-  const {
-    roomData,
-    activeUsers,
-    isHost,
-    isEditor,
-    isReadOnly,
-    leaveRoom,
-  } = room;
+  const { roomData, activeUsers, isHost, isEditor, isReadOnly, leaveRoom } = room;
 
   const [showParticipants, setShowParticipants] = useState(false);
   const myRole = roomData?.roles?.[user?.uid] || 'viewer';
@@ -49,6 +42,30 @@ export default function CollaborationControls({ room, user }) {
         Participants ({activeUsers.length})
       </button>
 
+      {/* Lock Room toggle for host */}
+      {isHost && (
+        <button
+          onClick={room.toggleRoomLock}
+          style={{
+            background: roomData?.isLocked ? 'rgba(244, 71, 71, 0.15)' : 'var(--bg-1)',
+            color: roomData?.isLocked ? '#f44747' : 'var(--text-1)',
+            border: roomData?.isLocked ? '1px solid #f44747' : '1px solid var(--border)',
+            padding: '2px 8px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            flexShrink: 0,
+            transition: 'all 0.2s ease',
+          }}
+          title={
+            roomData?.isLocked
+              ? 'Room is locked. Click to unlock.'
+              : 'Room is unlocked. Click to lock.'
+          }
+        >
+          {roomData?.isLocked ? '🔒 Locked' : '🔓 Unlocked'}
+        </button>
+      )}
+
       {showParticipants && (
         <ParticipantsPanel room={room} user={user} onClose={() => setShowParticipants(false)} />
       )}
@@ -56,7 +73,9 @@ export default function CollaborationControls({ room, user }) {
       {/* Current Role label */}
       <span style={{ color: 'var(--text-2)', marginLeft: '4px' }}>
         Role:{' '}
-        <strong style={{ color: isHost ? 'var(--yellow)' : (isEditor ? 'var(--green)' : 'var(--text-1)') }}>
+        <strong
+          style={{ color: isHost ? 'var(--yellow)' : isEditor ? 'var(--green)' : 'var(--text-1)' }}
+        >
           {myRole.charAt(0).toUpperCase() + myRole.slice(1)}
         </strong>
       </span>

@@ -1,5 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { doc, setDoc, updateDoc, onSnapshot, serverTimestamp, getDoc, runTransaction } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  updateDoc,
+  onSnapshot,
+  serverTimestamp,
+  getDoc,
+  runTransaction,
+} from 'firebase/firestore';
 import { db } from '../services/firebase';
 import toast from 'react-hot-toast';
 
@@ -75,7 +83,16 @@ async function hasValidRoomAccess(roomId) {
  * @param {Function} setLanguage - to apply remote language changes
  * @param {Function} setStdinValue - to apply remote stdin changes
  */
-export function useRoom({ user, code, language, stdinValue, setCode, setLanguage, setStdinValue }) {
+export function useRoom({
+  user,
+  code,
+  language,
+  stdinValue,
+  setCode,
+  setLanguage,
+  setStdinValue,
+  onKicked,
+}) {
   const [roomId, setRoomId] = useState(null);
   const [roomData, setRoomData] = useState(null);
   const [activeUsers, setActiveUsers] = useState([]);
@@ -84,12 +101,12 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
 
   // ─── Derived permissions ────────────────────────────────────────────────────
   const myRole = roomId
-  ? (roomData?.roles?.[user?.uid] || (roomData?.createdBy === user?.uid ? 'host' : 'viewer'))
-  : 'host';
+    ? roomData?.roles?.[user?.uid] || (roomData?.createdBy === user?.uid ? 'host' : 'viewer')
+    : 'host';
   const isHost = !roomId || myRole === 'host';
   const isEditor = !roomId || myRole === 'editor' || isHost;
   const isReadOnly = roomId ? !isEditor : false;
-  const currentEditorName = isEditor ? (user?.displayName || 'Editor') : 'Viewer';
+  const currentEditorName = isEditor ? user?.displayName || 'Editor' : 'Viewer';
 
   // ─── Live sync from Firestore ───────────────────────────────────────────────
   useEffect(() => {
@@ -97,6 +114,22 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     const unsub = onSnapshot(doc(db, 'rooms', roomId), (snap) => {
       if (!snap.exists()) return;
       const data = snap.data();
+
+      // Instant kick check
+      if (user && data.blockedUsers && data.blockedUsers.includes(user.uid)) {
+        toast.error('You have been kicked from the room by the host');
+        localStorage.removeItem('debugra_roomId');
+        setRoomId(null);
+        setRoomData(null);
+        setActiveUsers([]);
+        if (onKicked) {
+          onKicked();
+        } else {
+          window.location.replace('/');
+        }
+        return;
+      }
+
       setRoomData(data);
       if (data.code !== undefined && data._lastEditor !== user?.uid) setCode(data.code);
       if (data.language) setLanguage(data.language);
@@ -104,7 +137,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       setActiveUsers(data.activeUsers || []);
     });
     return unsub;
-  }, [roomId, user]);
+  }, [roomId, user, setCode, setLanguage, setStdinValue, onKicked]);
 
   // ─── Push local changes (debounced, editor-gated) ──────────────────────────
   useEffect(() => {
@@ -190,8 +223,8 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
           event: 'room_created',
           roomId: id,
           userName: displayName,
-          passwordProtected
-        })
+          passwordProtected,
+        }),
       }).catch(console.error);
 
       return true;
@@ -211,11 +244,23 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
           toast.error('Room not found');
           return false;
         }
+
         const data = roomSnap.data();
-        const currentUsers = data.activeUsers || [];
+        if (data.blockedUsers && data.blockedUsers.includes(user.uid)) {
+          toast.error('You are banned from joining this room');
+          return false;
+        }
+
         const isCreator = data.createdBy === user.uid;
+        if (data.isLocked && !isCreator) {
+          toast.error('This room is locked by the host');
+          return false;
+        }
+
+        const currentUsers = data.activeUsers || [];
         const isAllowed = data.allowedEditors?.includes(user.uid);
-        const requiresPassword = Boolean(data.passwordProtected || data.isPrivate) && !isCreator && !isAllowed;
+        const requiresPassword =
+          Boolean(data.passwordProtected || data.isPrivate) && !isCreator && !isAllowed;
 
         if (requiresPassword) {
           const alreadyAuthorized = await hasValidRoomAccess(newRoomId);
@@ -253,8 +298,8 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
           body: JSON.stringify({
             event: 'room_joined',
             roomId: newRoomId,
-            userName: displayName
-          })
+            userName: displayName,
+          }),
         }).catch(console.error);
 
         return true;
@@ -274,6 +319,41 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   const takeControl = useCallback(() => {}, []);
   const releaseControl = useCallback(() => {}, []);
 
+  const toggleRoomLock = useCallback(async () => {
+    if (!roomId || !isHost) return;
+    try {
+      const newLockedState = !roomData?.isLocked;
+      await updateDoc(doc(db, 'rooms', roomId), { isLocked: newLockedState });
+      toast.success(newLockedState ? 'Room locked' : 'Room unlocked');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to toggle room lock');
+    }
+  }, [roomId, isHost, roomData?.isLocked]);
+
+  const kickUser = useCallback(
+    async (targetUid) => {
+      if (!roomId || !isHost || !targetUid) return;
+      try {
+        const newActiveUsers = (roomData?.activeUsers || []).filter((u) => u.uid !== targetUid);
+        const blockedUsers = roomData?.blockedUsers || [];
+        const newBlockedUsers = blockedUsers.includes(targetUid)
+          ? blockedUsers
+          : [...blockedUsers, targetUid];
+
+        await updateDoc(doc(db, 'rooms', roomId), {
+          activeUsers: newActiveUsers,
+          blockedUsers: newBlockedUsers,
+        });
+        toast.success('User kicked successfully');
+      } catch (e) {
+        console.error(e);
+        toast.error('Failed to kick user');
+      }
+    },
+    [roomId, isHost, roomData?.activeUsers, roomData?.blockedUsers]
+  );
+
   const leaveRoom = useCallback(async () => {
     if (!roomId) return;
     try {
@@ -292,155 +372,174 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   }, [roomId, user, roomData]);
 
   // ─── Execution Voting & Results Sync ──────────────────────────────────────────
-  const startExecutionVote = useCallback(async (code, language, stdin) => {
-    if (!roomId || !user) return;
+  const startExecutionVote = useCallback(
+    async (code, language, stdin) => {
+      if (!roomId || !user) return;
 
-    // Custom fallback random UUID generator
-    const generateUUID = () => {
-      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-        return crypto.randomUUID();
+      // Custom fallback random UUID generator
+      const generateUUID = () => {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+          return crypto.randomUUID();
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+          const r = (Math.random() * 16) | 0;
+          const v = c === 'x' ? r : (r & 0x3) | 0x8;
+          return v.toString(16);
+        });
+      };
+
+      const voteId = generateUUID();
+
+      // Store full code/stdin payload in separate Firestore document to avoid document size limit (1MB limit)
+      const fullVoteRef = doc(db, 'rooms', roomId, 'votes', voteId);
+      await setDoc(fullVoteRef, {
+        code,
+        language,
+        stdin: stdin || '',
+        createdAt: serverTimestamp(),
+      });
+
+      // Store lightweight previews in main room document to minimize write amplification and size
+      const activeVote = {
+        voteId,
+        initiatorUid: user.uid,
+        initiatorName: user.displayName || 'Guest',
+        codePreview:
+          code.length > 800 ? code.slice(0, 800) + '\n... [truncated for size limits]' : code,
+        stdinPreview:
+          stdin && stdin.length > 150 ? stdin.slice(0, 150) + '... [truncated]' : stdin || '',
+        language,
+        approvals: [user.uid], // initiator pre-approves
+        rejections: [],
+        status: 'voting',
+        createdAt: new Date().toISOString(),
+      };
+
+      await updateDoc(doc(db, 'rooms', roomId), { activeVote });
+      toast.success('Started a vote for code execution!');
+    },
+    [roomId, user]
+  );
+
+  const castVote = useCallback(
+    async (voteType) => {
+      if (!roomId || !user) return;
+
+      const roomRef = doc(db, 'rooms', roomId);
+      try {
+        await runTransaction(db, async (transaction) => {
+          const roomDoc = await transaction.get(roomRef);
+          if (!roomDoc.exists()) throw new Error('Room does not exist');
+
+          const data = roomDoc.data();
+          const activeVote = data.activeVote;
+          if (!activeVote || activeVote.status !== 'voting') {
+            throw new Error('No active vote in progress');
+          }
+
+          const approvals = [...(activeVote.approvals || [])];
+          const rejections = [...(activeVote.rejections || [])];
+
+          if (voteType === 'approve') {
+            if (!approvals.includes(user.uid)) approvals.push(user.uid);
+            const rejIdx = rejections.indexOf(user.uid);
+            if (rejIdx > -1) rejections.splice(rejIdx, 1);
+          } else if (voteType === 'reject') {
+            if (!rejections.includes(user.uid)) rejections.push(user.uid);
+            const appIdx = approvals.indexOf(user.uid);
+            if (appIdx > -1) approvals.splice(appIdx, 1);
+          }
+
+          activeVote.approvals = approvals;
+          activeVote.rejections = rejections;
+
+          // Consensus threshold: strictly greater than 50% for BOTH approved and rejected (symmetry)
+          const totalUsersCount = (data.activeUsers || []).length;
+          if (approvals.length > totalUsersCount / 2) {
+            activeVote.status = 'approved';
+          } else if (rejections.length > totalUsersCount / 2) {
+            activeVote.status = 'rejected';
+          }
+
+          transaction.update(roomRef, { activeVote });
+        });
+      } catch (error) {
+        console.error('Voting transaction failed: ', error);
+        toast.error(error.message || 'Failed to cast vote');
       }
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-        const r = (Math.random() * 16) | 0;
-        const v = c === 'x' ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-      });
-    };
-
-    const voteId = generateUUID();
-
-    // Store full code/stdin payload in separate Firestore document to avoid document size limit (1MB limit)
-    const fullVoteRef = doc(db, 'rooms', roomId, 'votes', voteId);
-    await setDoc(fullVoteRef, {
-      code,
-      language,
-      stdin: stdin || '',
-      createdAt: serverTimestamp(),
-    });
-
-    // Store lightweight previews in main room document to minimize write amplification and size
-    const activeVote = {
-      voteId,
-      initiatorUid: user.uid,
-      initiatorName: user.displayName || 'Guest',
-      codePreview: code.length > 800 ? code.slice(0, 800) + '\n... [truncated for size limits]' : code,
-      stdinPreview: stdin && stdin.length > 150 ? stdin.slice(0, 150) + '... [truncated]' : (stdin || ''),
-      language,
-      approvals: [user.uid], // initiator pre-approves
-      rejections: [],
-      status: 'voting',
-      createdAt: new Date().toISOString(),
-    };
-
-    await updateDoc(doc(db, 'rooms', roomId), { activeVote });
-    toast.success('Started a vote for code execution!');
-  }, [roomId, user]);
-
-  const castVote = useCallback(async (voteType) => {
-    if (!roomId || !user) return;
-
-    const roomRef = doc(db, 'rooms', roomId);
-    try {
-      await runTransaction(db, async (transaction) => {
-        const roomDoc = await transaction.get(roomRef);
-        if (!roomDoc.exists()) throw new Error("Room does not exist");
-
-        const data = roomDoc.data();
-        const activeVote = data.activeVote;
-        if (!activeVote || activeVote.status !== 'voting') {
-          throw new Error("No active vote in progress");
-        }
-
-        const approvals = [...(activeVote.approvals || [])];
-        const rejections = [...(activeVote.rejections || [])];
-
-        if (voteType === 'approve') {
-          if (!approvals.includes(user.uid)) approvals.push(user.uid);
-          const rejIdx = rejections.indexOf(user.uid);
-          if (rejIdx > -1) rejections.splice(rejIdx, 1);
-        } else if (voteType === 'reject') {
-          if (!rejections.includes(user.uid)) rejections.push(user.uid);
-          const appIdx = approvals.indexOf(user.uid);
-          if (appIdx > -1) approvals.splice(appIdx, 1);
-        }
-
-        activeVote.approvals = approvals;
-        activeVote.rejections = rejections;
-
-        // Consensus threshold: strictly greater than 50% for BOTH approved and rejected (symmetry)
-        const totalUsersCount = (data.activeUsers || []).length;
-        if (approvals.length > totalUsersCount / 2) {
-          activeVote.status = 'approved';
-        } else if (rejections.length > totalUsersCount / 2) {
-          activeVote.status = 'rejected';
-        }
-
-        transaction.update(roomRef, { activeVote });
-      });
-    } catch (error) {
-      console.error("Voting transaction failed: ", error);
-      toast.error(error.message || "Failed to cast vote");
-    }
-  }, [roomId, user]);
+    },
+    [roomId, user]
+  );
 
   const clearVote = useCallback(async () => {
     if (!roomId) return;
     await updateDoc(doc(db, 'rooms', roomId), { activeVote: null });
   }, [roomId]);
 
-  const syncExecutionResult = useCallback(async (result) => {
-    if (!roomId) return;
-    const cappedResult = { ...result };
-    // Cap output payload sizes to 10k characters to prevent document size limit errors & heavy traffic
-    if (cappedResult.stdout && cappedResult.stdout.length > 10000) {
-      cappedResult.stdout = cappedResult.stdout.slice(0, 10000) + '\n... [stdout truncated due to size limits]';
-    }
-    if (cappedResult.stderr && cappedResult.stderr.length > 10000) {
-      cappedResult.stderr = cappedResult.stderr.slice(0, 10000) + '\n... [stderr truncated due to size limits]';
-    }
-    await updateDoc(doc(db, 'rooms', roomId), { executionResult: cappedResult });
-  }, [roomId]);
+  const syncExecutionResult = useCallback(
+    async (result) => {
+      if (!roomId) return;
+      const cappedResult = { ...result };
+      // Cap output payload sizes to 10k characters to prevent document size limit errors & heavy traffic
+      if (cappedResult.stdout && cappedResult.stdout.length > 10000) {
+        cappedResult.stdout =
+          cappedResult.stdout.slice(0, 10000) + '\n... [stdout truncated due to size limits]';
+      }
+      if (cappedResult.stderr && cappedResult.stderr.length > 10000) {
+        cappedResult.stderr =
+          cappedResult.stderr.slice(0, 10000) + '\n... [stderr truncated due to size limits]';
+      }
+      await updateDoc(doc(db, 'rooms', roomId), { executionResult: cappedResult });
+    },
+    [roomId]
+  );
 
   const clearExecutionResult = useCallback(async () => {
     if (!roomId) return;
     await updateDoc(doc(db, 'rooms', roomId), { executionResult: null });
   }, [roomId]);
 
-  const fetchFullVotePayload = useCallback(async (voteId) => {
-    if (!roomId) return null;
-    try {
-      const voteSnap = await getDoc(doc(db, 'rooms', roomId, 'votes', voteId));
-      if (voteSnap.exists()) {
-        return voteSnap.data();
-      }
-    } catch (e) {
-      console.error('Failed to fetch full vote payload:', e);
-    }
-    return null;
-  }, [roomId]);
-
-  const transitionVoteToExecuting = useCallback(async (voteId) => {
-    if (!roomId || !user) return false;
-    const roomRef = doc(db, 'rooms', roomId);
-    try {
-      let transitioned = false;
-      await runTransaction(db, async (transaction) => {
-        const roomDoc = await transaction.get(roomRef);
-        if (!roomDoc.exists()) return;
-        const data = roomDoc.data();
-        const activeVote = data.activeVote;
-        if (activeVote && activeVote.voteId === voteId && activeVote.status === 'approved') {
-          activeVote.status = 'executing';
-          transaction.update(roomRef, { activeVote });
-          transitioned = true;
+  const fetchFullVotePayload = useCallback(
+    async (voteId) => {
+      if (!roomId) return null;
+      try {
+        const voteSnap = await getDoc(doc(db, 'rooms', roomId, 'votes', voteId));
+        if (voteSnap.exists()) {
+          return voteSnap.data();
         }
-      });
-      return transitioned;
-    } catch (e) {
-      console.error('Failed to transition vote status:', e);
-      return false;
-    }
-  }, [roomId, user]);
+      } catch (e) {
+        console.error('Failed to fetch full vote payload:', e);
+      }
+      return null;
+    },
+    [roomId]
+  );
+
+  const transitionVoteToExecuting = useCallback(
+    async (voteId) => {
+      if (!roomId || !user) return false;
+      const roomRef = doc(db, 'rooms', roomId);
+      try {
+        let transitioned = false;
+        await runTransaction(db, async (transaction) => {
+          const roomDoc = await transaction.get(roomRef);
+          if (!roomDoc.exists()) return;
+          const data = roomDoc.data();
+          const activeVote = data.activeVote;
+          if (activeVote && activeVote.voteId === voteId && activeVote.status === 'approved') {
+            activeVote.status = 'executing';
+            transaction.update(roomRef, { activeVote });
+            transitioned = true;
+          }
+        });
+        return transitioned;
+      } catch (e) {
+        console.error('Failed to transition vote status:', e);
+        return false;
+      }
+    },
+    [roomId, user]
+  );
 
   return {
     roomId,
@@ -470,6 +569,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     clearExecutionResult,
     fetchFullVotePayload,
     transitionVoteToExecuting,
+    toggleRoomLock,
+    kickUser,
   };
 }
-
