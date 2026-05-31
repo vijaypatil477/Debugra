@@ -1,10 +1,11 @@
 import { useRef, useState, useEffect } from 'react';
+import { createMonacoVimController } from '../../utils/monacoVim';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX } from 'lucide-react';
+import { Eye, EyeOff, Settings } from 'lucide-react';
 
 import {
   useRoom,
@@ -41,6 +42,7 @@ import VotePopup from './VotePopup';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import ComplexityOverlay from './ComplexityOverlay';
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -62,7 +64,10 @@ export default function EditorPage({ user }) {
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  // const [showApiKey, setShowApiKey] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [showAccount, setShowAccount] = useState(false);
   const [apiKeyStatus, setApiKeyStatus] = useState(getApiKeyStatus);
   const [mobileTab, setMobileTab] = useState(MOBILE_TABS.CODE);
@@ -70,15 +75,21 @@ export default function EditorPage({ user }) {
   const [joinId, setJoinId] = useState('');
   const [joinPassword, setJoinPassword] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
+  const [isOutputCollapsed, setIsOutputCollapsed] = useState(false);
   const [outputWidth, setOutputWidth] = useState(420);
   const [minimapSide, setMinimapSide] = useState('right');
-  const [showMinimap, setShowMinimap] = useState(true); // ✅ CHANGE 1: Added showMinimap state
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [consoleCollapsed, setConsoleCollapsed] = useState(false);
+  const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
   const resizingRef = useRef(false);
+
+  const toggleConsoleCollapsed = () => {
+    setConsoleCollapsed((prev) => !prev);
+  };
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
@@ -109,8 +120,14 @@ export default function EditorPage({ user }) {
       setShowAuth(true);
     },
   });
+  const showMinimap = editor.minimapEnabled;
+
+  const vimEnabled = editor.vimEnabled;
+  const setVimEnabled = editor.setVimEnabled;
 
   const tabSizeRef = useRef(editor.tabSize);
+  const vimControllerRef = useRef(null);
+  const [vimMode, setVimMode] = useState('NORMAL');
 
   // ─── Room/Collaboration Logic ──────────────────────────────────────────────
   const room = useRoom({
@@ -154,6 +171,7 @@ export default function EditorPage({ user }) {
     stderr: execution.stderr,
     setActiveOutputTab: execution.setActiveOutputTab,
     editorRef,
+    model: selectedModel,
   });
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
@@ -273,6 +291,10 @@ export default function EditorPage({ user }) {
     if (!monaco) return;
 
     const editorDomNode = editorInstance.getDomNode();
+
+    // Vim initialization is handled in effects; here we only keep non-Vim overrides.
+    // Ctrl+S and Tab indentation must remain functional even in Vim mode.
+
     const handleDomKeyDown = (event) => {
       if (room.isReadOnly) return;
 
@@ -311,6 +333,11 @@ export default function EditorPage({ user }) {
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
+
+    // Prevent our custom Ctrl+S and Tab handlers from being blocked by Vim command-mode.
+    // These are handled via the capture-phase DOM keydown listener above, and Vim mode toggling
+    // should not override these specific shortcuts.
+
     // Ctrl+Enter → Run
     editorInstance.addCommand(2048 | 3, () => {
       if (executionRunRef.current) executionRunRef.current();
@@ -369,6 +396,20 @@ export default function EditorPage({ user }) {
         formatCurrentModel();
       }
     });
+
+    // Initialize Vim controller when enabled (after editorInstance exists).
+    if (editor.vimEnabled && !vimControllerRef.current) {
+      void createMonacoVimController({
+        monaco,
+        editor: editorInstance,
+        onModeChange: (mode) => {
+          // monaco-vim tends to pass strings like 'INSERT', 'NORMAL', 'COMMAND'
+          setVimMode(mode);
+        },
+      }).then((controller) => {
+        vimControllerRef.current = controller;
+      });
+    }
   };
 
   useEffect(
@@ -388,7 +429,7 @@ export default function EditorPage({ user }) {
 
     editorRef.current.updateOptions({
       minimap: {
-        enabled: editor.minimapEnabled,
+        enabled: showMinimap,
         side: minimapSide,
         showSlider: 'always',
         renderCharacters: false,
@@ -402,7 +443,15 @@ export default function EditorPage({ user }) {
     if (model) {
       model.updateOptions({ tabSize: editor.tabSize, insertSpaces: true });
     }
-  }, [editor.tabSize, editor.minimapEnabled, editor.rulerColumn, minimapSide]);
+  }, [editor.tabSize, showMinimap, editor.rulerColumn, minimapSide]);
+
+  // ─── Monaco layout refresh after console collapse/restore animation ──────
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      editorRef.current?.layout();
+    }, 310);
+    return () => clearTimeout(timer);
+  }, [isOutputCollapsed]);
 
   // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
@@ -698,20 +747,39 @@ export default function EditorPage({ user }) {
             >
               Right
             </button>
-            {/* ✅ CHANGE 2: Added Show/Hide toggle button for minimap */}
             <button
               type="button"
               className={showMinimap ? 'active' : ''}
               aria-pressed={showMinimap}
-              onClick={() => setShowMinimap(!showMinimap)}
-              title="Toggle minimap visibility"
+              aria-label={showMinimap ? 'Hide minimap' : 'Show minimap'}
+              onClick={() => editor.setMinimapEnabled(!showMinimap)}
+              title={showMinimap ? 'Hide minimap' : 'Show minimap'}
             >
-              {showMinimap ? 'Hide' : 'Show'}
+              {showMinimap ? <EyeOff size={13} /> : <Eye size={13} />}
             </button>
           </div>
         </div>
         <div className="toolbar-right d-flex align-items-center gap-2">
           <div className="d-none d-md-flex align-items-center gap-2">
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              style={{
+                background: '#2d2d2d',
+                color: '#e2e8f0',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '6px',
+                padding: '4px 8px',
+                fontSize: '0.72rem',
+                cursor: 'pointer',
+                height: '32px',
+              }}
+              title="Select AI Model"
+            >
+              <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+              <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+              {/* <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>*/}
+            </select>
             <button
               className={`ai-btn api-key-toggle ${apiKeyStatus}`}
               onClick={() => setShowApiKey(true)}
@@ -768,6 +836,34 @@ export default function EditorPage({ user }) {
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
               Explain
+            </button>
+            <button
+              className="ai-btn"
+              onClick={() => {
+                ai.analyzeComplexity();
+                setShowComplexityOverlay(true);
+              }}
+              disabled={ai.isComplexityLoading}
+              title="Analyze Time & Space Complexity (Big-O)"
+              style={{
+                background: ai.isComplexityLoading
+                  ? 'rgba(99, 102, 241, 0.18)'
+                  : 'rgba(99, 102, 241, 0.08)',
+                color: '#a5b4fc',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+              }}
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
+              Big-O
             </button>
           </div>
           <button
@@ -994,12 +1090,28 @@ export default function EditorPage({ user }) {
                 <option value="10000">10000</option>
               </select>
             </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="vim-select">
+                <span>Vim mode</span>
+              </label>
+              <select
+                id="vim-select"
+                aria-label="Vim mode"
+                className="lang-select"
+                value={editor.vimEnabled ? 'enabled' : 'disabled'}
+                onChange={(event) => editor.setVimEnabled(event.target.value === 'enabled')}
+              >
+                <option value="disabled">disabled</option>
+                <option value="enabled">enabled</option>
+              </select>
+            </div>
           </div>
         </div>
       )}
 
       {/* ===== MAIN SPLIT ===== */}
-            <KeyboardShortcutsModal />
+      <KeyboardShortcutsModal />
       <div className="main-split">
         {/* EDITOR PANE */}
         <div
@@ -1030,7 +1142,7 @@ export default function EditorPage({ user }) {
           {/* Monaco Editor */}
           <div
             id="editor-container"
-            className={editor.minimapEnabled ? '' : 'minimap-disabled'}
+            className={showMinimap ? '' : 'minimap-disabled'}
             style={{ flex: 1, minHeight: 0, opacity: room.isReadOnly ? 0.8 : 1 }}
           >
             {room.isReadOnly && (
@@ -1064,7 +1176,7 @@ export default function EditorPage({ user }) {
                 fontSize: editor.fontSize,
                 fontFamily: getEditorFontFamily(editor.fontFamily),
                 minimap: {
-                  enabled: showMinimap && editor.minimapEnabled,
+                  enabled: showMinimap,
                   side: minimapSide,
                   showSlider: 'always',
                   renderCharacters: false,
@@ -1151,7 +1263,7 @@ export default function EditorPage({ user }) {
         </div>
 
         {/* Resize Handle (desktop only) */}
-        {!isMobile && <div className="resize-handle" onMouseDown={handleResizeStart} />}
+        {!isMobile && !isOutputCollapsed && <div className="resize-handle" onMouseDown={handleResizeStart} />}
 
         {/* History Panel (desktop) */}
         {showHistory && user && !isMobile && (
@@ -1200,10 +1312,31 @@ export default function EditorPage({ user }) {
               ? mobileTab === MOBILE_TABS.OUTPUT
                 ? { display: 'flex', width: '100%' }
                 : { display: 'none' }
-              : { width: outputWidth + 'px' }
+              : { width: isOutputCollapsed ? '0px' : outputWidth + 'px', minWidth: isOutputCollapsed ? '0' : '260px', overflow: 'hidden' }
           }
         >
           <div className="output-tabs">
+            <button
+              type="button"
+              className={`console-minimize-btn ${consoleCollapsed ? 'collapsed' : ''}`}
+              onClick={() => {
+                toggleConsoleCollapsed();
+                // Let layout/animation start before forcing Monaco layout
+                setTimeout(() => {
+                  try {
+                    monacoRef.current?.layout?.();
+                    editorRef.current?.layout?.();
+                  } catch (e) {
+                    // no-op
+                  }
+                }, 0);
+              }}
+              aria-label={consoleCollapsed ? 'Restore Console' : 'Minimize Console'}
+              aria-pressed={!consoleCollapsed}
+              title={consoleCollapsed ? 'Restore Console' : 'Minimize Console'}
+            >
+              <span className="console-minimize-chevron">▾</span>
+            </button>
             {/* copy */}
             <div
               style={{
@@ -1213,9 +1346,8 @@ export default function EditorPage({ user }) {
               }}
             >
               <button
-                className={`output-tab ${
-                  execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''
-                }`}
+                className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''
+                  }`}
                 onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDOUT)}
               >
                 Output
@@ -1302,9 +1434,46 @@ export default function EditorPage({ user }) {
                 )}
               </button>
             )}
+            <button
+              className="output-collapse-btn"
+              onClick={() => setIsOutputCollapsed(prev => !prev)}
+              title={isOutputCollapsed ? 'Restore Console' : 'Minimize Console'}
+              aria-label={isOutputCollapsed ? 'Restore Console' : 'Minimize Console'}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points={isOutputCollapsed ? "15 18 9 12 15 6" : "6 9 12 15 18 9"} />
+              </svg>
+            </button>
           </div>
 
-          <div className="output-content">
+          <div
+            className={`output-content ${consoleCollapsed ? 'console-collapsed' : ''}`}
+            data-console-collapsed={consoleCollapsed ? 'true' : 'false'}
+          >
+            <div
+              className="console-restore-banner-wrap"
+              style={{ display: consoleCollapsed ? 'flex' : 'none' }}
+            >
+              <button
+                type="button"
+                className="console-restore-banner"
+                onClick={() => {
+                  toggleConsoleCollapsed();
+                  setTimeout(() => {
+                    try {
+                      monacoRef.current?.layout?.();
+                      editorRef.current?.layout?.();
+                    } catch (e) {
+                      // no-op
+                    }
+                  }, 0);
+                }}
+                aria-label="Restore Console"
+                title="Restore Console"
+              >
+                Restore Console
+              </button>
+            </div>
             <div
               className={`output-panel ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''}`}
               id="output-stdout"
@@ -1399,6 +1568,18 @@ export default function EditorPage({ user }) {
             </div>
           )}
         </div>
+
+        {/* Restore Console strip — shown only when output pane is collapsed */}
+        {!isMobile && isOutputCollapsed && (
+          <button
+            className="restore-console-strip"
+            onClick={() => setIsOutputCollapsed(false)}
+            aria-label="Restore Console"
+            title="Restore Console"
+          >
+            <span>Console</span>
+          </button>
+        )}
       </div>
 
       {/* ===== STATUS BAR ===== */}
@@ -1409,6 +1590,8 @@ export default function EditorPage({ user }) {
         tabSize={editor.tabSize}
         room={room}
         user={user}
+        vimEnabled={editor.vimEnabled}
+        vimMode={vimMode}
       />
 
       {/* Chat */}
@@ -1518,6 +1701,17 @@ export default function EditorPage({ user }) {
         }}
         onApplyFix={() => {
           ai.fix();
+        }}
+      />
+
+      {/* Complexity Overlay */}
+      <ComplexityOverlay
+        isOpen={showComplexityOverlay}
+        isLoading={ai.isComplexityLoading}
+        response={ai.complexityResponse}
+        onClose={() => {
+          setShowComplexityOverlay(false);
+          ai.clearComplexity();
         }}
       />
 
