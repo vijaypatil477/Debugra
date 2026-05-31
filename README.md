@@ -171,6 +171,20 @@ DEBUGRA_ADMIN_TOKEN=choose_a_long_random_admin_token
 `CORS_ORIGINS` accepts a comma-separated list of trusted frontend origins. `CSP_REPORT_URI` enables browser CSP violation reports through `/api/security/csp-report`.
 `DEBUGRA_ADMIN_TOKEN` is required for `/api/admin/memory-profile` diagnostic endpoints. Send it as either `Authorization: Bearer <token>` or `x-admin-token: <token>`.
 
+### Rate Limiting
+
+The backend applies per-user rate limits when a logged-in client sends its Firebase UID via the `X-User-Id` header (attached automatically by the frontend). Anonymous requests fall back to IP-based limits.
+
+| Endpoint | Limit |
+| -------- | ----- |
+| `/api/execute` | 10 requests per minute |
+| `/api/ai/*` | 5 requests per 5 minutes |
+| `/api/*` (global) | 100 requests per 15 minutes |
+
+Authenticated users are limited by UID, so switching networks (mobile data, VPN, etc.) does not reset their quota. Without a valid `X-User-Id`, limits are keyed by client IP.
+
+> **Note:** User identity is client-provided and not cryptographically verified. This prevents casual IP-switching bypass for honest clients. Stronger enforcement would require server-side Firebase ID token verification.
+
 ### 4. Start development servers
 
 #### Option A: Using NPM
