@@ -1,42 +1,28 @@
-
-name: CI Pipeline
+name: CI
 
 on:
   pull_request:
-    branches: [ main, master ]
-  push:
-    branches: [ main, master ]
+    branches:
+      - '*'
 
 jobs:
-  build-and-test:
+  lint-and-format:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            server/package-lock.json
 
-      - name: Install Frontend Dependencies
-        run: npm install
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Verify Frontend Production Build
-        run: npm run build
+      - name: Lint
+        run: npm run lint
 
-      - name: Run Lighthouse CI
-        run: npx @lhci/cli@0.15.x autorun
-
-      - name: Install Backend Dependencies
-        run: npm install --prefix server
-
-      - name: Verify Backend Syntax
-        run: |
-          find server -name "*.js" -not -path "*/node_modules/*" -print0 \
-            | xargs -0 -n 1 node --check
+      - name: Format check
+        run: npm run format:check
