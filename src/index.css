@@ -339,6 +339,11 @@ body {
   font-weight: 600;
 }
 .minimap-side-ctrl button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  min-height: 24px;
   border: 0;
   border-radius: 3px;
   background: transparent;

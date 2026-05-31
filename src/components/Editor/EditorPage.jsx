@@ -4,7 +4,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX } from 'lucide-react';
+import { Eye, EyeOff, Settings } from 'lucide-react';
 
 import {
   useRoom,
@@ -73,7 +73,6 @@ export default function EditorPage({ user }) {
   const [roomPassword, setRoomPassword] = useState('');
   const [outputWidth, setOutputWidth] = useState(420);
   const [minimapSide, setMinimapSide] = useState('right');
-  const [showMinimap, setShowMinimap] = useState(true); // ✅ CHANGE 1: Added showMinimap state
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
@@ -110,6 +109,7 @@ export default function EditorPage({ user }) {
       setShowAuth(true);
     },
   });
+  const showMinimap = editor.minimapEnabled;
 
   const tabSizeRef = useRef(editor.tabSize);
 
@@ -390,7 +390,7 @@ export default function EditorPage({ user }) {
 
     editorRef.current.updateOptions({
       minimap: {
-        enabled: editor.minimapEnabled,
+        enabled: showMinimap,
         side: minimapSide,
         showSlider: 'always',
         renderCharacters: false,
@@ -404,7 +404,7 @@ export default function EditorPage({ user }) {
     if (model) {
       model.updateOptions({ tabSize: editor.tabSize, insertSpaces: true });
     }
-  }, [editor.tabSize, editor.minimapEnabled, editor.rulerColumn, minimapSide]);
+  }, [editor.tabSize, showMinimap, editor.rulerColumn, minimapSide]);
 
   // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
@@ -700,15 +700,15 @@ export default function EditorPage({ user }) {
             >
               Right
             </button>
-            {/* ✅ CHANGE 2: Added Show/Hide toggle button for minimap */}
             <button
               type="button"
               className={showMinimap ? 'active' : ''}
               aria-pressed={showMinimap}
-              onClick={() => setShowMinimap(!showMinimap)}
-              title="Toggle minimap visibility"
+              aria-label={showMinimap ? 'Hide minimap' : 'Show minimap'}
+              onClick={() => editor.setMinimapEnabled(!showMinimap)}
+              title={showMinimap ? 'Hide minimap' : 'Show minimap'}
             >
-              {showMinimap ? 'Hide' : 'Show'}
+              {showMinimap ? <EyeOff size={13} /> : <Eye size={13} />}
             </button>
           </div>
         </div>
@@ -1051,7 +1051,7 @@ export default function EditorPage({ user }) {
           {/* Monaco Editor */}
           <div
             id="editor-container"
-            className={editor.minimapEnabled ? '' : 'minimap-disabled'}
+            className={showMinimap ? '' : 'minimap-disabled'}
             style={{ flex: 1, minHeight: 0, opacity: room.isReadOnly ? 0.8 : 1 }}
           >
             {room.isReadOnly && (
@@ -1085,7 +1085,7 @@ export default function EditorPage({ user }) {
                 fontSize: editor.fontSize,
                 fontFamily: getEditorFontFamily(editor.fontFamily),
                 minimap: {
-                  enabled: showMinimap && editor.minimapEnabled,
+                  enabled: showMinimap,
                   side: minimapSide,
                   showSlider: 'always',
                   renderCharacters: false,
