@@ -158,6 +158,25 @@ export default function EditorPage({ user }) {
      model: selectedModel
   });
 
+  const handleInsertSnippet = (snippetCode) => {
+    if (room.isReadOnly) {
+      toast.error('You do not have write access to the editor.');
+      return;
+    }
+    if (editorRef.current) {
+      const selection = editorRef.current.getSelection();
+      editorRef.current.executeEdits('snippets', [{
+        range: selection,
+        text: snippetCode,
+        forceMoveMarkers: true
+      }]);
+      toast.success('Inserted snippet!');
+    } else {
+      editor.setCode(editor.code ? editor.code + '\n' + snippetCode : snippetCode);
+      toast.success('Appended snippet to code!');
+    }
+  };
+
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
     monacoRef.current = monaco;
@@ -1396,6 +1415,8 @@ export default function EditorPage({ user }) {
             user={user}
             isOpen={true}
             onToggle={() => setMobileTab(MOBILE_TABS.CODE)}
+            isAuthor={room.isAuthor}
+            onInsertSnippet={handleInsertSnippet}
           />
         </div>
       ) : (
@@ -1404,6 +1425,8 @@ export default function EditorPage({ user }) {
           user={user}
           isOpen={chatOpen}
           onToggle={() => setChatOpen(!chatOpen)}
+          isAuthor={room.isAuthor}
+          onInsertSnippet={handleInsertSnippet}
         />
       )}
 
