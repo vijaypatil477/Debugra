@@ -43,19 +43,45 @@ const Footer = () => {
         <div className="space-y-3">
           <h4 className="text-white font-semibold uppercase tracking-wider text-xs">Resources</h4>
           <ul className="space-y-2 text-xs">
-            <li>
-              <a href="#changelog" className="hover:text-[#4fc1ff] hover:underline transition-colors">Changelog</a>
-            </li>
-            <li>
-              <a href="#contributing" className="hover:text-[#4fc1ff] hover:underline transition-colors">Contributing</a>
-            </li>
-            <li>
-              <a href="#license" className="hover:text-[#4fc1ff] hover:underline transition-colors">MIT License</a>
-            </li>
-            <li>
-              <Link to="/feedback" className="hover:text-[#4fc1ff] hover:underline transition-colors">Contact Team</Link>
-            </li>
-          </ul>
+  <li>
+    <Link
+      to="/about"
+      className="hover:text-[#4fc1ff] hover:underline transition-colors"
+    >
+      About Us
+    </Link>
+  </li>
+
+  <li>
+    <Link
+      to="/help"
+      className="hover:text-[#4fc1ff] hover:underline transition-colors"
+    >
+      Help
+    </Link>
+  </li>
+
+  <li>
+    <a
+      href="https://github.com/your-org/debugra"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="hover:text-[#4fc1ff] hover:underline transition-colors"
+    >
+      GitHub
+    </a>
+  </li>
+
+  <li>
+    <Link
+      to="/feedback"
+      className="hover:text-[#4fc1ff] hover:underline transition-colors"
+    >
+      Contact Team
+    </Link>
+  </li>
+</ul>
+          
         </div>
 
         {/* Social / Connect */}
