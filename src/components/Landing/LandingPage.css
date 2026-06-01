@@ -181,14 +181,11 @@
   padding: 0 !important;
 }
 
-/* ─── Bento grid — hairline border grid, all one surface ─────────── */
-.bento-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  overflow: hidden;
-  gap: 0;
+/* ─── Features carousel — horizontal, snap-based, accessible ────── */
+.features-carousel-shell {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 .bento-card {
   position: relative;
@@ -202,20 +199,25 @@
   cursor: default;
   border-radius: 0;
 }
-/* remove right border on last in each row */
-.bento-card:nth-child(3n) {
-  border-right: none;
+.features-carousel::-webkit-scrollbar {
+  display: none;
 }
-/* remove bottom on last row - approximate via last 3 */
-.bento-card:nth-last-child(-n + 3) {
-  border-bottom: none;
+.features-carousel:focus-visible {
+  box-shadow: 0 0 0 2px rgba(78, 201, 176, 0.28);
+  border-radius: 16px;
+}
+
+.features-carousel-track {
+  display: flex;
+  gap: 18px;
+  padding: 8px 2px 16px;
+  min-height: 100%;
 }
 
 .bento-card:hover {
   background: var(--surface-hover);
 }
-/* teal left stripe on hover — the ONLY color on hover */
-.bento-card::before {
+.feature-card::before {
   content: '';
   position: absolute;
   left: 0;
@@ -228,18 +230,17 @@
   transform-origin: bottom;
   transition: transform 0.22s ease;
 }
-.bento-card:hover::before {
+.feature-card:hover::before {
   transform: scaleY(1);
 }
-.bento-large {
-  grid-column: span 2;
+.feature-card-wide {
+  flex-basis: clamp(320px, 40vw, 440px);
 }
 
-/* Icon: same dim white for all cards, teal only on hover */
-.bento-icon {
+.feature-card-icon {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -250,14 +251,14 @@
     color 0.2s,
     background 0.2s;
 }
-.bento-card:hover .bento-icon {
+.feature-card:hover .feature-card-icon {
   color: var(--brand) !important;
   background: var(--brand-dim) !important;
 }
 
-/* Tag: same neutral for all */
-.bento-tag {
-  display: inline-block;
+.feature-card-tag {
+  display: inline-flex;
+  width: fit-content;
   font-size: 0.57rem;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -269,17 +270,61 @@
   color: var(--text-lo) !important;
   border: 1px solid var(--border-subtle) !important;
 }
-.bento-title {
-  font-size: 0.93rem;
+.feature-card-title {
+  font-size: 0.96rem;
   font-weight: 700;
   margin-bottom: 8px;
   color: var(--text-hi);
   letter-spacing: -0.02em;
 }
-.bento-desc {
+.feature-card-desc {
   font-size: 0.81rem;
   color: var(--text-mid);
   line-height: 1.65;
+  margin: 0;
+}
+
+.feature-card-glow {
+  position: absolute;
+  inset: auto -16px -48px auto;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  opacity: 0.08;
+  filter: blur(14px);
+  pointer-events: none;
+}
+
+.features-carousel-nav {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-hi);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    opacity 0.18s ease;
+}
+.features-carousel-nav:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+.features-carousel-nav:focus-visible {
+  outline: 2px solid rgba(78, 201, 176, 0.35);
+  outline-offset: 2px;
+}
+.features-carousel-nav:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* ─── Languages ────────────────────────────────────────────────────── */
@@ -308,6 +353,78 @@
   color: var(--brand);
 }
 /* ─── Modal Close Button ─────────────────────────────────────────── */
+
+/* ─── FAQ ─────────────────────────────────────────────────────────── */
+.faq-list {
+  max-width: 920px;
+  margin: 0 auto;
+  display: grid;
+  gap: 12px;
+}
+
+.faq-item {
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+  transition:
+    border-color 0.2s,
+    background 0.2s,
+    transform 0.2s;
+}
+
+.faq-item:hover,
+.faq-item.is-open {
+  border-color: var(--border-hover);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.faq-question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 22px;
+  background: transparent;
+  border: 0;
+  color: var(--text-hi);
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.faq-question:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+
+.faq-toggle {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-subtle);
+  color: var(--brand);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.faq-answer {
+  padding: 0 22px 20px;
+}
+
+.faq-answer p {
+  margin: 0;
+  color: var(--text-mid);
+  font-size: 0.88rem;
+  line-height: 1.75;
+}
 
 .modal-close-btn {
   position: relative;
@@ -401,6 +518,15 @@
   }
   .landing-cta-section {
     padding: 64px 24px;
+  }
+
+  .faq-question {
+    padding: 18px 18px;
+    font-size: 0.9rem;
+  }
+
+  .faq-answer {
+    padding: 0 18px 18px;
   }
 }
 /* ─── Password Toggle ───────────────────────── */

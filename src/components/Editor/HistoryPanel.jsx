@@ -153,7 +153,11 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
         {loading ? (
           <div className="d-flex flex-column align-items-center justify-content-center py-5 gap-2">
             {/* Themed Spinner using Bootstrap theme colors */}
-            <div className="spinner-border text-success" role="status" style={{ width: "1.5rem", height: "1.5rem" }}>
+            <div
+              className="spinner-border text-success"
+              role="status"
+              style={{ width: '1.5rem', height: '1.5rem' }}
+            >
               <span className="visually-hidden">Loading...</span>
             </div>
             {/* Pulsing Loading Text Label */}
