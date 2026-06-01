@@ -5,21 +5,7 @@ service cloud.firestore {
     match /rooms/{roomId} {
 
       // ── READ ─────────────────────────────────────────────────────────────
-      // Allow reading room metadata but NEVER expose password fields.
-      // passwordHash and passwordSalt are server-only — verified via backend.
-      allow read: if
-        // Block unauthenticated reads entirely
-        request.auth != null
-        // Even authenticated users must not receive password hash/salt fields
-        && !('passwordHash' in resource.data)
-        && !('passwordSalt' in resource.data);
-
-      // Public room metadata (name, language, passwordProtected flag) —
-      // readable by anyone who knows the roomId, but WITHOUT hash/salt.
-      // We use a separate /rooms/{roomId}/meta subcollection for public data.
-      allow read: if
-        !('passwordHash' in resource.data)
-        && !('passwordSalt' in resource.data);
+      allow read: if request.auth != null && request.auth.uid in resource.data.participants;
 
       // ── WRITE ────────────────────────────────────────────────────────────
       // Only authenticated users (room owners) can create/update rooms.
