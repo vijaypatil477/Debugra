@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { Mic, MicOff, PhoneCall, PhoneOff } from 'lucide-react';
 
