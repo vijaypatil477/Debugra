@@ -6,6 +6,7 @@ import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, Settings } from 'lucide-react';
+import { Menu } from 'lucide-react';
 
 import {
   useRoom,
@@ -40,6 +41,7 @@ import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
+import MobileDrawer from './MobileDrawer';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
 import ComplexityOverlay from './ComplexityOverlay';
@@ -68,7 +70,6 @@ export default function EditorPage({ user }) {
   const [showApiKey, setShowApiKey] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
-  const [showAccount, setShowAccount] = useState(false);
   const [apiKeyStatus, setApiKeyStatus] = useState(getApiKeyStatus);
   const [mobileTab, setMobileTab] = useState(MOBILE_TABS.CODE);
   const [showJoin, setShowJoin] = useState(false);
@@ -85,6 +86,7 @@ export default function EditorPage({ user }) {
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const [consoleCollapsed, setConsoleCollapsed] = useState(false);
   const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const resizingRef = useRef(false);
 
   const toggleConsoleCollapsed = () => {
@@ -487,6 +489,17 @@ export default function EditorPage({ user }) {
       {/* ===== TOP BAR ===== */}
       <div className="topbar px-2 px-md-3">
         <div className="topbar-left d-flex align-items-center">
+          {isMobile && (
+            <button
+              className="mobile-drawer-toggle"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={drawerOpen}
+              title="Menu"
+            >
+              <Menu size={18} />
+            </button>
+          )}
           <button
             onClick={() => navigate('/')}
             className="topbar-logo d-flex align-items-center gap-2"
@@ -660,6 +673,9 @@ export default function EditorPage({ user }) {
               >
                 Account
               </button>
+              <button className="topbar-link" onClick={() => navigate('/feedback')}>
+                Feedback
+              </button>
               <div className="user-avatar">{user.displayName?.[0]?.toUpperCase() || '?'}</div>
               <span
                 className="d-none d-md-inline"
@@ -669,7 +685,7 @@ export default function EditorPage({ user }) {
               </span>
             </div>
           ) : (
-            <div className="d-flex gap-2">
+            <div className="d-none d-md-flex gap-2">
               <button
                 className="topbar-link"
                 onClick={() => {
@@ -762,22 +778,13 @@ export default function EditorPage({ user }) {
         <div className="toolbar-right d-flex align-items-center gap-2">
           <div className="d-none d-md-flex align-items-center gap-2">
             <select
+              className="lang-select model-select"
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
-              style={{
-                background: '#2d2d2d',
-                color: '#e2e8f0',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                fontSize: '0.72rem',
-                cursor: 'pointer',
-                height: '32px',
-              }}
               title="Select AI Model"
             >
-              <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-              <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+              <option value="llama-3.3-70b-versatile">Llama 70B</option>
+              <option value="llama-3.1-8b-instant">Llama 8B</option>
               {/* <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>*/}
             </select>
             <button
@@ -1680,8 +1687,34 @@ export default function EditorPage({ user }) {
         />
       )}
 
-      {/* Real-time Democratic Vote Popup */}
-      <VotePopup room={room} user={user} />
+{/* Real-time Democratic Vote Popup */}
+<VotePopup room={room} user={user} />
+
+      {/* Mobile Drawer */}
+      <MobileDrawer
+        isMobile={isMobile}
+        isOpen={drawerOpen}
+        onOpen={() => setDrawerOpen(true)}
+        onClose={() => setDrawerOpen(false)}
+        user={user}
+        editor={editor}
+        audioFeedback={audioFeedback}
+        showHistory={showHistory}
+        setShowHistory={setShowHistory}
+        onLoadCode={(code, language) => {
+          editor.loadCode(code, language);
+        }}
+        onSignIn={() => {
+          setAuthMode('login');
+          setShowAuth(true);
+          setDrawerOpen(false);
+        }}
+        onSignUp={() => {
+          setAuthMode('signup');
+          setShowAuth(true);
+          setDrawerOpen(false);
+        }}
+      />
     </div>
   );
 }
