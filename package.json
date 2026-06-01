@@ -9,16 +9,19 @@
     "preview": "vite preview",
     "lint": "eslint src --ext .js,.jsx",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css,json}\"",
-    "format:fix": "prettier --write \"src/**/*.{js,jsx,css,json}\""
+    "format:fix": "prettier --write \"src/**/*.{js,jsx,css,json}\"",
+    "lhci": "lhci autorun"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.60.0",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.1",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",
-    "vite": "^8.0.10"
+    "vite": "^8.0.10",
+    "vite-plugin-compression2": "^2.5.3"
   },
   "dependencies": {
     "@emnapi/core": "^1.10.0",
