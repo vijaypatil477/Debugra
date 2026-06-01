@@ -245,33 +245,12 @@ const LANGUAGES = [
   'SQL',
   'Bash',
 ];
-<a href="#reviews" className="landing-nav-link">
-  Reviews
-</a>
 const STATS = [
   { value: '18+', label: 'Languages' },
   { value: '5', label: 'AI Features' },
   { value: '∞', label: 'Free Forever' },
   { value: '0', label: 'Setup Required' },
 ];
-const REVIEWS = [
-  {
-    name: 'Alex',
-    rating: 5,
-    review: 'The AI debugging tools helped me identify issues much faster.',
-  },
-  {
-    name: 'Priya',
-    rating: 5,
-    review: 'Real-time collaboration is smooth and easy to use.',
-  },
-  {
-    name: 'Rahul',
-    rating: 4,
-    review: 'Clean interface and excellent language support.',
-  },
-];
-
 const FAQ_ITEMS = [
   {
     question: 'What is Debugra?',
@@ -437,6 +416,9 @@ export default function LandingPage() {
           <a href="#faq" className="landing-nav-link">
             FAQ
           </a>
+          <button onClick={() => navigate('/feedback')} className="landing-nav-link nav-link-button">
+            Feedback
+          </button>
           <button onClick={() => setShowLogin(true)} className="landing-btn-outline">
             Log In
           </button>
@@ -496,6 +478,15 @@ export default function LandingPage() {
           <a href="#faq" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>
             FAQ
           </a>
+          <button
+            className="mobile-dropdown-link"
+            onClick={() => {
+              setMobileMenu(false);
+              navigate('/feedback');
+            }}
+          >
+            Feedback
+          </button>
           <button
             onClick={() => {
               setShowLogin(true);
@@ -787,15 +778,6 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
-<section id="reviews" className="landing-section container">
-  <div className="section-header">
-    <p className="section-eyebrow">Community</p>
-    <h2 className="section-title">Feedback & Reviews</h2>
-    <p className="section-subtitle">
-      Hear what developers think about Debugra and share your own experience.
-    </p>
-  </div>
-
       {/* ===== FAQ ===== */}
       <section id="faq" className="landing-section container">
         <div className="section-header">
@@ -836,66 +818,18 @@ export default function LandingPage() {
         </div>
       </section>
 
-  <div className="reviews-grid">
-    {REVIEWS.map((review, index) => (
-      <div key={index} className="review-card">
-        <div className="review-stars">
-          {'★'.repeat(review.rating)}
+      <section id="feedback" className="landing-section container text-center">
+        <div className="section-header">
+          <p className="section-eyebrow">Feedback</p>
+          <h2 className="section-title">Help shape Debugra</h2>
+          <p className="section-subtitle">
+            Share suggestions, bug reports, reviews, or anything the team should know.
+          </p>
+          <button onClick={() => navigate('/feedback')} className="landing-btn-primary">
+            Open feedback form
+          </button>
         </div>
-
-        <p className="review-text">
-          "{review.review}"
-        </p>
-
-        <span className="review-author">
-          — {review.name}
-        </span>
-      </div>
-    ))}
-  </div>
-
-  <div className="feedback-form-card">
-    <h3 style={{ marginBottom: '16px' }}>Share Your Feedback</h3>
-
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        toast.success('Thank you for your feedback!');
-      }}
-    >
-      <input
-        type="text"
-        placeholder="Your Name"
-        className="modal-input"
-        required
-      />
-
-      <select className="modal-input" required>
-        <option value="">Select Rating</option>
-        <option value="5">★★★★★ (5)</option>
-        <option value="4">★★★★☆ (4)</option>
-        <option value="3">★★★☆☆ (3)</option>
-        <option value="2">★★☆☆☆ (2)</option>
-        <option value="1">★☆☆☆☆ (1)</option>
-      </select>
-
-      <textarea
-        placeholder="Tell us about your experience..."
-        className="modal-input"
-        rows="4"
-        required
-      />
-
-      <button
-        type="submit"
-        className="landing-btn-primary"
-        style={{ width: 'fit-content' }}
-      >
-        Submit Feedback
-      </button>
-    </form>
-  </div>
-</section>
+      </section>
       {/* ===== CTA ===== */}
       <section className="landing-cta-section">
         <div className="cta-glow" />

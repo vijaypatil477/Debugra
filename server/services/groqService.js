@@ -29,9 +29,9 @@ async function chatCompletion(systemPrompt, userPrompt, apiKey = '', model = DEF
   return { content: aiMessage, usage: tokenUsage };
 }
 
-async function chatCompletionText(systemPrompt, userPrompt, apiKey = '') {
+async function chatCompletionText(systemPrompt, userPrompt, apiKey = '', model = DEFAULT_MODEL) {
   const response = await getGroqClient(apiKey).chat.completions.create({
-    model: MODEL,
+    model: MODELS[model] ? model : DEFAULT_MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -39,8 +39,15 @@ async function chatCompletionText(systemPrompt, userPrompt, apiKey = '') {
     temperature: 0.2,
     max_tokens: 2000,
   });
+
   const aiMessage = response.choices[0].message.content;
   const tokenUsage = response.usage;
+
+  console.log("Metadata caught (Text): ", tokenUsage);
+
+  return { content: aiMessage, usage: tokenUsage };
+}
+
 
   console.log('Text Metadata caught: ', tokenUsage);
 
