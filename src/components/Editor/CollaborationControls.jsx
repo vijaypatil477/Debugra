@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import ParticipantsPanel from './ParticipantsPanel';
 
 /**
@@ -7,7 +7,7 @@ import ParticipantsPanel from './ParticipantsPanel';
  * Handles: participants list panel, role management.
  */
 export default function CollaborationControls({ room, user }) {
-  const { roomData, activeUsers, isHost, isEditor, isReadOnly, leaveRoom } = room;
+  const { roomData, activeUsers, isHost, isEditor, leaveRoom } = room;
 
   const [showParticipants, setShowParticipants] = useState(false);
   const myRole = roomData?.roles?.[user?.uid] || 'viewer';
