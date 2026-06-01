@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import LandingPage from './components/Landing/LandingPage';
 import OfflineBanner from './components/Editor/OfflineBanner';
 import Footer from './components/Footer.jsx';
+import FeedbackPage from './components/FeedbackPage';
 
 // Lazy-loaded routes — keeps the heavy Monaco editor and WebRTC bundles out of
 // the initial landing-page load so they download only when their route opens.
@@ -74,6 +75,7 @@ export default function App() {
           <Suspense fallback={<RouteFallback />}>
             <Routes>
               <Route path="/" element={<LandingPage />} />
+              <Route path="/feedback" element={<FeedbackPage />} />
               <Route path="/editor" element={<EditorPage user={user} />} />
               {/* Test route to render VideoCall directly for e2e tests */}
               <Route
