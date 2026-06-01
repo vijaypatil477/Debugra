@@ -82,7 +82,7 @@ export default function EditorPage({ user }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
-  const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
+  const [blurIntensity] = useState(10); //Adds State for wallpaper blur
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const [consoleCollapsed, setConsoleCollapsed] = useState(false);
   const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
@@ -124,8 +124,6 @@ export default function EditorPage({ user }) {
   });
   const showMinimap = editor.minimapEnabled;
 
-  const vimEnabled = editor.vimEnabled;
-  const setVimEnabled = editor.setVimEnabled;
 
   const tabSizeRef = useRef(editor.tabSize);
   const vimControllerRef = useRef(null);

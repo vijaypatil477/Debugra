@@ -8,7 +8,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../../services/firebase';
-import { X, LogIn, UserPlus, Globe } from 'lucide-react';
+import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function AuthModal({ onClose, initialMode = 'login', mode }) {
