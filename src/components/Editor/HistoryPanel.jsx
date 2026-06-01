@@ -34,16 +34,31 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
     }
   };
 
-  const handleRename = async (id, currentName) => {
-    const newName = window.prompt('Enter new file name:', currentName);
-    if (!newName || newName === currentName) return;
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
+
+  const startRename = (id, currentName) => {
+    setEditingId(id);
+    setEditName(currentName || 'untitled');
+  };
+
+  const handleRenameSubmit = async (id, currentName) => {
+    if (!editName || editName === currentName) {
+      setEditingId(null);
+      return;
+    }
     try {
-      await updateDoc(doc(db, 'users', user.uid, 'savedCode', id), { name: newName });
-      setHistory((prev) => prev.map((h) => (h.id === id ? { ...h, name: newName } : h)));
+      await updateDoc(doc(db, 'users', user.uid, 'savedCode', id), { name: editName });
+      setHistory((prev) => prev.map((h) => (h.id === id ? { ...h, name: editName } : h)));
       toast.success('Renamed successfully');
     } catch {
       toast.error('Rename failed');
     }
+    setEditingId(null);
+  };
+
+  const handleRenameCancel = () => {
+    setEditingId(null);
   };
 
   const formatDate = (ts) => {
@@ -136,11 +151,19 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
 
       <div className="history-list p-2 overflow-auto flex-grow-1">
         {loading ? (
-          <div className="history-empty d-flex flex-column align-items-center justify-content-center py-5">
-            <div className="spinner-border spinner-border-sm text-secondary" role="status">
+          <div className="d-flex flex-column align-items-center justify-content-center py-5 gap-2">
+            {/* Themed Spinner using Bootstrap theme colors */}
+            <div
+              className="spinner-border text-success"
+              role="status"
+              style={{ width: '1.5rem', height: '1.5rem' }}
+            >
               <span className="visually-hidden">Loading...</span>
             </div>
-            <span className="small text-secondary mt-2">Loading...</span>
+            {/* Pulsing Loading Text Label */}
+            <span className="small text-muted text-uppercase tracking-wider placeholder-glow">
+              Loading History...
+            </span>
           </div>
         ) : history.length === 0 ? (
           <div className="history-empty d-flex flex-column align-items-center justify-content-center py-5 opacity-50">
@@ -169,9 +192,24 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
                   <span className="badge bg-secondary bg-opacity-25 text-info x-small fw-bold">
                     {LANG_ICONS[item.language] || 'CODE'}
                   </span>
-                  <span className="history-item-name text-truncate small text-light fw-medium">
-                    {item.name || 'untitled'}
-                  </span>
+                  {editingId === item.id ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm bg-dark text-light border-secondary"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleRenameSubmit(item.id, item.name);
+                        if (e.key === 'Escape') handleRenameCancel();
+                      }}
+                      onBlur={() => handleRenameSubmit(item.id, item.name)}
+                      autoFocus
+                    />
+                  ) : (
+                    <span className="history-item-name text-truncate small text-light fw-medium">
+                      {item.name || 'untitled'}
+                    </span>
+                  )}
                 </div>
                 <span className="history-item-time x-small text-secondary flex-shrink-0">
                   {formatDate(item.createdAt)}
@@ -204,7 +242,7 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
                   Load
                 </button>
                 <button
-                  onClick={() => handleRename(item.id, item.name || 'untitled')}
+                  onClick={() => startRename(item.id, item.name || 'untitled')}
                   className="btn btn-sm btn-outline-warning x-small d-flex align-items-center justify-content-center py-1"
                   title="Rename"
                 >

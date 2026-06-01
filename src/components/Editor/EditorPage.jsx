@@ -1,10 +1,12 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import { createMonacoVimController } from '../../utils/monacoVim';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX } from 'lucide-react';
+import { Eye, EyeOff, Settings } from 'lucide-react';
+import { Menu } from 'lucide-react';
 
 import {
   useRoom,
@@ -15,19 +17,34 @@ import {
   useAudioFeedback,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
+import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
 import { LANGUAGES } from '../../utils/languageConfig';
-import { LANG_FILE_NAMES, MOBILE_TABS, OUTPUT_TABS, EDITOR_THEMES } from '../../config/constants';
+import {
+  LANG_FILE_NAMES,
+  MOBILE_TABS,
+  OUTPUT_TABS,
+  EDITOR_THEMES,
+  EDITOR_FONTS,
+} from '../../config/constants';
 
 import AuthModal from '../Auth/AuthModal';
+import AccountSettings from '../Auth/AccountSettings';
 import ChatPanel from '../Chat/ChatPanel';
 import FileIcon from '../Icons/FileIcon';
 import HistoryPanel from './HistoryPanel';
 import AIResponsePanel from './AIResponsePanel';
 import ApiKeyModal from './ApiKeyModal';
 import CollaborationControls from './CollaborationControls';
+import AudioChannel from './AudioChannel';
 import EditorStatusBar from './EditorStatusBar';
 import MobileBottomNav from './MobileBottomNav';
+import VideoCall from './VideoCall';
+import VotePopup from './VotePopup';
+import KeyboardShortcutsModal from './KeyboardShortcutsModal';
+import MobileDrawer from './MobileDrawer';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
+import DebugOverlay from './DebugOverlay';
+import ComplexityOverlay from './ComplexityOverlay';
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -36,30 +53,68 @@ function getApiKeyStatus() {
 }
 
 export default function EditorPage({ user }) {
+  const isTestRoom =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('testRoom') === '1';
   const navigate = useNavigate();
   const editorRef = useRef(null);
+  const monacoRef = useRef(null);
 
   // ─── UI State ──────────────────────────────────────────────────────────────
+  const [copied, setCopied] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  // const [showApiKey, setShowApiKey] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [apiKeyStatus, setApiKeyStatus] = useState(getApiKeyStatus);
   const [mobileTab, setMobileTab] = useState(MOBILE_TABS.CODE);
   const [showJoin, setShowJoin] = useState(false);
   const [joinId, setJoinId] = useState('');
   const [joinPassword, setJoinPassword] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
+  const [isOutputCollapsed, setIsOutputCollapsed] = useState(false);
   const [outputWidth, setOutputWidth] = useState(420);
   const [minimapSide, setMinimapSide] = useState('right');
   const [showSettings, setShowSettings] = useState(false);
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [showVoiceCall, setShowVoiceCall] = useState(false);
+  const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
+  const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [consoleCollapsed, setConsoleCollapsed] = useState(false);
+  const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const resizingRef = useRef(false);
+
+  const toggleConsoleCollapsed = () => {
+    setConsoleCollapsed((prev) => !prev);
+  };
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
+  const handleCopyOutput = async () => {
+    if (!execution.stdout) return;
+
+    try {
+      await navigator.clipboard.writeText(execution.stdout);
+
+      setCopied(true);
+
+      toast.success('Output copied!');
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch (err) {
+      toast.error('Failed to copy output');
+    }
+  };
+
   const editor = useEditor({
     user,
     onNeedAuth: () => {
@@ -67,6 +122,14 @@ export default function EditorPage({ user }) {
       setShowAuth(true);
     },
   });
+  const showMinimap = editor.minimapEnabled;
+
+  const vimEnabled = editor.vimEnabled;
+  const setVimEnabled = editor.setVimEnabled;
+
+  const tabSizeRef = useRef(editor.tabSize);
+  const vimControllerRef = useRef(null);
+  const [vimMode, setVimMode] = useState('NORMAL');
 
   // ─── Room/Collaboration Logic ──────────────────────────────────────────────
   const room = useRoom({
@@ -79,7 +142,6 @@ export default function EditorPage({ user }) {
     setStdinValue: editor.setStdinValue,
   });
 
-  // ─── Code Execution Logic ──────────────────────────────────────────────────
   const execution = useExecution({
     language: editor.language,
     code: editor.code,
@@ -87,24 +149,73 @@ export default function EditorPage({ user }) {
     isMobile,
     setMobileTab,
     audioFeedback,
+    user,
+    room,
   });
+
+  const executionRunRef = useRef(execution.run);
+  useEffect(() => {
+    executionRunRef.current = execution.run;
+  }, [execution.run]);
+
+  useEffect(() => {
+    ensureEditorFontLoaded(editor.fontFamily);
+  }, [editor.fontFamily]);
+
+  useEffect(() => {
+    tabSizeRef.current = editor.tabSize;
+  }, [editor.tabSize]);
 
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
     language: editor.language,
     code: editor.code,
     stderr: execution.stderr,
-    setCode: editor.setCode,
     setActiveOutputTab: execution.setActiveOutputTab,
     editorRef,
+    model: selectedModel,
   });
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
+    monacoRef.current = monaco;
     if (!window.__MONACO_SNIPPETS_REGISTERED__) {
       registerSnippets(monaco);
       window.__MONACO_SNIPPETS_REGISTERED__ = true;
     }
+
+    monaco.editor.defineTheme('debugra-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '6a9955', fontStyle: 'italic' },
+        { token: 'keyword', foreground: '569cd6' },
+        { token: 'string', foreground: 'ce9178' },
+        { token: 'number', foreground: 'b5cea8' },
+        { token: 'type', foreground: '4ec9b0' },
+        { token: 'function', foreground: 'dcdcaa' },
+        { token: 'operator', foreground: 'd4d4d4' },
+      ],
+      colors: {
+        'editor.background': '#1e1e1e',
+        'editor.foreground': '#d4d4d4',
+        'editor.lineHighlightBackground': '#2a2d2e',
+        'editor.selectionBackground': '#264f78',
+        'editorCursor.foreground': '#d4d4d4',
+        'editorLineNumber.foreground': '#858585',
+        'editorLineNumber.activeForeground': '#c6c6c6',
+        'editorIndentGuide.background1': '#3b3b3b',
+        'editorIndentGuide.activeBackground1': '#4ec9b0',
+        'editorBracketHighlight.foreground1': '#4ec9b0',
+        'editorBracketHighlight.foreground2': '#dcdcaa',
+        'editorBracketHighlight.foreground3': '#ce9178',
+        'editorBracketHighlight.foreground4': '#569cd6',
+        'editorBracketHighlight.foreground5': '#c586c0',
+        'editorBracketHighlight.foreground6': '#b5cea8',
+        'editorBracketMatch.background': '#4ec9b033',
+        'editorBracketMatch.border': '#4ec9b0',
+      },
+    });
 
     monaco.editor.defineTheme('dracula', {
       base: 'vs-dark',
@@ -127,6 +238,15 @@ export default function EditorPage({ user }) {
         'editorCursor.foreground': '#f8f8f2',
         'editorLineNumber.foreground': '#6272a4',
         'editorLineNumber.activeForeground': '#f8f8f2',
+        'editorIndentGuide.background1': '#44475a80',
+        'editorIndentGuide.activeBackground1': '#8be9fd',
+        'editorBracketHighlight.foreground1': '#8be9fd',
+        'editorBracketHighlight.foreground2': '#50fa7b',
+        'editorBracketHighlight.foreground3': '#f1fa8c',
+        'editorBracketHighlight.foreground4': '#ff79c6',
+        'editorBracketHighlight.foreground5': '#bd93f9',
+        'editorBracketHighlight.foreground6': '#ffb86c',
+        'editorBracketMatch.background': '#bd93f933',
         'editorBracketMatch.border': '#bd93f9',
       },
     });
@@ -152,6 +272,15 @@ export default function EditorPage({ user }) {
         'editorCursor.foreground': '#f8f8f2',
         'editorLineNumber.foreground': '#75715e',
         'editorLineNumber.activeForeground': '#f8f8f2',
+        'editorIndentGuide.background1': '#49483e',
+        'editorIndentGuide.activeBackground1': '#66d9ef',
+        'editorBracketHighlight.foreground1': '#66d9ef',
+        'editorBracketHighlight.foreground2': '#a6e22e',
+        'editorBracketHighlight.foreground3': '#e6db74',
+        'editorBracketHighlight.foreground4': '#f92672',
+        'editorBracketHighlight.foreground5': '#ae81ff',
+        'editorBracketHighlight.foreground6': '#fd971f',
+        'editorBracketMatch.background': '#a6e22e33',
         'editorBracketMatch.border': '#a6e22e',
       },
     });
@@ -159,12 +288,172 @@ export default function EditorPage({ user }) {
 
   const handleEditorMount = (editorInstance) => {
     editorRef.current = editorInstance;
+    window.__DEBUGRA_EDITOR__ = editorInstance;
+    const monaco = monacoRef.current;
+    if (!monaco) return;
+
+    const editorDomNode = editorInstance.getDomNode();
+
+    // Vim initialization is handled in effects; here we only keep non-Vim overrides.
+    // Ctrl+S and Tab indentation must remain functional even in Vim mode.
+
+    const handleDomKeyDown = (event) => {
+      if (room.isReadOnly) return;
+
+      const isSaveShortcut = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's';
+      if (isSaveShortcut) {
+        event.preventDefault();
+        event.stopPropagation();
+        void formatCurrentModel();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const spaces = ' '.repeat(tabSizeRef.current);
+      const selection = editorInstance.getSelection();
+
+      if (selection) {
+        editorInstance.executeEdits('debugra-tab-indent', [
+          {
+            range: selection,
+            text: spaces,
+            forceMoveMarkers: true,
+          },
+        ]);
+      }
+    };
+
+    editorDomNode?.addEventListener('keydown', handleDomKeyDown, true);
+    editorInstance.onDidDispose(() => {
+      editorDomNode?.removeEventListener('keydown', handleDomKeyDown, true);
+    });
+
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
+
+    // Prevent our custom Ctrl+S and Tab handlers from being blocked by Vim command-mode.
+    // These are handled via the capture-phase DOM keydown listener above, and Vim mode toggling
+    // should not override these specific shortcuts.
+
     // Ctrl+Enter → Run
-    editorInstance.addCommand(2048 | 3, () => execution.run());
+    editorInstance.addCommand(2048 | 3, () => {
+      if (executionRunRef.current) executionRunRef.current();
+    });
+
+    const formatCurrentModel = async () => {
+      const model = editorInstance.getModel();
+      if (!model) return;
+
+      try {
+        const prettierModule = await import('prettier/standalone');
+        const prettier = prettierModule?.default ?? prettierModule;
+        const parserBabelModule = await import('prettier/plugins/babel');
+        const parserBabel = parserBabelModule?.default ?? parserBabelModule;
+        const parserEstreeModule = await import('prettier/plugins/estree');
+        const parserEstree = parserEstreeModule?.default ?? parserEstreeModule;
+        const parserTSModule = await import('prettier/plugins/typescript');
+        const parserTS = parserTSModule?.default ?? parserTSModule;
+
+        const langKey = editor.language || 'javascript';
+        const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
+        const plugins =
+          langKey === 'typescript' ? [parserTS, parserEstree] : [parserBabel, parserEstree];
+
+        const original = model.getValue();
+        const formatted = await prettier.format(original, {
+          parser: parserName,
+          plugins,
+          semi: true,
+          singleQuote: true,
+          tabWidth: editor.tabSize || 2,
+        });
+
+        model.setValue(formatted);
+        editor.setCode(formatted);
+        toast.success('Formatted');
+        return formatted;
+      } catch (err) {
+        console.error('Formatting error', err);
+        toast.error('Formatting failed');
+        return null;
+      }
+    };
+
+    window.__debugra_formatEditor = formatCurrentModel;
+
+    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, () => {
+      formatCurrentModel();
+    });
+
+    editorInstance.onKeyDown((e) => {
+      if (room.isReadOnly) return;
+      if ((e.ctrlKey || e.metaKey) && e.keyCode === monaco.KeyCode.KEY_S) {
+        e.preventDefault();
+        e.stopPropagation();
+        formatCurrentModel();
+      }
+    });
+
+    // Initialize Vim controller when enabled (after editorInstance exists).
+    if (editor.vimEnabled && !vimControllerRef.current) {
+      void createMonacoVimController({
+        monaco,
+        editor: editorInstance,
+        onModeChange: (mode) => {
+          // monaco-vim tends to pass strings like 'INSERT', 'NORMAL', 'COMMAND'
+          setVimMode(mode);
+        },
+      }).then((controller) => {
+        vimControllerRef.current = controller;
+      });
+    }
   };
+
+  useEffect(
+    () => () => {
+      if (window.__DEBUGRA_EDITOR__ === editorRef.current) {
+        window.__DEBUGRA_EDITOR__ = null;
+      }
+      if (window.__debugra_formatEditor && editorRef.current) {
+        window.__debugra_formatEditor = null;
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    editorRef.current.updateOptions({
+      minimap: {
+        enabled: showMinimap,
+        side: minimapSide,
+        showSlider: 'always',
+        renderCharacters: false,
+      },
+      rulers: [{ column: editor.rulerColumn }],
+      insertSpaces: true,
+      tabSize: editor.tabSize,
+    });
+
+    const model = editorRef.current.getModel();
+    if (model) {
+      model.updateOptions({ tabSize: editor.tabSize, insertSpaces: true });
+    }
+  }, [editor.tabSize, showMinimap, editor.rulerColumn, minimapSide]);
+
+  // ─── Monaco layout refresh after console collapse/restore animation ──────
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      editorRef.current?.layout();
+    }, 310);
+    return () => clearTimeout(timer);
+  }, [isOutputCollapsed]);
 
   // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
@@ -189,10 +478,28 @@ export default function EditorPage({ user }) {
   const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
 
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
+    <div
+      style={{
+        height: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        '--blur-intensity': `${blurIntensity}px`,
+      }}
+    >
       {/* ===== TOP BAR ===== */}
       <div className="topbar px-2 px-md-3">
         <div className="topbar-left d-flex align-items-center">
+          {isMobile && (
+            <button
+              className="mobile-drawer-toggle"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={drawerOpen}
+              title="Menu"
+            >
+              <Menu size={18} />
+            </button>
+          )}
           <button
             onClick={() => navigate('/')}
             className="topbar-logo d-flex align-items-center gap-2"
@@ -202,7 +509,7 @@ export default function EditorPage({ user }) {
           </button>
           <div className="topbar-sep mx-2 d-none d-md-block" />
           <span className="topbar-title d-none d-md-block">Code Editor</span>
-          {room.roomId && (
+          {(room.roomId || isTestRoom) && (
             <>
               <div className="topbar-sep mx-2 d-none d-sm-block" />
               <span className="topbar-title text-success d-none d-sm-inline">
@@ -219,12 +526,48 @@ export default function EditorPage({ user }) {
                 <span className="d-none d-sm-inline">Copy ID</span>
                 <span className="d-inline d-sm-none">ID</span>
               </button>
+              <button
+                className="topbar-link ms-2"
+                onClick={() => setShowVideoCall(!showVideoCall)}
+                style={{
+                  background: showVideoCall
+                    ? 'rgba(239, 68, 68, 0.15)'
+                    : 'rgba(139, 92, 246, 0.15)',
+                  color: showVideoCall ? '#ff6b6b' : '#a78bfa',
+                  border: showVideoCall
+                    ? '1px solid rgba(239, 68, 68, 0.3)'
+                    : '1px solid rgba(139, 92, 246, 0.3)',
+                  padding: '3px 10px',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  transition: 'all 0.2s',
+                }}
+              >
+                📹 {showVideoCall ? 'Leave Call' : 'Join Call'}
+              </button>
+              <button
+                className="topbar-link ms-2"
+                onClick={() => setShowVoiceCall((s) => !s)}
+                style={{
+                  background: showVoiceCall ? 'rgba(34,197,94,0.12)' : 'rgba(99,102,241,0.06)',
+                  color: showVoiceCall ? '#16a34a' : '#4f46e5',
+                  border: showVoiceCall
+                    ? '1px solid rgba(16,185,129,0.2)'
+                    : '1px solid rgba(99,102,241,0.12)',
+                  padding: '3px 10px',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  transition: 'all 0.18s',
+                }}
+              >
+                🔊 {showVoiceCall ? 'Leave Voice' : 'Join Voice'}
+              </button>
             </>
           )}
         </div>
 
         <div className="topbar-right d-flex align-items-center gap-2">
-          {!room.roomId && (
+          {!(room.roomId || isTestRoom) && (
             <div className="room-controls d-flex align-items-center gap-2">
               <button
                 className="topbar-link"
@@ -323,6 +666,16 @@ export default function EditorPage({ user }) {
               >
                 Log Out
               </button>
+              <button
+                className="topbar-link"
+                onClick={() => setShowAccount(true)}
+                title="Account settings"
+              >
+                Account
+              </button>
+              <button className="topbar-link" onClick={() => navigate('/feedback')}>
+                Feedback
+              </button>
               <div className="user-avatar">{user.displayName?.[0]?.toUpperCase() || '?'}</div>
               <span
                 className="d-none d-md-inline"
@@ -332,7 +685,7 @@ export default function EditorPage({ user }) {
               </span>
             </div>
           ) : (
-            <div className="d-flex gap-2">
+            <div className="d-none d-md-flex gap-2">
               <button
                 className="topbar-link"
                 onClick={() => {
@@ -410,10 +763,30 @@ export default function EditorPage({ user }) {
             >
               Right
             </button>
+            <button
+              type="button"
+              className={showMinimap ? 'active' : ''}
+              aria-pressed={showMinimap}
+              aria-label={showMinimap ? 'Hide minimap' : 'Show minimap'}
+              onClick={() => editor.setMinimapEnabled(!showMinimap)}
+              title={showMinimap ? 'Hide minimap' : 'Show minimap'}
+            >
+              {showMinimap ? <EyeOff size={13} /> : <Eye size={13} />}
+            </button>
           </div>
         </div>
         <div className="toolbar-right d-flex align-items-center gap-2">
           <div className="d-none d-md-flex align-items-center gap-2">
+            <select
+              className="lang-select model-select"
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              title="Select AI Model"
+            >
+              <option value="llama-3.3-70b-versatile">Llama 70B</option>
+              <option value="llama-3.1-8b-instant">Llama 8B</option>
+              {/* <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>*/}
+            </select>
             <button
               className={`ai-btn api-key-toggle ${apiKeyStatus}`}
               onClick={() => setShowApiKey(true)}
@@ -427,6 +800,20 @@ export default function EditorPage({ user }) {
               disabled={ai.isAILoading || room.isReadOnly}
             >
               Tests
+            </button>
+            <button className="ai-btn" onClick={ai.audit} disabled={ai.isAILoading}>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="M9 12l2 2 4-5" />
+              </svg>
+              Audit
             </button>
             <button className="ai-btn" onClick={ai.visualize} disabled={ai.isAILoading}>
               <svg
@@ -456,6 +843,34 @@ export default function EditorPage({ user }) {
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
               Explain
+            </button>
+            <button
+              className="ai-btn"
+              onClick={() => {
+                ai.analyzeComplexity();
+                setShowComplexityOverlay(true);
+              }}
+              disabled={ai.isComplexityLoading}
+              title="Analyze Time & Space Complexity (Big-O)"
+              style={{
+                background: ai.isComplexityLoading
+                  ? 'rgba(99, 102, 241, 0.18)'
+                  : 'rgba(99, 102, 241, 0.08)',
+                color: '#a5b4fc',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+              }}
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
+              Big-O
             </button>
           </div>
           <button
@@ -551,71 +966,6 @@ export default function EditorPage({ user }) {
               >
                 <Settings size={14} />
               </button>
-              {showSettings && (
-                <div className="audio-settings-popover" role="dialog" aria-label="Settings">
-                  <div className="audio-settings-head">
-                    <span>Settings</span>
-                    <button
-                      className="history-action-btn"
-                      aria-label="Close Settings"
-                      onClick={() => setShowSettings(false)}
-                    >
-                      <i className="bi bi-x" />
-                    </button>
-                  </div>
-                  <div className="audio-settings-row">
-                    <div className="audio-settings-label">
-                      <i className="bi bi-palette" style={{ fontSize: '14px' }} />
-                      <span>Theme</span>
-                    </div>
-                    <select
-                      className="lang-select"
-                      value={editor.theme}
-                      onChange={(e) => editor.setTheme(e.target.value)}
-                      aria-label="Editor theme"
-                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
-                    >
-                      {EDITOR_THEMES.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="audio-settings-row">
-                    <div className="audio-settings-label">
-                      {audioFeedback.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-                      <span>Audio feedback</span>
-                    </div>
-                    <button
-                      className={`audio-toggle ${audioFeedback.muted ? '' : 'active'}`}
-                      aria-pressed={!audioFeedback.muted}
-                      onClick={() => audioFeedback.setMuted(!audioFeedback.muted)}
-                    >
-                      {audioFeedback.muted ? 'Muted' : 'On'}
-                    </button>
-                  </div>
-                  <label className="audio-settings-slider">
-                    <span>Volume</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={audioFeedback.volume}
-                      onChange={(e) => audioFeedback.setVolume(e.target.value)}
-                    />
-                    <span>{Math.round(audioFeedback.volume * 100)}%</span>
-                  </label>
-                  <button
-                    className="audio-test-btn"
-                    onClick={audioFeedback.testSound}
-                    disabled={audioFeedback.muted}
-                  >
-                    Test chime
-                  </button>
-                </div>
-              )}
             </div>
           </div>
           <span className="kbd-hint d-none d-lg-inline">Ctrl+Enter</span>
@@ -650,11 +1000,129 @@ export default function EditorPage({ user }) {
         </div>
       </div>
 
+      {showSettings && (
+        <div className="settings-modal-backdrop" onClick={() => setShowSettings(false)}>
+          <div className="settings-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="audio-settings-head">
+              <span>Editor Settings</span>
+              <button
+                className="history-action-btn"
+                aria-label="Close Settings"
+                onClick={() => setShowSettings(false)}
+              >
+                <i className="bi bi-x" />
+              </button>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="font-select">
+                <span>Editor font</span>
+              </label>
+              <select
+                id="font-select"
+                aria-label="Editor font"
+                className="lang-select"
+                value={editor.fontFamily}
+                onChange={(event) => editor.setFontFamily(event.target.value)}
+              >
+                {EDITOR_FONTS.map((font) => (
+                  <option key={font.id} value={font.id}>
+                    {font.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="tab-size-select">
+                <span>Tab size</span>
+              </label>
+              <select
+                id="tab-size-select"
+                aria-label="Tab size"
+                className="lang-select"
+                value={editor.tabSize}
+                onChange={(event) => editor.setTabSize(event.target.value)}
+              >
+                <option value="2">2</option>
+                <option value="4">4</option>
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="minimap-select">
+                <span>Minimap</span>
+              </label>
+              <select
+                id="minimap-select"
+                aria-label="Minimap"
+                className="lang-select"
+                value={editor.minimapEnabled ? 'enabled' : 'disabled'}
+                onChange={(event) => editor.setMinimapEnabled(event.target.value === 'enabled')}
+              >
+                <option value="enabled">enabled</option>
+                <option value="disabled">disabled</option>
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="ruler-select">
+                <span>Vertical ruler</span>
+              </label>
+              <select
+                id="ruler-select"
+                aria-label="Vertical ruler"
+                className="lang-select"
+                value={editor.rulerColumn}
+                onChange={(event) => editor.setRulerColumn(event.target.value)}
+              >
+                <option value="80">80</option>
+                <option value="120">120</option>
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="autosave-select">
+                <span>Autosave interval</span>
+              </label>
+              <select
+                id="autosave-select"
+                aria-label="Autosave interval"
+                className="lang-select"
+                value={editor.autosaveInterval}
+                onChange={(event) => editor.setAutosaveInterval(event.target.value)}
+              >
+                <option value="0">off</option>
+                <option value="5000">5000</option>
+                <option value="10000">10000</option>
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="vim-select">
+                <span>Vim mode</span>
+              </label>
+              <select
+                id="vim-select"
+                aria-label="Vim mode"
+                className="lang-select"
+                value={editor.vimEnabled ? 'enabled' : 'disabled'}
+                onChange={(event) => editor.setVimEnabled(event.target.value === 'enabled')}
+              >
+                <option value="disabled">disabled</option>
+                <option value="enabled">enabled</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== MAIN SPLIT ===== */}
+      <KeyboardShortcutsModal />
       <div className="main-split">
         {/* EDITOR PANE */}
         <div
-          className="editor-pane"
+          className="editor-pane glass-panel"
           style={isMobile && mobileTab !== MOBILE_TABS.CODE ? { display: 'none' } : {}}
         >
           <div className="editor-tab-bar">
@@ -670,12 +1138,18 @@ export default function EditorPage({ user }) {
                 ×
               </button>
             </div>
-            {room.roomId && <CollaborationControls room={room} user={user} />}
+            {room.roomId && (
+              <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
+                <AudioChannel room={room} user={user} />
+                <CollaborationControls room={room} user={user} />
+              </div>
+            )}
           </div>
 
           {/* Monaco Editor */}
           <div
             id="editor-container"
+            className={showMinimap ? '' : 'minimap-disabled'}
             style={{ flex: 1, minHeight: 0, opacity: room.isReadOnly ? 0.8 : 1 }}
           >
             {room.isReadOnly && (
@@ -707,25 +1181,36 @@ export default function EditorPage({ user }) {
               options={{
                 readOnly: room.isReadOnly,
                 fontSize: editor.fontSize,
-                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                fontFamily: getEditorFontFamily(editor.fontFamily),
                 minimap: {
-                  enabled: true,
+                  enabled: showMinimap,
                   side: minimapSide,
                   showSlider: 'always',
                   renderCharacters: false,
                 },
+                detectIndentation: false,
                 padding: { top: 12 },
                 scrollBeyondLastLine: false,
                 lineNumbers: 'on',
                 renderLineHighlight: room.isReadOnly ? 'none' : 'line',
                 automaticLayout: true,
-                tabSize: 4,
+                tabSize: editor.tabSize,
+                rulers: [{ column: editor.rulerColumn }],
+                insertSpaces: true,
                 wordWrap: 'on',
                 smoothScrolling: true,
                 cursorBlinking: room.isReadOnly ? 'solid' : 'smooth',
                 cursorSmoothCaretAnimation: 'on',
+                matchBrackets: 'always',
+                renderIndentGuides: true,
                 bracketPairColorization: { enabled: true },
-                guides: { bracketPairs: true },
+                guides: {
+                  indentation: true,
+                  highlightActiveIndentation: 'always',
+                  bracketPairs: true,
+                  bracketPairsHorizontal: true,
+                  highlightActiveBracketPair: true,
+                },
                 suggestOnTriggerCharacters: true,
                 quickSuggestions: true,
                 formatOnPaste: true,
@@ -785,7 +1270,7 @@ export default function EditorPage({ user }) {
         </div>
 
         {/* Resize Handle (desktop only) */}
-        {!isMobile && <div className="resize-handle" onMouseDown={handleResizeStart} />}
+        {!isMobile && !isOutputCollapsed && <div className="resize-handle" onMouseDown={handleResizeStart} />}
 
         {/* History Panel (desktop) */}
         {showHistory && user && !isMobile && (
@@ -798,35 +1283,119 @@ export default function EditorPage({ user }) {
 
         {/* OUTPUT PANE */}
         <div
-          className="output-pane"
+          className="output-pane glass-panel"
           style={
             isMobile
               ? mobileTab === MOBILE_TABS.OUTPUT
                 ? { display: 'flex', width: '100%' }
                 : { display: 'none' }
-              : { width: outputWidth + 'px' }
+              : { width: isOutputCollapsed ? '0px' : outputWidth + 'px', minWidth: isOutputCollapsed ? '0' : '260px', overflow: 'hidden' }
           }
         >
           <div className="output-tabs">
             <button
-              className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''}`}
-              onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDOUT)}
+              type="button"
+              className={`console-minimize-btn ${consoleCollapsed ? 'collapsed' : ''}`}
+              onClick={() => {
+                toggleConsoleCollapsed();
+                // Let layout/animation start before forcing Monaco layout
+                setTimeout(() => {
+                  try {
+                    monacoRef.current?.layout?.();
+                    editorRef.current?.layout?.();
+                  } catch (e) {
+                    // no-op
+                  }
+                }, 0);
+              }}
+              aria-label={consoleCollapsed ? 'Restore Console' : 'Minimize Console'}
+              aria-pressed={!consoleCollapsed}
+              title={consoleCollapsed ? 'Restore Console' : 'Minimize Console'}
             >
-              Output
+              <span className="console-minimize-chevron">▾</span>
             </button>
-            {execution.stderr && (
+            {/* copy */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
               <button
-                className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDERR ? 'active' : ''}`}
-                onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDERR)}
+                className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''
+                  }`}
+                onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDOUT)}
               >
-                <span
+                Output
+              </button>
+
+              {execution.stdout && (
+                <button
+                  onClick={handleCopyOutput}
+                  title="Copy Output"
                   style={{
-                    color: execution.activeOutputTab === OUTPUT_TABS.STDERR ? '#f44747' : undefined,
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#aaa',
+                    display: 'flex',
+                    alignItems: 'center',
                   }}
                 >
-                  ✦ Errors
-                </span>
-              </button>
+                  {copied ? '✓' : '📋'}
+                </button>
+              )}
+            </div>
+            {execution.stderr && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <button
+                  className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDERR ? 'active' : ''}`}
+                  onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDERR)}
+                >
+                  <span
+                    style={{
+                      color:
+                        execution.activeOutputTab === OUTPUT_TABS.STDERR ? '#f44747' : undefined,
+                    }}
+                  >
+                    ✦ Errors
+                  </span>
+                </button>
+                {/* ── Debug with AI inline button ── */}
+                <button
+                  id="debug-with-ai-btn"
+                  className="debug-ai-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    execution.setActiveOutputTab(OUTPUT_TABS.STDERR);
+                    ai.debugError();
+                    setShowDebugOverlay(true);
+                  }}
+                  title="Explain this error in plain English"
+                  aria-label="Debug with AI"
+                >
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  Debug with AI
+                </button>
+              </div>
             )}
             {(ai.aiResponse || ai.isAILoading) && (
               <button
@@ -842,14 +1411,83 @@ export default function EditorPage({ user }) {
                 )}
               </button>
             )}
+            <button
+              className="output-collapse-btn"
+              onClick={() => setIsOutputCollapsed(prev => !prev)}
+              title={isOutputCollapsed ? 'Restore Console' : 'Minimize Console'}
+              aria-label={isOutputCollapsed ? 'Restore Console' : 'Minimize Console'}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points={isOutputCollapsed ? "15 18 9 12 15 6" : "6 9 12 15 18 9"} />
+              </svg>
+            </button>
           </div>
 
-          <div className="output-content">
+          <div
+            className={`output-content ${consoleCollapsed ? 'console-collapsed' : ''}`}
+            data-console-collapsed={consoleCollapsed ? 'true' : 'false'}
+          >
+            <div
+              className="console-restore-banner-wrap"
+              style={{ display: consoleCollapsed ? 'flex' : 'none' }}
+            >
+              <button
+                type="button"
+                className="console-restore-banner"
+                onClick={() => {
+                  toggleConsoleCollapsed();
+                  setTimeout(() => {
+                    try {
+                      monacoRef.current?.layout?.();
+                      editorRef.current?.layout?.();
+                    } catch (e) {
+                      // no-op
+                    }
+                  }, 0);
+                }}
+                aria-label="Restore Console"
+                title="Restore Console"
+              >
+                Restore Console
+              </button>
+            </div>
             <div
               className={`output-panel ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''}`}
               id="output-stdout"
+              style={{ position: 'relative' }}
             >
-              {execution.stdout || (
+              {execution.stdout ? (
+                <>
+                  <button
+                    className="toolbar-icon-btn"
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      background: 'var(--bg-1)',
+                      zIndex: 10,
+                    }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(execution.stdout);
+                      toast.success('Output copied!');
+                    }}
+                    title="Copy output"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                  </button>
+                  {execution.stdout}
+                </>
+              ) : (
                 <span className="output-placeholder">Run your code to see output here.</span>
               )}
             </div>
@@ -869,6 +1507,7 @@ export default function EditorPage({ user }) {
               <AIResponsePanel
                 isLoading={ai.isAILoading}
                 response={ai.aiResponse}
+                language={editor.language}
                 onApplyFix={(code) => {
                   editor.setCode(code);
                   toast.success('Solution applied!');
@@ -892,6 +1531,18 @@ export default function EditorPage({ user }) {
             )}
           </div>
         </div>
+
+        {/* Restore Console strip — shown only when output pane is collapsed */}
+        {!isMobile && isOutputCollapsed && (
+          <button
+            className="restore-console-strip"
+            onClick={() => setIsOutputCollapsed(false)}
+            aria-label="Restore Console"
+            title="Restore Console"
+          >
+            <span>Console</span>
+          </button>
+        )}
       </div>
 
       {/* ===== STATUS BAR ===== */}
@@ -899,8 +1550,11 @@ export default function EditorPage({ user }) {
         execStatus={execution.execStatus}
         langName={langConfig.name}
         cursorPos={editor.cursorPos}
+        tabSize={editor.tabSize}
         room={room}
         user={user}
+        vimEnabled={editor.vimEnabled}
+        vimMode={vimMode}
       />
 
       {/* Chat */}
@@ -989,13 +1643,78 @@ export default function EditorPage({ user }) {
       )}
 
       {/* Auth Modal */}
-      {showAuth && <AuthModal mode={authMode} onClose={() => setShowAuth(false)} />}
+      {showAuth && <AuthModal initialMode={authMode} onClose={() => setShowAuth(false)} />}
       {showApiKey && (
         <ApiKeyModal
           onClose={() => setShowApiKey(false)}
           onStatusChange={() => setApiKeyStatus(getApiKeyStatus())}
         />
       )}
+      {showAccount && user && <AccountSettings onClose={() => setShowAccount(false)} user={user} />}
+
+      {/* Debug Overlay */}
+      <DebugOverlay
+        isOpen={showDebugOverlay}
+        isLoading={ai.isDebugLoading}
+        response={ai.debugResponse}
+        stderr={execution.stderr}
+        onClose={() => {
+          setShowDebugOverlay(false);
+          ai.clearDebug();
+        }}
+        onApplyFix={() => {
+          ai.fix();
+        }}
+      />
+
+      {/* Complexity Overlay */}
+      <ComplexityOverlay
+        isOpen={showComplexityOverlay}
+        isLoading={ai.isComplexityLoading}
+        response={ai.complexityResponse}
+        onClose={() => {
+          setShowComplexityOverlay(false);
+          ai.clearComplexity();
+        }}
+      />
+
+      {/* Video Call Overlay */}
+      {showVideoCall && room.roomId && (
+        <VideoCall
+          roomId={room.roomId}
+          userName={user?.displayName || user?.email?.split('@')[0] || 'Guest'}
+          onClose={() => setShowVideoCall(false)}
+        />
+      )}
+
+{/* Real-time Democratic Vote Popup */}
+<VotePopup room={room} user={user} />
+
+      {/* Mobile Drawer */}
+      <MobileDrawer
+        isMobile={isMobile}
+        isOpen={drawerOpen}
+        onOpen={() => setDrawerOpen(true)}
+        onClose={() => setDrawerOpen(false)}
+        user={user}
+        editor={editor}
+        audioFeedback={audioFeedback}
+        showHistory={showHistory}
+        setShowHistory={setShowHistory}
+        onLoadCode={(code, language) => {
+          editor.loadCode(code, language);
+        }}
+        onSignIn={() => {
+          setAuthMode('login');
+          setShowAuth(true);
+          setDrawerOpen(false);
+        }}
+        onSignUp={() => {
+          setAuthMode('signup');
+          setShowAuth(true);
+          setDrawerOpen(false);
+        }}
+      />
     </div>
   );
 }

@@ -30,6 +30,8 @@ const COMPILER_OPTIONS = {
   'gcc-13.2.0-c': '-std=c11',
 };
 
+const MAX_OUTPUT_LENGTH = 100000;
+
 async function executeCode(sourceCode, languageId, stdin = '') {
   const compiler = WANDBOX_COMPILERS[languageId];
   if (!compiler) {
@@ -50,9 +52,9 @@ async function executeCode(sourceCode, languageId, stdin = '') {
 
     const { data } = await axios.post(WANDBOX_API, body, { timeout: 30000 });
 
-    const stdout = data.program_output || '';
-    const compileError = data.compiler_error || '';
-    const runtimeError = data.program_error || '';
+    const stdout = (data.program_output || '').slice(0, MAX_OUTPUT_LENGTH);
+    const compileError = (data.compiler_error || '').slice(0, MAX_OUTPUT_LENGTH);
+    const runtimeError = (data.program_error || '').slice(0, MAX_OUTPUT_LENGTH);
     const exitCode = parseInt(data.status ?? '0');
 
     // Compile error takes priority, then runtime error, then exit code
