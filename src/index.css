@@ -750,6 +750,9 @@ body {
   flex-direction: column;
   background: var(--bg-0);
   flex-shrink: 0;
+  transition: height 0.3s ease, width 0.3s ease;
+  min-height: 0; /* Allow flex children to shrink below content size */
+  height: 100%; /* Expanded state: take full height */
   transition: width 0.3s ease;
 }
 .output-collapse-btn {
@@ -791,7 +794,46 @@ body {
   background: var(--bg-active);
   color: var(--text-0);
 }
+
+/* Collapsed state: smooth collapse animation */
+.output-pane-collapsed {
+  height: 40px !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  min-width: unset !important;
+  max-width: none !important;
+}
+
 .output-tabs {
+  height: 30px; background: var(--bg-1); display: flex;
+  align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border);
+  padding: 0 4px; gap: 2px;
+  flex-shrink: 0;
+}
+
+.output-tabs-left {
+  display: flex; align-items: center; gap: 2px; flex: 1; overflow-x: auto;
+}
+.output-tabs-left::-webkit-scrollbar { display: none; }
+
+/* Console minimize button */
+.console-minimize-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; padding: 0; margin: 0 4px;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text-1); transition: all 0.2s ease;
+  border-radius: 3px; flex-shrink: 0;
+}
+.console-minimize-btn:hover {
+  color: var(--accent); background: var(--bg-2);
+}
+
+/* Chevron rotation animation */
+.console-chevron {
+  transition: transform 0.3s ease;
+}
+.output-pane-collapsed .console-chevron {
+  transform: rotate(180deg);
   height: 30px;
   background: var(--bg-1);
   display: flex;
@@ -820,6 +862,30 @@ body {
   background: var(--bg-active);
 }
 
+.output-content { 
+  flex: 1; 
+  overflow: auto; 
+  display: flex; 
+  flex-direction: column; 
+  min-height: 0;
+  background: var(--bg-0);
+}
+.output-panel {
+  display: none; 
+  flex: 1; 
+  overflow: auto; 
+  padding: 16px;
+  font-family: 'JetBrains Mono', monospace; 
+  font-size: 0.85rem;
+  line-height: 1.7; 
+  white-space: pre-wrap; 
+  word-break: break-all;
+  min-height: 0;
+  color: #d4d4d4;
+}
+.output-panel.active { display: block; }
+#output-stdout { color: #d4d4d4; font-weight: 400; }
+#output-stderr { color: #f44747; font-weight: 500; }
 .output-content {
   flex: 1;
   overflow: hidden;
@@ -851,6 +917,37 @@ body {
   font-style: italic;
   font-family: 'Inter', sans-serif;
   font-size: 0.75rem;
+}
+
+/* Restore console banner - only shows when collapsed */
+.console-restore-banner {
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  gap: 6px;
+  padding: 6px 16px; 
+  background: var(--bg-1); 
+  border-top: 1px solid var(--border);
+  color: var(--text-2); 
+  font-size: 0.72rem; 
+  font-weight: 500;
+  font-family: 'Inter', sans-serif; 
+  cursor: pointer;
+  transition: all 0.2s ease; 
+  flex-shrink: 0;
+  animation: fade-in 0.3s ease-out;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+.console-restore-banner:hover {
+  color: var(--accent); background: var(--bg-2);
+  border-top-color: var(--accent);
+}
+.console-restore-banner:active {
+  transform: scale(0.98);
 }
 
 /* ============ AI PANEL ============ */
@@ -1145,6 +1242,10 @@ body {
     opacity: 0.4;
     transform: scale(0.8);
   }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* ============ AUTH MODAL ============ */
