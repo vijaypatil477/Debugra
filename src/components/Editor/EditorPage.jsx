@@ -778,22 +778,13 @@ export default function EditorPage({ user }) {
         <div className="toolbar-right d-flex align-items-center gap-2">
           <div className="d-none d-md-flex align-items-center gap-2">
             <select
+              className="lang-select model-select"
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
-              style={{
-                background: '#2d2d2d',
-                color: '#e2e8f0',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                fontSize: '0.72rem',
-                cursor: 'pointer',
-                height: '32px',
-              }}
               title="Select AI Model"
             >
-              <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-              <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+              <option value="llama-3.3-70b-versatile">Llama 70B</option>
+              <option value="llama-3.1-8b-instant">Llama 8B</option>
               {/* <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>*/}
             </select>
             <button

@@ -289,7 +289,11 @@ body {
   border-radius: 4px;
   outline: none;
   cursor: pointer;
-  min-width: 160px;
+  min-width: 120px;
+}
+.model-select {
+  min-width: 100px;
+  max-width: 110px;
 }
 .lang-select:focus {
   border-color: var(--accent);
