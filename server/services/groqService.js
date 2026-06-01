@@ -18,7 +18,8 @@ async function chatCompletion(systemPrompt, userPrompt, apiKey = '', model = DEF
       { role: 'user', content: userPrompt },
     ],
     temperature: 0.2,
-    max_tokens: 2000,response_format: { type: 'json_object' },
+    max_tokens: 2000,
+    response_format: { type: 'json_object' },
   });
 
   const aiMessage = JSON.parse(response.choices[0].message.content);
@@ -125,7 +126,7 @@ ${error || 'No specific error, but optimize and fix any issues.'}
 }
 
 // 3. Logic Explanation
-async function explainLogicAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+async function explainLogicAI(code, language, apiKey = '', model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are a CS tutor. Explain code step-by-step. Always respond in valid JSON.`,
     `Explain this <language>${language}</language> code step-by-step:
@@ -147,7 +148,7 @@ Respond in JSON:
 }
 
 // 4. Test Case Generation
-async function generateTestsAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+async function generateTestsAI(code, language, apiKey = '', model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are a QA engineer. Generate test cases. Always respond in valid JSON.`,
     `Generate test cases for this <language>${language}</language> function:
@@ -171,7 +172,7 @@ Respond in JSON:
 }
 
 // 5. Security and refactoring audit
-async function auditCodeAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+async function auditCodeAI(code, language, apiKey = '', model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are a senior application security reviewer and refactoring coach. Audit code for exploitable security risks, reliability hazards, memory/resource leaks, and unsafe architecture. Always respond in valid JSON.`,
     `Audit this <language>${language}</language> code:
@@ -249,7 +250,7 @@ async function reviewCodeAI(code, language, apiKey = '') {
 }
 
 // 6. Execution Visualization
-async function visualizeAI(code, language, input = '', apiKey = '',model = DEFAULT_MODEL) {
+async function visualizeAI(code, language, input = '', apiKey = '', model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are a code tracer. Trace through code step by step showing variable states. Always respond in valid JSON.`,
     `Trace through this <language>${language}</language> code step by step. Show variable states after each line.
@@ -258,9 +259,13 @@ async function visualizeAI(code, language, input = '', apiKey = '',model = DEFAU
 ${code}
 </code>
 
-${input ? `<input>
+${
+  input
+    ? `<input>
 ${input}
-</input>` : ''}
+</input>`
+    : ''
+}
 
 Respond in JSON:
 {
@@ -275,7 +280,7 @@ Respond in JSON:
 }
 
 // 7. AI Code Explainer — explains a selected code snippet in plain language
-async function explainCodeSnippetAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+async function explainCodeSnippetAI(code, language, apiKey = '', model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are an expert programming tutor. When a user highlights a snippet of code, explain what it does in simple, beginner-friendly language. Always respond in valid JSON.`,
     `Explain this <language>${language}</language> code snippet in simple terms:
@@ -297,7 +302,14 @@ Respond in this EXACT JSON format:
 }
 
 // 8. AI Code Explainer — follow-up Q&A on previously explained code
-async function askFollowUpAI(code, language, question, previousExplanation, apiKey = '',model = DEFAULT_MODEL) {
+async function askFollowUpAI(
+  code,
+  language,
+  question,
+  previousExplanation,
+  apiKey = '',
+  model = DEFAULT_MODEL
+) {
   return chatCompletion(
     `You are an expert programming tutor engaged in an interactive Q&A session. The user previously highlighted code and received an explanation. Now they have a follow-up question. Answer clearly and concisely. Always respond in valid JSON.`,
     `The user is asking about this <language>${language}</language> code:

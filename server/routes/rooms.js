@@ -180,7 +180,10 @@ router.post('/validate-token', async (req, res) => {
 
     // Verify signature
     const payload = Buffer.from(encodedPayload, 'base64').toString('utf8');
-    const expectedSig = crypto.createHmac('sha256', ROOM_TOKEN_SECRET).update(payload).digest('hex');
+    const expectedSig = crypto
+      .createHmac('sha256', ROOM_TOKEN_SECRET)
+      .update(payload)
+      .digest('hex');
 
     const sigA = Buffer.from(receivedSig, 'utf8');
     const sigB = Buffer.from(expectedSig, 'utf8');
@@ -208,3 +211,7 @@ router.post('/validate-token', async (req, res) => {
 });
 
 module.exports = router;
+// Test helper: clear in-memory attempt log to improve test isolation
+router.clearAttemptLog = () => {
+  attemptLog.clear();
+};
