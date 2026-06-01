@@ -23,6 +23,7 @@ export function useWebRTC(roomId, user) {
   const peersRef = useRef({});
   const streamRef = useRef(null);
   const unsubscribeRef = useRef(null);
+  const signalsUnsubscribeRef = useRef(null);
 
   const joinCall = async () => {
     try {
@@ -65,7 +66,7 @@ export function useWebRTC(roomId, user) {
       // Listen for incoming signals
       const signalsRef = collection(db, 'rooms', roomId, 'signals');
       const q = query(signalsRef, where('targetUid', '==', user.uid));
-      onSnapshot(q, (snapshot) => {
+      signalsUnsubscribeRef.current = onSnapshot(q, (snapshot) => {
         snapshot.docChanges().forEach(async (change) => {
           if (change.type === 'added') {
             const data = change.doc.data();
@@ -156,6 +157,7 @@ export function useWebRTC(roomId, user) {
 
   const leaveCall = async () => {
     if (unsubscribeRef.current) unsubscribeRef.current();
+    if (signalsUnsubscribeRef.current) signalsUnsubscribeRef.current();
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
     }
