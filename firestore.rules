@@ -32,13 +32,13 @@ service cloud.firestore {
 
       allow update: if
         request.auth != null
-        && request.auth.uid == resource.data.ownerId
+        && request.auth.uid == resource.data.createdBy
         && !('passwordHash' in request.resource.data)
         && !('passwordSalt' in request.resource.data);
 
       allow delete: if
         request.auth != null
-        && request.auth.uid == resource.data.ownerId;
+        && request.auth.uid == resource.data.createdBy;
     }
 
     // ── Public room metadata subcollection ───────────────────────────────────
