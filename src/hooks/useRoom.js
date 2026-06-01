@@ -112,7 +112,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       setActiveUsers(data.activeUsers || []);
     });
     return unsub;
-  }, [roomId, user]);
+  }, [roomId, user, setCode, setLanguage, setStdinValue]);
 
   // ─── Push local changes (debounced, editor-gated) ──────────────────────────
   useEffect(() => {
@@ -128,7 +128,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       }).catch(() => {});
     }, 300);
     return () => clearTimeout(timer);
-  }, [code, language, stdinValue, roomId, user, isEditor]);
+  }, [code, language, stdinValue, roomId, user, isEditor, roomData]);
 
   // ─── Sync active file (language) for presence ───────────────────────────────
   useEffect(() => {
@@ -151,7 +151,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         localStorage.removeItem('debugra_roomId');
       });
     }
-  }, [user, roomId]); // Join logic uses the function below
+  }, [user, roomId, joinRoom]); // Join logic uses the function below
 
   // ─── Create room ────────────────────────────────────────────────────────────
   const createRoom = useCallback(
