@@ -55,6 +55,9 @@ export default function EditorPage({ user }) {
   const editorRef = useRef(null);
 
   // ─── UI State ──────────────────────────────────────────────────────────────
+  const [searchTerm, setSearchTerm] = useState('');
+const [searchMatches, setSearchMatches] = useState([]);
+const [showSearchPanel, setShowSearchPanel] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
@@ -260,6 +263,7 @@ export default function EditorPage({ user }) {
 
   const handleEditorMount = (editorInstance) => {
     editorRef.current = editorInstance;
+    window.editorInstance = editorInstance;
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
@@ -268,6 +272,42 @@ export default function EditorPage({ user }) {
       if (executionRunRef.current) executionRunRef.current();
     });
   };
+
+  const updateSearchMatches = (query) => {
+  setSearchTerm(query);
+
+  if (!query || !editorRef.current) {
+    setSearchMatches([]);
+    return;
+  }
+
+  const model = editorRef.current.getModel();
+
+  if (!model) return;
+
+  const matches = model.findMatches(
+    query,
+    true,
+    false,
+    false,
+    null,
+    true
+  );
+
+  setSearchMatches(matches);
+};
+
+const jumpToMatch = (match) => {
+  if (!editorRef.current) return;
+
+  editorRef.current.revealLineInCenter(
+    match.range.startLineNumber
+  );
+
+  editorRef.current.setSelection(match.range);
+
+  editorRef.current.focus();
+};
 
   // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
@@ -646,6 +686,14 @@ export default function EditorPage({ user }) {
             Fix
           </button>
           <div className="d-flex align-items-center gap-1">
+             <button
+                className="toolbar-icon-btn"
+                aria-label="Search Occurrences"
+                title="Search Occurrences"
+                onClick={() => setShowSearchPanel(!showSearchPanel)}
+              >
+                🔍
+              </button>
             <button
               className="toolbar-icon-btn"
               aria-label="Download Code"
@@ -890,9 +938,68 @@ export default function EditorPage({ user }) {
 
           {/* Monaco Editor */}
           <div
-            id="editor-container"
-            style={{ flex: 1, minHeight: 0, opacity: room.isReadOnly ? 0.8 : 1 }}
-          >
+              style={{
+                display: 'flex',
+                flex: 1,
+                minHeight: 0,
+              }}
+            >
+              {showSearchPanel && (
+                    <div
+                      style={{
+                        width: '220px',
+                        borderRight: '1px solid var(--border)',
+                        background: 'var(--bg-1)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                      }}
+                    >
+                      <input
+                        type="text"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={(e) => updateSearchMatches(e.target.value)}
+                        style={{
+                          margin: '8px',
+                          padding: '8px',
+                        }}
+                      />
+                    <div style={{ padding: '8px', fontSize: '12px' }}>
+                      {searchMatches.length} matches found
+                    </div>
+                      <div style={{ overflowY: 'auto', flex: 1 }}>
+                         {searchTerm && searchMatches.length === 0 && (
+                        <div style={{ padding: '12px' }}>
+                          No matches found
+                        </div>
+                        )}
+                        {searchMatches.map((match, index) => (
+                          <div
+                            key={index}
+                            onClick={() => jumpToMatch(match)}
+                            style={{
+                              padding: '8px 12px',
+                              cursor: 'pointer',
+                              borderBottom: '1px solid rgba(255,255,255,0.05)',
+                            }}
+                          >
+                            Line {match.range.startLineNumber}: {
+                   editor.code.split('\n')[match.range.startLineNumber - 1]
+                   }
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                <div
+                        id="editor-container"
+                        style={{
+                          flex: 1,
+                          minHeight: 0,
+                          opacity: room.isReadOnly ? 0.8 : 1,
+                          position: 'relative',
+                        }}
+                      ></div>
             {room.isReadOnly && (
               <div className="readonly-badge">
                 <svg
