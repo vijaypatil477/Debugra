@@ -27,17 +27,7 @@ const ICE_SERVERS = [
 ];
 
 const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
-  // Test-only flag: when URL contains ?testLocal=1 we render a static local meter
-  // This avoids depending on getUserMedia / AudioContext in headless test environments.
-  let isTestLocal = false;
-  try {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      isTestLocal = params.get('testLocal') === '1';
-    }
-  } catch (e) {
-    isTestLocal = false;
-  }
+
   const [peers, setPeers] = useState(new Map());
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -64,7 +54,7 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
   const localAnalyserRef = useRef(null);
   const localDataRef = useRef(null);
   const localRafRef = useRef(null);
-  const [localLevel, setLocalLevel] = useState(0);
+  const [, setLocalLevel] = useState(0);
 
   // Generate a persistent, session-unique ID for the local peer
   const myPeerId = useRef(crypto.randomUUID().slice(0, 8)).current;
@@ -142,6 +132,7 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
 
   const setupLocalAnalyser = useCallback((stream) => {
     try {
+      if (localRafRef.current) cancelAnimationFrame(localRafRef.current);
       const audioCtx = ensureAudioContext();
       const src = audioCtx.createMediaStreamSource(stream);
       const analyser = audioCtx.createAnalyser();
@@ -218,6 +209,7 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
 
         // Setup per-peer analyser for mic activity
         try {
+          if (peerObj.raf) cancelAnimationFrame(peerObj.raf);
           if (remoteStream && remoteStream.getAudioTracks().length) {
             const audioCtx = ensureAudioContext();
             const src = audioCtx.createMediaStreamSource(remoteStream);
