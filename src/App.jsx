@@ -9,6 +9,7 @@ import VideoCall from './components/Editor/VideoCall';
 import OfflineBanner from './components/Editor/OfflineBanner';
 import Footer from './components/Footer.jsx';
 import FeedbackPage from './components/FeedbackPage';
+import BacktoTop from './components/Backtotop/Backtotop.jsx';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -62,6 +63,7 @@ export default function App() {
             {/* Local-only test route that does not use Firestore/room presence */}
             <Route path="/voice-test-local" element={<VideoCall userName={'Playwright'} audioOnly />} />
           </Routes>
+          <BacktoTop/>
         </main>
 
         {/* Footer is safely placed outside <Routes> so it renders globally */}
