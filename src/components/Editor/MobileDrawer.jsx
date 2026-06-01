@@ -11,6 +11,7 @@ import HistoryPanel from './HistoryPanel';
 export default function MobileDrawer({
   isMobile,
   isOpen,
+  onOpen,
   onClose,
   user,
   editor,
@@ -36,11 +37,7 @@ export default function MobileDrawer({
     <>
       {/* ===== DRAWER OVERLAY ===== */}
       {isOpen && (
-        <div
-          className="mobile-drawer-overlay"
-          onClick={onClose}
-          aria-label="Close menu"
-        />
+        <div className="mobile-drawer-overlay" onClick={onClose} aria-label="Close menu" />
       )}
 
       {/* ===== DRAWER PANEL ===== */}
@@ -52,11 +49,7 @@ export default function MobileDrawer({
         {/* Drawer Header */}
         <div className="drawer-header">
           <h3>Menu</h3>
-          <button
-            className="drawer-close-btn"
-            onClick={onClose}
-            aria-label="Close drawer"
-          >
+          <button className="drawer-close-btn" onClick={onClose} aria-label="Close drawer">
             <X size={20} />
           </button>
         </div>
@@ -87,16 +80,10 @@ export default function MobileDrawer({
               {/* Auth Buttons (if not logged in) */}
               {!user && (
                 <div className="drawer-auth-buttons">
-                  <button
-                    className="drawer-auth-btn drawer-signin-btn"
-                    onClick={onSignIn}
-                  >
+                  <button className="drawer-auth-btn drawer-signin-btn" onClick={onSignIn}>
                     Sign In
                   </button>
-                  <button
-                    className="drawer-auth-btn drawer-signup-btn"
-                    onClick={onSignUp}
-                  >
+                  <button className="drawer-auth-btn drawer-signup-btn" onClick={onSignUp}>
                     Sign Up
                   </button>
                 </div>
@@ -131,9 +118,7 @@ export default function MobileDrawer({
                 <div className="drawer-font-size-control">
                   <button
                     className="drawer-size-btn"
-                    onClick={() =>
-                      editor.setFontSize(Math.max(10, editor.fontSize - 2))
-                    }
+                    onClick={() => editor.setFontSize(Math.max(10, editor.fontSize - 2))}
                     aria-label="Decrease font size"
                   >
                     −
@@ -141,9 +126,7 @@ export default function MobileDrawer({
                   <span className="drawer-size-value">{editor.fontSize}px</span>
                   <button
                     className="drawer-size-btn"
-                    onClick={() =>
-                      editor.setFontSize(Math.min(28, editor.fontSize + 2))
-                    }
+                    onClick={() => editor.setFontSize(Math.min(28, editor.fontSize + 2))}
                     aria-label="Increase font size"
                   >
                     +
@@ -154,17 +137,11 @@ export default function MobileDrawer({
               {/* Audio Feedback Setting */}
               <div className="drawer-settings-group">
                 <label className="drawer-settings-label">
-                  {audioFeedback.muted ? (
-                    <VolumeX size={14} />
-                  ) : (
-                    <Volume2 size={14} />
-                  )}
+                  {audioFeedback.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
                   <span>Audio Feedback</span>
                 </label>
                 <button
-                  className={`drawer-toggle-btn ${
-                    !audioFeedback.muted ? 'active' : ''
-                  }`}
+                  className={`drawer-toggle-btn ${!audioFeedback.muted ? 'active' : ''}`}
                   onClick={() => audioFeedback.setMuted(!audioFeedback.muted)}
                   aria-pressed={!audioFeedback.muted}
                 >
@@ -181,9 +158,7 @@ export default function MobileDrawer({
                     min="0"
                     max="100"
                     value={audioFeedback.volume * 100}
-                    onChange={(e) =>
-                      audioFeedback.setVolume(parseInt(e.target.value) / 100)
-                    }
+                    onChange={(e) => audioFeedback.setVolume(parseInt(e.target.value) / 100)}
                     className="drawer-slider"
                     aria-label="Volume level"
                   />
@@ -195,11 +170,7 @@ export default function MobileDrawer({
           {/* History Tab */}
           {activeTab === 'history' && user && (
             <div className="drawer-panel-content">
-              <HistoryPanel
-                user={user}
-                onLoadCode={handleLoadCode}
-                onClose={onClose}
-              />
+              <HistoryPanel user={user} onLoadCode={handleLoadCode} onClose={onClose} />
             </div>
           )}
         </div>
