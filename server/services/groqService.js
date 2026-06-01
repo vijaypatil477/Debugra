@@ -44,11 +44,10 @@ async function chatCompletionText(systemPrompt, userPrompt, apiKey = '', model =
   const aiMessage = response.choices[0].message.content;
   const tokenUsage = response.usage;
 
-  console.log("Metadata caught (Text): ", tokenUsage);
+  console.log('Metadata caught (Text): ', tokenUsage);
 
   return { content: aiMessage, usage: tokenUsage };
 }
-
 
 // 1. Error Explanation
 async function explainError(code, error, language, apiKey = '', model = DEFAULT_MODEL) {
