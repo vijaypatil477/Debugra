@@ -941,7 +941,7 @@ export default function LandingPage() {
         </div>
 
         <p className="review-text">
-          "{review.review}"
+          &quot;{review.review}&quot;
         </p>
 
         <span className="review-author">
