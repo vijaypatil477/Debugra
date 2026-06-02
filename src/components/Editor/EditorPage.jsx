@@ -66,7 +66,6 @@ export default function EditorPage({ user }) {
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  // const [showApiKey, setShowApiKey] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
@@ -82,7 +81,7 @@ export default function EditorPage({ user }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
-  const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
+  const [blurIntensity, setBlurIntensity] = useState(10);
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const [consoleCollapsed, setConsoleCollapsed] = useState(false);
   const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
@@ -122,6 +121,8 @@ export default function EditorPage({ user }) {
       setShowAuth(true);
     },
   });
+
+  // showMinimap is derived from editor settings — no separate useState needed
   const showMinimap = editor.minimapEnabled;
 
   const vimEnabled = editor.vimEnabled;
@@ -165,6 +166,29 @@ export default function EditorPage({ user }) {
   useEffect(() => {
     tabSizeRef.current = editor.tabSize;
   }, [editor.tabSize]);
+
+  // ─── Model Cache: preserve per-language undo/redo history ─────────────────
+  const langConfig = LANGUAGES[editor.language];
+
+  useEffect(() => {
+    const editorInstance = editorRef.current;
+    const monaco = monacoRef.current;
+    if (!editorInstance || !monaco) return;
+
+    const modelCache = editor.getModelCache();
+    const lang = langConfig.monacoLang;
+    const currentCode = LANGUAGES[editor.language]?.template || '';
+
+    // Reuse existing model or create a new one
+    if (!modelCache.has(editor.language)) {
+      const newModel = monaco.editor.createModel(currentCode, lang);
+      modelCache.set(editor.language, newModel);
+    }
+
+    const model = modelCache.get(editor.language);
+    editorInstance.setModel(model); // swap model, undo history intact
+
+  }, [editor.language]); // runs only when language changes
 
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
@@ -286,12 +310,125 @@ export default function EditorPage({ user }) {
     });
   };
 
+  // Exposed formatting function for tests and fallback usage
+  const runFormatter = async (editorInstanceParam) => {
+    try {
+      const instance = editorInstanceParam || editorRef.current;
+      const monaco = monacoRef.current;
+      if (!instance || !monaco) return;
+      const model = instance.getModel();
+      if (!model) return;
+
+      const selection = instance.getSelection();
+      const startOffset = model.getOffsetAt(selection.getStartPosition());
+      const endOffset = model.getOffsetAt(selection.getEndPosition());
+
+      const prettierModule = await import('prettier/standalone');
+      const prettier =
+        prettierModule && prettierModule.default ? prettierModule.default : prettierModule;
+      const parserBabelModule = await import('prettier/parser-babel');
+      const parserBabel =
+        parserBabelModule && parserBabelModule.default
+          ? parserBabelModule.default
+          : parserBabelModule;
+      const parserTSModule = await import('prettier/parser-typescript');
+      const parserTS =
+        parserTSModule && parserTSModule.default ? parserTSModule.default : parserTSModule;
+
+      const langKey = editor.language || 'javascript';
+      let plugins = [parserBabel];
+      let parserName = 'babel';
+      if (langKey === 'typescript') {
+        plugins = [parserTS];
+        parserName = 'typescript';
+      }
+
+      const original = model.getValue();
+      const formatted = prettier.format(original, {
+        parser: parserName,
+        plugins,
+        semi: true,
+        singleQuote: true,
+        tabWidth: editor.tabSize || 2,
+      });
+
+      model.pushEditOperations(
+        [],
+        [{ range: model.getFullModelRange(), text: formatted }],
+        () => null
+      );
+
+      const newStartPos = model.getPositionAt(Math.min(startOffset, formatted.length));
+      const newEndPos = model.getPositionAt(Math.min(endOffset, formatted.length));
+      const Range = monaco.Range;
+      instance.setSelection(
+        new Range(
+          newStartPos.lineNumber,
+          newStartPos.column,
+          newEndPos.lineNumber,
+          newEndPos.column
+        )
+      );
+
+      editor.setCode(formatted);
+      toast.success('Formatted');
+    } catch (err) {
+      console.error('Formatting error', err);
+      try {
+        toast.error('Formatting failed');
+      } catch {}
+    }
+  };
+
   const handleEditorMount = (editorInstance) => {
     editorRef.current = editorInstance;
     window.__DEBUGRA_EDITOR__ = editorInstance;
     const monaco = monacoRef.current;
     if (!monaco) return;
 
+    // ── Define formatCurrentModel FIRST — handleDomKeyDown references it ──────
+    const formatCurrentModel = async () => {
+      const model = editorInstance.getModel();
+      if (!model) return;
+
+      try {
+        const prettierModule = await import('prettier/standalone');
+        const prettier = prettierModule?.default ?? prettierModule;
+        const parserBabelModule = await import('prettier/plugins/babel');
+        const parserBabel = parserBabelModule?.default ?? parserBabelModule;
+        const parserEstreeModule = await import('prettier/plugins/estree');
+        const parserEstree = parserEstreeModule?.default ?? parserEstreeModule;
+        const parserTSModule = await import('prettier/plugins/typescript');
+        const parserTS = parserTSModule?.default ?? parserTSModule;
+
+        const langKey = editor.language || 'javascript';
+        const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
+        const plugins =
+          langKey === 'typescript' ? [parserTS, parserEstree] : [parserBabel, parserEstree];
+
+        const original = model.getValue();
+        const formatted = await prettier.format(original, {
+          parser: parserName,
+          plugins,
+          semi: true,
+          singleQuote: true,
+          tabWidth: editor.tabSize || 2,
+        });
+
+        model.setValue(formatted);
+        editor.setCode(formatted);
+        toast.success('Formatted');
+        return formatted;
+      } catch (err) {
+        console.error('Formatting error', err);
+        toast.error('Formatting failed');
+        return null;
+      }
+    };
+
+    window.__debugra_formatEditor = formatCurrentModel;
+
+    // ── DOM-level keydown: handles Tab indent and Ctrl+S format ──────────────
     const editorDomNode = editorInstance.getDomNode();
 
     // Vim initialization is handled in effects; here we only keep non-Vim overrides.
@@ -345,47 +482,7 @@ export default function EditorPage({ user }) {
       if (executionRunRef.current) executionRunRef.current();
     });
 
-    const formatCurrentModel = async () => {
-      const model = editorInstance.getModel();
-      if (!model) return;
-
-      try {
-        const prettierModule = await import('prettier/standalone');
-        const prettier = prettierModule?.default ?? prettierModule;
-        const parserBabelModule = await import('prettier/plugins/babel');
-        const parserBabel = parserBabelModule?.default ?? parserBabelModule;
-        const parserEstreeModule = await import('prettier/plugins/estree');
-        const parserEstree = parserEstreeModule?.default ?? parserEstreeModule;
-        const parserTSModule = await import('prettier/plugins/typescript');
-        const parserTS = parserTSModule?.default ?? parserTSModule;
-
-        const langKey = editor.language || 'javascript';
-        const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
-        const plugins =
-          langKey === 'typescript' ? [parserTS, parserEstree] : [parserBabel, parserEstree];
-
-        const original = model.getValue();
-        const formatted = await prettier.format(original, {
-          parser: parserName,
-          plugins,
-          semi: true,
-          singleQuote: true,
-          tabWidth: editor.tabSize || 2,
-        });
-
-        model.setValue(formatted);
-        editor.setCode(formatted);
-        toast.success('Formatted');
-        return formatted;
-      } catch (err) {
-        console.error('Formatting error', err);
-        toast.error('Formatting failed');
-        return null;
-      }
-    };
-
-    window.__debugra_formatEditor = formatCurrentModel;
-
+    // Ctrl/Cmd+S → Format (Monaco command API)
     editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, () => {
       formatCurrentModel();
     });
@@ -405,7 +502,6 @@ export default function EditorPage({ user }) {
         monaco,
         editor: editorInstance,
         onModeChange: (mode) => {
-          // monaco-vim tends to pass strings like 'INSERT', 'NORMAL', 'COMMAND'
           setVimMode(mode);
         },
       }).then((controller) => {
@@ -474,7 +570,6 @@ export default function EditorPage({ user }) {
     window.addEventListener('mouseup', onUp);
   };
 
-  const langConfig = LANGUAGES[editor.language];
   const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
 
   return (
@@ -530,9 +625,7 @@ export default function EditorPage({ user }) {
                 className="topbar-link ms-2"
                 onClick={() => setShowVideoCall(!showVideoCall)}
                 style={{
-                  background: showVideoCall
-                    ? 'rgba(239, 68, 68, 0.15)'
-                    : 'rgba(139, 92, 246, 0.15)',
+                  background: showVideoCall ? 'rgba(239, 68, 68, 0.15)' : 'rgba(139, 92, 246, 0.15)',
                   color: showVideoCall ? '#ff6b6b' : '#a78bfa',
                   border: showVideoCall
                     ? '1px solid rgba(239, 68, 68, 0.3)'
@@ -783,9 +876,8 @@ export default function EditorPage({ user }) {
               onChange={(e) => setSelectedModel(e.target.value)}
               title="Select AI Model"
             >
-              <option value="llama-3.3-70b-versatile">Llama 70B</option>
-              <option value="llama-3.1-8b-instant">Llama 8B</option>
-              {/* <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>*/}
+              <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+              <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
             </select>
             <button
               className={`ai-btn api-key-toggle ${apiKeyStatus}`}
@@ -802,28 +894,14 @@ export default function EditorPage({ user }) {
               Tests
             </button>
             <button className="ai-btn" onClick={ai.audit} disabled={ai.isAILoading}>
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 <path d="M9 12l2 2 4-5" />
               </svg>
               Audit
             </button>
             <button className="ai-btn" onClick={ai.visualize} disabled={ai.isAILoading}>
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="2" y1="12" x2="22" y2="12" />
                 <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
@@ -831,14 +909,7 @@ export default function EditorPage({ user }) {
               Visualize
             </button>
             <button className="ai-btn" onClick={ai.explain} disabled={ai.isAILoading}>
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
@@ -878,14 +949,7 @@ export default function EditorPage({ user }) {
             onClick={ai.fix}
             disabled={ai.isAILoading || room.isReadOnly}
           >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
             </svg>
             Fix
@@ -897,14 +961,7 @@ export default function EditorPage({ user }) {
               onClick={editor.downloadCode}
               title="Download"
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -917,14 +974,7 @@ export default function EditorPage({ user }) {
               title="Save to cloud"
               disabled={room.isReadOnly}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                 <polyline points="17 21 17 13 7 13 7 21" />
                 <polyline points="7 3 7 8 15 8" />
@@ -936,18 +986,9 @@ export default function EditorPage({ user }) {
                 aria-label="Toggle History"
                 onClick={() => setShowHistory(!showHistory)}
                 title="History"
-                style={
-                  showHistory ? { background: 'var(--bg-active)', color: 'var(--accent)' } : {}
-                }
+                style={showHistory ? { background: 'var(--bg-active)', color: 'var(--accent)' } : {}}
               >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="10" />
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
@@ -960,9 +1001,7 @@ export default function EditorPage({ user }) {
                 aria-expanded={showSettings}
                 onClick={() => setShowSettings((open) => !open)}
                 title="Settings"
-                style={
-                  showSettings ? { background: 'var(--bg-active)', color: 'var(--accent)' } : {}
-                }
+                style={showSettings ? { background: 'var(--bg-active)', color: 'var(--accent)' } : {}}
               >
                 <Settings size={14} />
               </button>
@@ -1154,14 +1193,7 @@ export default function EditorPage({ user }) {
           >
             {room.isReadOnly && (
               <div className="readonly-badge">
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="11" width="18" height="11" rx="2" />
                   <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
@@ -1171,7 +1203,7 @@ export default function EditorPage({ user }) {
             <Editor
               height="100%"
               language={langConfig.monacoLang}
-              value={editor.code}
+              defaultValue={editor.code}
               onChange={(val) => {
                 if (!room.isReadOnly) editor.setCode(val || '');
               }}
@@ -1213,19 +1245,13 @@ export default function EditorPage({ user }) {
                 },
                 suggestOnTriggerCharacters: true,
                 quickSuggestions: true,
-                formatOnPaste: true,
+                formatOnPaste: false,
               }}
             />
           </div>
 
           {/* Stdin Panel */}
-          <div
-            style={{
-              borderTop: '1px solid var(--border)',
-              background: 'var(--bg-1)',
-              flexShrink: 0,
-            }}
-          >
+          <div style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-1)', flexShrink: 0 }}>
             <button
               onClick={() => editor.setStdinOpen(!editor.stdinOpen)}
               className="stdin-toggle-btn"
@@ -1238,12 +1264,7 @@ export default function EditorPage({ user }) {
                   <span style={{ fontSize: '0.62rem', color: '#ce9178' }}>— input detected</span>
                 )}
               </div>
-              <span
-                style={{
-                  transition: 'transform 0.2s',
-                  transform: editor.stdinOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                }}
-              >
+              <span style={{ transition: 'transform 0.2s', transform: editor.stdinOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                 ▾
               </span>
             </button>
@@ -1298,7 +1319,6 @@ export default function EditorPage({ user }) {
               className={`console-minimize-btn ${consoleCollapsed ? 'collapsed' : ''}`}
               onClick={() => {
                 toggleConsoleCollapsed();
-                // Let layout/animation start before forcing Monaco layout
                 setTimeout(() => {
                   try {
                     monacoRef.current?.layout?.();
@@ -1323,13 +1343,11 @@ export default function EditorPage({ user }) {
               }}
             >
               <button
-                className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''
-                  }`}
+                className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''}`}
                 onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDOUT)}
               >
                 Output
               </button>
-
               {execution.stdout && (
                 <button
                   onClick={handleCopyOutput}
@@ -1404,10 +1422,7 @@ export default function EditorPage({ user }) {
               >
                 AI{' '}
                 {ai.isAILoading && (
-                  <span
-                    className="spinner"
-                    style={{ width: '8px', height: '8px', borderWidth: '1.5px', marginLeft: '4px' }}
-                  />
+                  <span className="spinner" style={{ width: '8px', height: '8px', borderWidth: '1.5px', marginLeft: '4px' }} />
                 )}
               </button>
             )}
@@ -1460,27 +1475,14 @@ export default function EditorPage({ user }) {
                 <>
                   <button
                     className="toolbar-icon-btn"
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      background: 'var(--bg-1)',
-                      zIndex: 10,
-                    }}
+                    style={{ position: 'absolute', top: '8px', right: '8px', background: 'var(--bg-1)', zIndex: 10 }}
                     onClick={() => {
                       navigator.clipboard.writeText(execution.stdout);
                       toast.success('Output copied!');
                     }}
                     title="Copy output"
                   >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                     </svg>
@@ -1516,7 +1518,6 @@ export default function EditorPage({ user }) {
             </div>
           </div>
 
-          {/* Execution info bar */}
           <div className="exec-info">
             <div className="exec-item">
               Status:{' '}
@@ -1578,38 +1579,12 @@ export default function EditorPage({ user }) {
 
       {/* History (mobile full-screen) */}
       {isMobile && mobileTab === MOBILE_TABS.SAVED && user && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 50,
-            background: 'var(--bg-0)',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '12px 16px',
-              borderBottom: '1px solid var(--border)',
-              background: 'var(--bg-1)',
-            }}
-          >
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-0)' }}>
-              Code History
-            </span>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'var(--bg-0)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg-1)' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-0)' }}>Code History</span>
             <button
               onClick={() => setMobileTab(MOBILE_TABS.CODE)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-1)',
-                fontSize: '1.2rem',
-                cursor: 'pointer',
-              }}
+              style={{ background: 'none', border: 'none', color: 'var(--text-1)', fontSize: '1.2rem', cursor: 'pointer' }}
             >
               ✕
             </button>

@@ -31,10 +31,8 @@ function getStoredDraft() {
   try {
     const raw = localStorage.getItem('debugra-editor-draft');
     if (!raw) return null;
-
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed.code !== 'string') return null;
-
     return parsed;
   } catch {
     return null;
@@ -49,6 +47,19 @@ function getStoredDraft() {
  *   - save to cloud and download as file
  */
 export function useEditor({ user, onNeedAuth }) {
+  // Per-file Monaco model cache — keyed by language
+  // Preserves undo/redo history when switching languages
+  const modelCacheRef = useRef(new Map());
+  const getModelCache = useCallback(() => modelCacheRef.current, []);
+  const disposeModel = useCallback((lang) => {
+    const model = modelCacheRef.current.get(lang);
+    if (model && !model.isDisposed()) {
+      model.dispose();
+    }
+    modelCacheRef.current.delete(lang);
+  }, []);
+
+  // Restore last draft from localStorage if available
   const initialDraft = getStoredDraft();
   const initialLanguage =
     initialDraft?.language && LANGUAGES[initialDraft.language]
@@ -61,7 +72,9 @@ export function useEditor({ user, onNeedAuth }) {
   const [fontFamily, setFontFamily] = useState(
     () => localStorage.getItem('debugra-editor-font') ?? DEFAULT_EDITOR_FONT
   );
-  const [theme, setTheme] = useState(() => localStorage.getItem('debugra-theme') ?? DEFAULT_THEME);
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem('debugra-theme') ?? DEFAULT_THEME
+  );
   const [tabSize, setTabSizeState] = useState(() =>
     getStoredNumber('debugra-tab-size', 4, TAB_SIZE_VALUES)
   );
@@ -127,7 +140,6 @@ export function useEditor({ user, onNeedAuth }) {
 
   useEffect(() => {
     if (!autosaveInterval) return undefined;
-
     const timer = window.setInterval(() => {
       localStorage.setItem(
         'debugra-editor-draft',
@@ -137,7 +149,6 @@ export function useEditor({ user, onNeedAuth }) {
         })
       );
     }, autosaveInterval);
-
     return () => window.clearInterval(timer);
   }, [autosaveInterval]);
 
@@ -148,7 +159,10 @@ export function useEditor({ user, onNeedAuth }) {
 
   const changeLanguage = useCallback((newLang) => {
     setLanguage(newLang);
-    setCode(LANGUAGES[newLang].template);
+    // Only reset code to template if no cached model exists for this language
+    if (!modelCacheRef.current.has(newLang)) {
+      setCode(LANGUAGES[newLang].template);
+    }
   }, []);
 
   const setVimEnabled = useCallback((value) => setVimEnabledState(Boolean(value)), []);
@@ -190,11 +204,9 @@ export function useEditor({ user, onNeedAuth }) {
       toast.error('Sign in to save code');
       return;
     }
-
     const defaultName = LANG_FILE_NAMES[language] || 'code.txt';
     const fileName = window.prompt('Enter a name for this file:', defaultName);
-    if (!fileName) return; // User cancelled
-
+    if (!fileName) return;
     try {
       await addDoc(collection(db, 'users', user.uid, 'savedCode'), {
         code,
@@ -217,7 +229,6 @@ export function useEditor({ user, onNeedAuth }) {
     code,
     setCode,
     language,
-
     setLanguage,
     fontSize,
     setFontSize,
@@ -246,7 +257,8 @@ export function useEditor({ user, onNeedAuth }) {
     downloadCode,
     saveToCloud,
     loadCode,
-
+    getModelCache,
+    disposeModel,
     vimEnabled,
     setVimEnabled,
   };

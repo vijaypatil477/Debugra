@@ -1,3 +1,4 @@
+/* eslint-env node */
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
@@ -24,7 +25,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: 'node server/server.js',
+      command: 'cp server/.env.test server/.env && node server/server.js',
       url: 'http://localhost:3001/api/health',
       reuseExistingServer: !process.env.CI,
     },

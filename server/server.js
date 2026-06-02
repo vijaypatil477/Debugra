@@ -1,3 +1,6 @@
+const { validateEnv } = require('./config/validateEnv');
+validateEnv();
+
 const logger = require('./utils/logger');
 require('dotenv').config();
 const crypto = require('crypto');
