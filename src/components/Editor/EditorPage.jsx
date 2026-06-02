@@ -46,7 +46,9 @@ import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import MobileDrawer from './MobileDrawer';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import Loader from '../Loader';
 import ComplexityOverlay from './ComplexityOverlay';
+
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -1760,6 +1762,12 @@ const resizingRef = useRef(false);
       {/* Real-time Democratic Vote Popup */}
       <VotePopup room={room} user={user} />
 
+
+      {/* Premium Full-Screen Code Execution Loading Overlay */}
+      <Loader isVisible={execution.isRunning} />
+{/* Real-time Democratic Vote Popup */}
+<VotePopup room={room} user={user} />
+
       {/* Welcome Tour for first-time users */}
       {!isMobile && (
         <WelcomeTour
@@ -1772,6 +1780,7 @@ const resizingRef = useRef(false);
           onSkip={tour.skipTour}
         />
       )}
+
 
       {/* Mobile Drawer */}
       <MobileDrawer
@@ -1798,6 +1807,7 @@ const resizingRef = useRef(false);
           setDrawerOpen(false);
         }}
       />
+
     </div>
   );
 }
