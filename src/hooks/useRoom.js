@@ -180,6 +180,11 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
           userName: displayName,
           passwordProtected,
         }),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          console.warn('[webhook] room_created failed:', res.status, errBody);
+        }
       }).catch(console.error);
 
       return true;
@@ -244,6 +249,11 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
             roomId: newRoomId,
             userName: displayName,
           }),
+        }).then(async (res) => {
+          if (!res.ok) {
+            const errBody = await res.json().catch(() => ({}));
+            console.warn('[webhook] room_joined failed:', res.status, errBody);
+          }
         }).catch(console.error);
 
         return true;
@@ -278,8 +288,19 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     try {
       localStorage.removeItem('debugra_roomId');
       if (user && roomData) {
+        const displayName = user.displayName || user.email?.split('@')[0] || 'Guest';
         const newUsers = (roomData.activeUsers || []).filter((u) => u.uid !== user.uid);
         await updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+
+        fetch(import.meta.env.VITE_API_URL + '/api/webhooks/room-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'room_left',
+            roomId,
+            userName: displayName,
+          }),
+        }).catch(console.error);
       }
     } catch (e) {
       console.error(e);
