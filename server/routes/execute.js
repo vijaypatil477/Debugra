@@ -73,9 +73,10 @@ router.post('/', executeLimiter, async (req, res, next) => {
   try {
     const { source_code, language_id, stdin } = req.body;
 
-    if (!source_code || !language_id) {
+    if (!source_code || language_id === undefined || language_id === null) {
       return res.status(400).json({ error: 'source_code and language_id are required' });
     }
+
 
     if (typeof source_code !== 'string' || (stdin !== undefined && typeof stdin !== 'string')) {
       return res.status(400).json({ error: 'source_code and stdin must be strings' });
@@ -125,5 +126,4 @@ router.post('/', executeLimiter, async (req, res, next) => {
 });
 
 module.exports = router;
-
 
