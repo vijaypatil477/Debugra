@@ -12,6 +12,7 @@ import {
 import { showRateLimitToast } from '../utils/rateLimitToast';
 import { LANGUAGES } from '../utils/languageConfig';
 import { OUTPUT_TABS } from '../config/constants';
+import { getSelectedOrFullCode } from '../utils/editorUtils';
 
 /**
  * useAI
