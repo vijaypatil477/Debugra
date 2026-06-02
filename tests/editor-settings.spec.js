@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('debugra_hasCompletedTour', 'true');
+  });
+});
+
 test('updates advanced editor settings instantly', async ({ page }) => {
   await page.goto('/editor');
 
