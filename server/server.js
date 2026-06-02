@@ -11,6 +11,7 @@ const aiRoutes = require('./routes/ai');
 const memoryRoutes = require('./routes/memory');
 const memoryTracker = require('./middleware/memoryTracker');
 const memoryProfiler = require('./services/memoryProfiler');
+const roomCleanupService = require('./services/roomCleanupService');
 const errorHandler = require('./middleware/errorHandler');
 const webhookRoutes = require('./routes/webhooks');
 const { executeLimiter, aiLimiter } = require('./middleware/rateLimiters');
@@ -132,7 +133,7 @@ function buildCspDirectives() {
       'https://cdn.jsdelivr.net',
       'https://cdnjs.cloudflare.com',
     ]),
-    styleSrc: unique(["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com']),
+    styleSrc: unique(["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdn.jsdelivr.net']),
     imgSrc: ["'self'", 'data:', 'blob:', 'https://*.googleusercontent.com'],
     connectSrc: unique([
       "'self'",
@@ -144,6 +145,9 @@ function buildCspDirectives() {
       'https://securetoken.googleapis.com',
       'https://firestore.googleapis.com',
       'https://wandbox.org',
+      'https://cdn.jsdelivr.net',
+      'https://debugra.onrender.com',
+      'https://*.onrender.com',
     ]),
     fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
     objectSrc: ["'none'"],
@@ -151,6 +155,8 @@ function buildCspDirectives() {
     frameSrc: ["'none'"],
     frameAncestors: ["'none'"],
     formAction: ["'self'"],
+    workerSrc: ["'self'", 'blob:'],
+    childSrc: ["'self'", 'blob:'],
   };
 
   if (isProd) {
@@ -327,6 +333,7 @@ if (require.main === module) {
     logger.info(`🚀 Debugra server running on port ${PORT}`);
     logger.info(`🔒 Security headers: HSTS=${isProd}, CSP=on, Permissions-Policy=on`);
     memoryProfiler.start();
+    roomCleanupService.start();
   });
 }
 

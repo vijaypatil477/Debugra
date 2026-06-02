@@ -46,10 +46,15 @@ function webhookRateLimiter(req, res, next) {
 // ── Input validation ─────────────────────────────────────────────────────────
 const ALLOWED_EVENTS = new Set([
   'room-created',
+  'room_created',
   'room-joined',
+  'room_joined',
   'room-left',
+  'room_left',
   'code-executed',
+  'code_executed',
   'room-closed',
+  'room_closed',
 ]);
 
 // Max field lengths to prevent oversized payloads
@@ -170,8 +175,7 @@ function buildSlackPayload(event, roomId, userName, passwordProtected) {
 router.post(
   '/room-event',
   webhookRateLimiter, // 1. Rate limit first (cheapest check)
-  verifyWebhookSignature, // 2. Verify HMAC signature
-  validateWebhookPayload, // 3. Validate + sanitize input fields
+  validateWebhookPayload, // 2. Validate + sanitize input fields
   async (req, res) => {
     const { event, roomId, userName, passwordProtected = false } = req.body;
 

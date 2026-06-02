@@ -18,6 +18,14 @@ const executeCache = new NodeCache({
 });
 const executeCacheInsertionOrder = new Map();
 
+// Remove expired/deleted entries from the insertion order tracker to prevent memory leaks
+executeCache.on('del', (key) => {
+  executeCacheInsertionOrder.delete(key);
+});
+executeCache.on('expired', (key) => {
+  executeCacheInsertionOrder.delete(key);
+});
+
 function buildCacheKey(languageId, stdin, sourceCode) {
   const payload = JSON.stringify({
     languageId,
