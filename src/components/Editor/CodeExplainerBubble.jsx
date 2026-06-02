@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useNetworkStatus } from '../../hooks';
 import './CodeExplainerBubble.css';
@@ -91,7 +91,10 @@ const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey
     } catch (err) {
       setQaHistory((prev) => [
         ...prev,
-        { question, answer: { answer: 'Sorry, something went wrong. Try again.', codeExample: '' } },
+        {
+          question,
+          answer: { answer: 'Sorry, something went wrong. Try again.', codeExample: '' },
+        },
       ]);
     } finally {
       setAskingFollowUp(false);
@@ -134,7 +137,9 @@ const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey
           {explanation.concepts && explanation.concepts.length > 0 && (
             <div className="explainer-concepts">
               {explanation.concepts.map((c, i) => (
-                <span key={i} className="concept-tag">{c}</span>
+                <span key={i} className="concept-tag">
+                  {c}
+                </span>
               ))}
             </div>
           )}
@@ -151,9 +156,7 @@ const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey
                 <div key={i} className="qa-item">
                   <div className="qa-question">🙋 {qa.question}</div>
                   <div className="qa-answer">{qa.answer.answer}</div>
-                  {qa.answer.codeExample && (
-                    <pre className="qa-code">{qa.answer.codeExample}</pre>
-                  )}
+                  {qa.answer.codeExample && <pre className="qa-code">{qa.answer.codeExample}</pre>}
                 </div>
               ))}
             </div>

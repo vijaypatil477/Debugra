@@ -80,6 +80,10 @@ export function useEditor({ user, onNeedAuth }) {
   const [stdinValue, setStdinValue] = useState(initialDraft?.stdinValue ?? '');
   const [stdinOpen, setStdinOpen] = useState(false);
 
+  const [vimEnabled, setVimEnabledState] = useState(() =>
+    getStoredBoolean('debugra-vim-enabled', false)
+  );
+
   const [needsInput, setNeedsInput] = useState(false);
   const autosaveSnapshotRef = useRef({ code, language, stdinValue });
 
@@ -116,6 +120,10 @@ export function useEditor({ user, onNeedAuth }) {
   }, [autosaveInterval]);
 
   useEffect(() => {
+    localStorage.setItem('debugra-vim-enabled', String(vimEnabled));
+  }, [vimEnabled]);
+
+  useEffect(() => {
     autosaveSnapshotRef.current = { code, language, stdinValue };
   }, [code, language, stdinValue]);
 
@@ -144,6 +152,8 @@ export function useEditor({ user, onNeedAuth }) {
     setLanguage(newLang);
     setCode(LANGUAGES[newLang].template);
   }, []);
+
+  const setVimEnabled = useCallback((value) => setVimEnabledState(Boolean(value)), []);
 
   const increaseFontSize = useCallback(() => setFontSize((f) => Math.min(f + 1, 28)), []);
   const decreaseFontSize = useCallback(() => setFontSize((f) => Math.max(f - 1, 10)), []);
@@ -214,6 +224,7 @@ export function useEditor({ user, onNeedAuth }) {
     code,
     setCode,
     language,
+
     setLanguage,
     fontSize,
     setFontSize,
@@ -242,5 +253,8 @@ export function useEditor({ user, onNeedAuth }) {
     downloadCode,
     saveToCloud,
     loadCode,
+
+    vimEnabled,
+    setVimEnabled,
   };
 }

@@ -1,4 +1,5 @@
 import { MOBILE_TABS } from '../../config/constants';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * MobileBottomNav
@@ -17,6 +18,8 @@ export default function MobileBottomNav({
   isReadOnly,
   isOnline,
 }) {
+  const navigate = useNavigate();
+
   return (
     <div className="mobile-bottom-nav">
       <button
@@ -77,6 +80,11 @@ export default function MobileBottomNav({
           <span>Chat</span>
         </button>
       )}
+
+      <button className="mobile-nav-btn" onClick={() => navigate('/feedback')}>
+        <i className="bi bi-chat-square-text" />
+        <span>Feedback</span>
+      </button>
     </div>
   );
 }

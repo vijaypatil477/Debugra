@@ -18,60 +18,148 @@ function TestCard({ tc, i }) {
   };
   return (
     <div className="ai-card" style={{ marginBottom: '8px' }}>
-      <div className="ai-card-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--green)' }}>
+      <div
+        className="ai-card-label"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          color: 'var(--green)',
+        }}
+      >
         <span>
           Test {i + 1}{' '}
-          <span style={{ fontSize: '0.58rem', padding: '1px 6px', borderRadius: '10px', marginLeft: '4px', background: isEdge ? 'rgba(255,209,102,0.15)' : 'rgba(78,201,176,0.15)', color: isEdge ? '#ffd166' : 'var(--green)', border: `1px solid ${isEdge ? 'rgba(255,209,102,0.3)' : 'rgba(78,201,176,0.3)'}` }}>
+          <span
+            style={{
+              fontSize: '0.58rem',
+              padding: '1px 6px',
+              borderRadius: '10px',
+              marginLeft: '4px',
+              background: isEdge ? 'rgba(255,209,102,0.15)' : 'rgba(78,201,176,0.15)',
+              color: isEdge ? '#ffd166' : 'var(--green)',
+              border: `1px solid ${isEdge ? 'rgba(255,209,102,0.3)' : 'rgba(78,201,176,0.3)'}`,
+            }}
+          >
             {isEdge ? '⚡ edge' : '✓ normal'}
           </span>
         </span>
-        <button onClick={handleCopy} style={{ fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: copied ? 'var(--green)' : 'var(--text-2)', cursor: 'pointer' }}>
+        <button
+          onClick={handleCopy}
+          style={{
+            fontSize: '0.6rem',
+            padding: '2px 6px',
+            borderRadius: '4px',
+            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(255,255,255,0.05)',
+            color: copied ? 'var(--green)' : 'var(--text-2)',
+            cursor: 'pointer',
+          }}
+        >
           {copied ? '✓ Copied' : 'Copy'}
         </button>
       </div>
       <div className="ai-card-content">
-        <div>Input: <code style={{ color: 'var(--text-0)' }}>{typeof tc.input === 'object' ? JSON.stringify(tc.input) : String(tc.input ?? '')}</code></div>
-<div>Expected: <code style={{ color: 'var(--green)' }}>{typeof tc.expected === 'object' ? JSON.stringify(tc.expected) : String(tc.expected ?? '')}</code></div>
-        {tc.description && <div style={{ marginTop: '4px', color: 'var(--text-2)', fontSize: '0.7rem' }}>{tc.description}</div>}
+        <div>
+          Input:{' '}
+          <code style={{ color: 'var(--text-0)' }}>
+            {typeof tc.input === 'object' ? JSON.stringify(tc.input) : String(tc.input ?? '')}
+          </code>
+        </div>
+        <div>
+          Expected:{' '}
+          <code style={{ color: 'var(--green)' }}>
+            {typeof tc.expected === 'object'
+              ? JSON.stringify(tc.expected)
+              : String(tc.expected ?? '')}
+          </code>
+        </div>
+        {tc.description && (
+          <div style={{ marginTop: '4px', color: 'var(--text-2)', fontSize: '0.7rem' }}>
+            {tc.description}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 function TestCasesPanel({ testCases }) {
-  const edgeCount = testCases.filter(tc => tc.type === 'edge').length;
+  const edgeCount = testCases.filter((tc) => tc.type === 'edge').length;
   const normalCount = testCases.length - edgeCount;
   const handleDownload = () => {
-    const lines = testCases.map((tc, i) => [
-      `// Test ${i + 1} — ${tc.type || 'normal'}`,
-      `// Input:    ${tc.input}`,
-      `// Expected: ${tc.expected}`,
-      tc.description ? `// Note: ${tc.description}` : '',
-      `assert(run(${tc.input}) === ${tc.expected});`,
-      '',
-    ].filter(Boolean).join('\n')).join('\n');
-    const blob = new Blob([`// Auto-generated Test Cases — Debugra AI\n\n${lines}`], { type: 'text/plain' });
+    const lines = testCases
+      .map((tc, i) =>
+        [
+          `// Test ${i + 1} — ${tc.type || 'normal'}`,
+          `// Input:    ${tc.input}`,
+          `// Expected: ${tc.expected}`,
+          tc.description ? `// Note: ${tc.description}` : '',
+          `assert(run(${tc.input}) === ${tc.expected});`,
+          '',
+        ]
+          .filter(Boolean)
+          .join('\n')
+      )
+      .join('\n');
+    const blob = new Blob([`// Auto-generated Test Cases — Debugra AI\n\n${lines}`], {
+      type: 'text/plain',
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'tests.txt'; a.click();
+    a.href = url;
+    a.download = 'tests.txt';
+    a.click();
     URL.revokeObjectURL(url);
   };
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', padding: '8px 10px', background: 'rgba(78,201,176,0.07)', border: '1px solid rgba(78,201,176,0.2)', borderRadius: '6px' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '10px',
+          padding: '8px 10px',
+          background: 'rgba(78,201,176,0.07)',
+          border: '1px solid rgba(78,201,176,0.2)',
+          borderRadius: '6px',
+        }}
+      >
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--green)', fontWeight: 600 }}>✓ {testCases.length} Tests Generated</span>
-          <span style={{ fontSize: '0.65rem', color: 'var(--text-2)' }}>{normalCount} normal · {edgeCount} edge</span>
+          <span style={{ fontSize: '0.7rem', color: 'var(--green)', fontWeight: 600 }}>
+            ✓ {testCases.length} Tests Generated
+          </span>
+          <span style={{ fontSize: '0.65rem', color: 'var(--text-2)' }}>
+            {normalCount} normal · {edgeCount} edge
+          </span>
         </div>
-        <button onClick={handleDownload} style={{ fontSize: '0.65rem', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(78,201,176,0.3)', background: 'rgba(78,201,176,0.1)', color: 'var(--green)', cursor: 'pointer' }}>
+        <button
+          onClick={handleDownload}
+          style={{
+            fontSize: '0.65rem',
+            padding: '3px 8px',
+            borderRadius: '4px',
+            border: '1px solid rgba(78,201,176,0.3)',
+            background: 'rgba(78,201,176,0.1)',
+            color: 'var(--green)',
+            cursor: 'pointer',
+          }}
+        >
           ↓ Download
         </button>
       </div>
-      {testCases.map((tc, i) => <TestCard key={i} tc={tc} i={i} />)}
+      {testCases.map((tc, i) => (
+        <TestCard key={i} tc={tc} i={i} />
+      ))}
     </div>
   );
 }
-export default function AIResponsePanel({ isLoading, response: rawResponse, onApplyFix, language }) {
+export default function AIResponsePanel({
+  isLoading,
+  response: rawResponse,
+  onApplyFix,
+  language,
+}) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -117,7 +205,7 @@ export default function AIResponsePanel({ isLoading, response: rawResponse, onAp
     Low: { color: '#4ec9b0', border: 'rgba(78,201,176,0.35)', bg: 'rgba(78,201,176,0.08)' },
   };
   const auditFindings = Array.isArray(response.findings) ? response.findings : null;
-  const langName = language ? (LANGUAGES[language]?.name || language) : '';
+  const langName = language ? LANGUAGES[language]?.name || language : '';
 
   const handleDownloadMarkdown = () => {
     downloadAsMarkdown(rawResponse, langName);
@@ -176,11 +264,7 @@ export default function AIResponsePanel({ isLoading, response: rawResponse, onAp
 
         {dropdownOpen && (
           <div className="ai-download-dropdown" role="menu">
-            <button
-              className="ai-download-option"
-              role="menuitem"
-              onClick={handleDownloadMarkdown}
-            >
+            <button className="ai-download-option" role="menuitem" onClick={handleDownloadMarkdown}>
               {/* Markdown icon */}
               <svg
                 width="13"
@@ -201,11 +285,7 @@ export default function AIResponsePanel({ isLoading, response: rawResponse, onAp
               <span>Download as Markdown</span>
               <span className="ai-download-ext">.md</span>
             </button>
-            <button
-              className="ai-download-option"
-              role="menuitem"
-              onClick={handleDownloadText}
-            >
+            <button className="ai-download-option" role="menuitem" onClick={handleDownloadText}>
               {/* Text file icon */}
               <svg
                 width="13"
@@ -465,8 +545,7 @@ export default function AIResponsePanel({ isLoading, response: rawResponse, onAp
                   )}
                   {finding.suggestion && (
                     <div className="ai-card-content" style={{ marginTop: '6px' }}>
-                      <strong style={{ color: 'var(--text-0)' }}>Fix:</strong>{' '}
-                      {finding.suggestion}
+                      <strong style={{ color: 'var(--text-0)' }}>Fix:</strong> {finding.suggestion}
                     </div>
                   )}
                   {finding.refactor && (

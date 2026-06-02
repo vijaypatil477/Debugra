@@ -24,7 +24,7 @@ import { useNetworkStatus } from './useNetworkStatus';
  * @param {Function} setActiveOutputTab - to auto-switch to AI tab
  * @param {React.RefObject} editorRef - Monaco editor ref (for selection)
  */
-export function useAI({ language, code, stderr, setActiveOutputTab, editorRef , model }) {
+export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, model }) {
   const { isOnline } = useNetworkStatus();
   const [aiResponse, setAiResponse] = useState(null);
   const [isAILoading, setIsAILoading] = useState(false);
