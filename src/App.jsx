@@ -8,6 +8,7 @@ import EditorPage from './components/Editor/EditorPage';
 import VideoCall from './components/Editor/VideoCall';
 import OfflineBanner from './components/Editor/OfflineBanner';
 import Footer from './components/Footer.jsx';
+import FeedbackPage from './components/FeedbackPage';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -51,6 +52,7 @@ export default function App() {
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/feedback" element={<FeedbackPage />} />
             <Route path="/editor" element={<EditorPage user={user} />} />
             {/* Test route to render VideoCall directly for e2e tests */}
             <Route

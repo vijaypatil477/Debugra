@@ -1,4 +1,4 @@
-import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -33,6 +33,9 @@ const Footer = () => {
             <li>
               <a href="#playground" className="hover:text-[#4fc1ff] hover:underline transition-colors">Playground</a>
             </li>
+            <li>
+              <Link to="/feedback" className="hover:text-[#4fc1ff] hover:underline transition-colors">Feedback</Link>
+            </li>
           </ul>
         </div>
 
@@ -48,6 +51,9 @@ const Footer = () => {
             </li>
             <li>
               <a href="#license" className="hover:text-[#4fc1ff] hover:underline transition-colors">MIT License</a>
+            </li>
+            <li>
+              <Link to="/feedback" className="hover:text-[#4fc1ff] hover:underline transition-colors">Contact Team</Link>
             </li>
           </ul>
         </div>

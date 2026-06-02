@@ -3,6 +3,7 @@ validateEnv();
 
 const logger = require('./utils/logger');
 require('dotenv').config();
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -64,6 +65,13 @@ function getBearerToken(req) {
   return scheme?.toLowerCase() === 'bearer' ? token : '';
 }
 
+function safeCompare(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const hashA = crypto.createHash('sha256').update(a).digest();
+  const hashB = crypto.createHash('sha256').update(b).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
+}
+
 function requireSecurityDiagnosticsAccess(req, res, next) {
   if (!securityDiagnosticsToken && isProd) {
     return res.status(404).json({ error: 'Security diagnostics are disabled.' });
@@ -76,7 +84,7 @@ function requireSecurityDiagnosticsAccess(req, res, next) {
   const providedToken =
     (req.get('x-security-diagnostics-token') || '').trim() || getBearerToken(req);
 
-  if (providedToken !== securityDiagnosticsToken) {
+  if (!safeCompare(providedToken, securityDiagnosticsToken)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
