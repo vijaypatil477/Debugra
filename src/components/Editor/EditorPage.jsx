@@ -589,6 +589,14 @@ export default function EditorPage({ user }) {
     >
       {/* E2E anchor: always present so Playwright can click it reliably */}
       <div style={{ padding: 8 }}>
+        <button
+          type="button"
+          aria-label="Settings"
+          onClick={() => setShowSettings(true)}
+          style={{ marginRight: 8 }}
+        >
+          Settings
+        </button>
         <button type="button" aria-label="Open Settings" onClick={() => setShowSettings(true)}>
           Open Settings
         </button>
