@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import './VotePopup.css';
 
 /**
@@ -29,9 +29,10 @@ export default function VotePopup({ room, user }) {
   // Scroll lock effect
   useEffect(() => {
     if (!activeVote) return;
+    const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = originalOverflow;
     };
   }, [activeVote]);
 

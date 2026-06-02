@@ -5,8 +5,8 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Settings } from 'lucide-react';
-import { Menu } from 'lucide-react';
+import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 
 
 import {
@@ -16,6 +16,7 @@ import {
   useEditor,
   useIsMobile,
   useAudioFeedback,
+  useWelcomeTour,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
@@ -41,10 +42,12 @@ import EditorStatusBar from './EditorStatusBar';
 import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
+import WelcomeTour from './WelcomeTour';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import MobileDrawer from './MobileDrawer';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import Loader from '../Loader';
 import ComplexityOverlay from './ComplexityOverlay';
 
 
@@ -53,7 +56,23 @@ function getApiKeyStatus() {
   if (isSecureApiKeyStored()) return 'locked';
   return 'empty';
 }
-
+const REVIEWS = [
+  {
+    name: 'Alex',
+    rating: 5,
+    review: 'Excellent debugging platform. The AI explanations are incredibly helpful.',
+  },
+  {
+    name: 'Sarah',
+    rating: 5,
+    review: 'The execution visualizer helped me understand recursion much faster.',
+  },
+  {
+    name: 'John',
+    rating: 4,
+    review: 'Clean interface and smooth collaboration features.',
+  },
+];
 export default function EditorPage({ user }) {
   const isTestRoom =
     typeof window !== 'undefined' &&
@@ -64,39 +83,38 @@ export default function EditorPage({ user }) {
 
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
-  const [showAuth, setShowAuth] = useState(false);
-  const [authMode, setAuthMode] = useState('login');
-  const [showHistory, setShowHistory] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
-  // const [showApiKey, setShowApiKey] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [showAccount, setShowAccount] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
-  const [apiKeyStatus, setApiKeyStatus] = useState(getApiKeyStatus);
-  const [mobileTab, setMobileTab] = useState(MOBILE_TABS.CODE);
-  const [showJoin, setShowJoin] = useState(false);
-  const [joinId, setJoinId] = useState('');
-  const [joinPassword, setJoinPassword] = useState('');
-  const [roomPassword, setRoomPassword] = useState('');
-  const [isOutputCollapsed, setIsOutputCollapsed] = useState(false);
-  const [outputWidth, setOutputWidth] = useState(420);
-  const [minimapSide, setMinimapSide] = useState('right');
-  const [showSettings, setShowSettings] = useState(false);
-  const [showVideoCall, setShowVideoCall] = useState(false);
-  const [showVoiceCall, setShowVoiceCall] = useState(false);
-  const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
-  const [showDebugOverlay, setShowDebugOverlay] = useState(false);
-  const [consoleCollapsed, setConsoleCollapsed] = useState(false);
-  const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const resizingRef = useRef(false);
-
+const [showAuth, setShowAuth] = useState(false);
+const [authMode, setAuthMode] = useState('login');
+const [showHistory, setShowHistory] = useState(false);
+const [chatOpen, setChatOpen] = useState(false);
+const [showApiKey, setShowApiKey] = useState(false);
+const [showAccount, setShowAccount] = useState(false);
+const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
+const [apiKeyStatus, setApiKeyStatus] = useState(getApiKeyStatus);
+const [mobileTab, setMobileTab] = useState(MOBILE_TABS.CODE);
+const [showJoin, setShowJoin] = useState(false);
+const [joinId, setJoinId] = useState('');
+const [joinPassword, setJoinPassword] = useState('');
+const [roomPassword, setRoomPassword] = useState('');
+const [isOutputCollapsed, setIsOutputCollapsed] = useState(false);
+const [outputWidth, setOutputWidth] = useState(420);
+const [minimapSide, setMinimapSide] = useState('right');
+const [showSettings, setShowSettings] = useState(false);
+const [showVideoCall, setShowVideoCall] = useState(false);
+const [showVoiceCall, setShowVoiceCall] = useState(false);
+const [blurIntensity, setBlurIntensity] = useState(10);
+const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+const [consoleCollapsed, setConsoleCollapsed] = useState(false);
+const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
+const [drawerOpen, setDrawerOpen] = useState(false);
+const resizingRef = useRef(false);
   const toggleConsoleCollapsed = () => {
     setConsoleCollapsed((prev) => !prev);
   };
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
+  const tour = useWelcomeTour();
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
   const handleCopyOutput = async () => {
@@ -128,6 +146,21 @@ export default function EditorPage({ user }) {
 
   const vimEnabled = editor.vimEnabled;
   const setVimEnabled = editor.setVimEnabled;
+
+  const { theme: globalTheme, toggleTheme: toggleGlobalTheme } = useTheme();
+
+  // Synchronize Monaco editor theme with global light/dark theme toggle
+  useEffect(() => {
+    if (globalTheme === 'light') {
+      if (editor.theme !== 'vs') {
+        editor.setTheme('vs');
+      }
+    } else {
+      if (editor.theme === 'vs') {
+        editor.setTheme('debugra-dark');
+      }
+    }
+  }, [globalTheme, editor.theme, editor.setTheme]);
 
   const tabSizeRef = useRef(editor.tabSize);
   const vimControllerRef = useRef(null);
@@ -355,7 +388,7 @@ export default function EditorPage({ user }) {
     editorInstance.addCommand(2048 | 3, () => {
       if (executionRunRef.current) executionRunRef.current();
     });
-
+    
     const formatCurrentModel = async () => {
       const model = editorInstance.getModel();
       if (!model) return;
@@ -1706,8 +1739,28 @@ export default function EditorPage({ user }) {
         />
       )}
 
+      {/* Real-time Democratic Vote Popup */}
+      <VotePopup room={room} user={user} />
+
+
+      {/* Premium Full-Screen Code Execution Loading Overlay */}
+      <Loader isVisible={execution.isRunning} />
 {/* Real-time Democratic Vote Popup */}
 <VotePopup room={room} user={user} />
+
+      {/* Welcome Tour for first-time users */}
+      {!isMobile && (
+        <WelcomeTour
+          isActive={tour.isActive}
+          currentStep={tour.currentStep}
+          totalSteps={tour.totalSteps}
+          step={tour.step}
+          onNext={tour.nextStep}
+          onPrev={tour.prevStep}
+          onSkip={tour.skipTour}
+        />
+      )}
+
 
       {/* Mobile Drawer */}
       <MobileDrawer
@@ -1734,6 +1787,7 @@ export default function EditorPage({ user }) {
           setDrawerOpen(false);
         }}
       />
+
     </div>
   );
 }

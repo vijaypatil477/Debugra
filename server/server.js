@@ -11,6 +11,7 @@ const aiRoutes = require('./routes/ai');
 const memoryRoutes = require('./routes/memory');
 const memoryTracker = require('./middleware/memoryTracker');
 const memoryProfiler = require('./services/memoryProfiler');
+const roomCleanupService = require('./services/roomCleanupService');
 const errorHandler = require('./middleware/errorHandler');
 const webhookRoutes = require('./routes/webhooks');
 const { executeLimiter, aiLimiter } = require('./middleware/rateLimiters');
@@ -327,6 +328,7 @@ if (require.main === module) {
     logger.info(`🚀 Debugra server running on port ${PORT}`);
     logger.info(`🔒 Security headers: HSTS=${isProd}, CSP=on, Permissions-Policy=on`);
     memoryProfiler.start();
+    roomCleanupService.start();
   });
 }
 
