@@ -1,4 +1,3 @@
-import React from 'react';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import toast from 'react-hot-toast';

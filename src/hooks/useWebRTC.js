@@ -11,9 +11,15 @@ import {
   where,
   getDocs,
   deleteDoc,
+  Timestamp,
+  orderBy,
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import toast from 'react-hot-toast';
+
+const STALE_SIGNAL_MINUTES = 5;
+const PARTICIPANT_HEARTBEAT_SECONDS = 30;
+const STALE_PARTICIPANT_SECONDS = 90;
 
 export function useWebRTC(roomId, user) {
   const [inCall, setInCall] = useState(false);
@@ -23,6 +29,9 @@ export function useWebRTC(roomId, user) {
   const peersRef = useRef({});
   const streamRef = useRef(null);
   const unsubscribeRef = useRef(null);
+  const heartbeatRef = useRef(null);
+  const sweepIntervalRef = useRef(null);
+  const sweepTimeoutRef = useRef(null);
 
   const joinCall = async () => {
     try {
@@ -32,21 +41,33 @@ export function useWebRTC(roomId, user) {
       setInCall(true);
       toast.success('Joined Voice Channel');
 
-      // Register self in the call
+      // Register self in the call with a heartbeat timestamp
+      const now = Timestamp.now();
       const myParticipantRef = doc(db, 'rooms', roomId, 'voice_participants', user.uid);
       await setDoc(myParticipantRef, {
         uid: user.uid,
         joinedAt: serverTimestamp(),
+        lastHeartbeat: now,
       });
 
-      // Listen for other participants to connect to
+      // Heartbeat loop — keeps participant presence alive
+      heartbeatRef.current = setInterval(async () => {
+        try {
+          await setDoc(myParticipantRef, { lastHeartbeat: Timestamp.now() }, { merge: true });
+        } catch (e) {
+          // Ignore heartbeat failures
+        }
+      }, PARTICIPANT_HEARTBEAT_SECONDS * 1000);
+
+      // Listen for other participants; ignore stale ones
       const participantsRef = collection(db, 'rooms', roomId, 'voice_participants');
-      unsubscribeRef.current = onSnapshot(participantsRef, (snapshot) => {
+      const staleThreshold = Timestamp.fromMillis(Date.now() - STALE_PARTICIPANT_SECONDS * 1000);
+      const qParticipants = query(participantsRef, where('lastHeartbeat', '>', staleThreshold));
+      unsubscribeRef.current = onSnapshot(qParticipants, (snapshot) => {
         snapshot.docChanges().forEach((change) => {
           if (change.type === 'added') {
             const data = change.doc.data();
             if (data.uid !== user.uid && !peersRef.current[data.uid]) {
-              // Initiate peer connection to new participant
               const peer = createPeer(data.uid, user.uid, mediaStream);
               peersRef.current[data.uid] = peer;
             }
@@ -62,9 +83,15 @@ export function useWebRTC(roomId, user) {
         });
       });
 
-      // Listen for incoming signals
+      // Listen for incoming signals — only recent ones
       const signalsRef = collection(db, 'rooms', roomId, 'signals');
-      const q = query(signalsRef, where('targetUid', '==', user.uid));
+      const signalCutoff = Timestamp.fromMillis(Date.now() - STALE_SIGNAL_MINUTES * 60 * 1000);
+      const q = query(
+        signalsRef,
+        where('targetUid', '==', user.uid),
+        where('createdAt', '>', signalCutoff),
+        orderBy('createdAt', 'asc')
+      );
       onSnapshot(q, (snapshot) => {
         snapshot.docChanges().forEach(async (change) => {
           if (change.type === 'added') {
@@ -80,6 +107,21 @@ export function useWebRTC(roomId, user) {
           }
         });
       });
+
+      // Periodic sweep for stale signals left by disconnected peers
+      sweepIntervalRef.current = setInterval(async () => {
+        const sweepCutoff = Timestamp.fromMillis(Date.now() - STALE_SIGNAL_MINUTES * 60 * 1000);
+        const staleSignals = query(signalsRef, where('createdAt', '<', sweepCutoff));
+        const snapshot = await getDocs(staleSignals);
+        snapshot.docs.forEach((d) => deleteDoc(d.ref));
+      }, 2 * 60 * 1000);
+      // Store sweep handle for cleanup
+      sweepTimeoutRef.current = setTimeout(() => {
+        if (sweepIntervalRef.current) {
+          clearInterval(sweepIntervalRef.current);
+          sweepIntervalRef.current = null;
+        }
+      }, 30 * 60 * 1000);
     } catch (err) {
       console.error(err);
       toast.error('Could not access microphone.');
@@ -155,7 +197,16 @@ export function useWebRTC(roomId, user) {
   };
 
   const leaveCall = async () => {
+    if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     if (unsubscribeRef.current) unsubscribeRef.current();
+    if (sweepIntervalRef.current) {
+      clearInterval(sweepIntervalRef.current);
+      sweepIntervalRef.current = null;
+    }
+    if (sweepTimeoutRef.current) {
+      clearTimeout(sweepTimeoutRef.current);
+      sweepTimeoutRef.current = null;
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
     }
@@ -169,6 +220,16 @@ export function useWebRTC(roomId, user) {
 
     // Remove self from participants
     await deleteDoc(doc(db, 'rooms', roomId, 'voice_participants', user.uid));
+
+    // Clean up any stale signals left for this user from disconnected peers
+    try {
+      const signalsRef = collection(db, 'rooms', roomId, 'signals');
+      const staleSignals = query(signalsRef, where('targetUid', '==', user.uid));
+      const snapshot = await getDocs(staleSignals);
+      snapshot.docs.forEach((d) => deleteDoc(d.ref));
+    } catch (e) {
+      // Best-effort cleanup
+    }
   };
 
   const toggleMute = () => {
