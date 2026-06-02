@@ -45,11 +45,11 @@ function webhookRateLimiter(req, res, next) {
 
 // ── Input validation ─────────────────────────────────────────────────────────
 const ALLOWED_EVENTS = new Set([
-  'room-created',
-  'room-joined',
-  'room-left',
-  'code-executed',
-  'room-closed',
+  'room_created',
+  'room_joined',
+  'room_left',
+  'code_executed',
+  'room_closed',
 ]);
 
 // Max field lengths to prevent oversized payloads
