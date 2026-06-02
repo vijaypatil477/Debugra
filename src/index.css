@@ -333,6 +333,13 @@ body {
   background: rgba(0, 120, 212, 0.08);
   box-shadow: 0 1px 4px rgba(0, 120, 212, 0.15);
 }
+.topbar-link:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border-color: var(--border);
+  background: none;
+  box-shadow: none;
+}
 
 /* Topbar inline room ID input */
 .topbar-input {
@@ -570,6 +577,7 @@ body {
 .run-btn:disabled {
   background: var(--bg-3);
   color: var(--text-2);
+  opacity: 0.55;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
@@ -2872,6 +2880,10 @@ input[type='password']::-ms-clear {
 .mobile-nav-btn:active {
   transform: scale(0.92);
 }
+.mobile-nav-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
 .mobile-nav-dot {
   position: absolute;
@@ -2907,6 +2919,8 @@ input[type='password']::-ms-clear {
 .mobile-nav-run:disabled {
   background: var(--bg-3);
   color: var(--text-2);
+  opacity: 0.55;
+  cursor: not-allowed;
   box-shadow: none;
 }
 
@@ -3773,6 +3787,13 @@ input[type='password']::-ms-clear {
 
 .debug-ai-btn:active {
   transform: translateY(0);
+}
+.debug-ai-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  animation: none;
+  transform: none;
 }
 
 .debug-ai-btn svg {

@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
+import toast from 'react-hot-toast';
+import { useNetworkStatus } from '../../hooks';
 import './CodeExplainerBubble.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey }) => {
+  const { isOnline } = useNetworkStatus();
   const [explanation, setExplanation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -12,12 +15,6 @@ const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey
   const [askingFollowUp, setAskingFollowUp] = useState(false);
   const bubbleRef = useRef(null);
   const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (selectedCode && selectedCode.trim().length > 0) {
-      explainSnippet();
-    }
-  }, [selectedCode]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -29,7 +26,12 @@ const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
-  const explainSnippet = async () => {
+  const explainSnippet = useCallback(async () => {
+    if (!isOnline) {
+      setError('You are offline. Reconnect to continue.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -49,11 +51,21 @@ const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiKey, isOnline, language, selectedCode]);
+
+  useEffect(() => {
+    if (selectedCode && selectedCode.trim().length > 0) {
+      explainSnippet();
+    }
+  }, [selectedCode, explainSnippet]);
 
   const handleAskFollowUp = async (e) => {
     e.preventDefault();
     if (!followUpQuestion.trim() || askingFollowUp) return;
+    if (!isOnline) {
+      toast.error('You are offline. Reconnect to continue.');
+      return;
+    }
 
     const question = followUpQuestion.trim();
     setFollowUpQuestion('');

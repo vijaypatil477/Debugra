@@ -11,8 +11,10 @@ import {
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import toast from 'react-hot-toast';
+import { useNetworkStatus } from '../../hooks';
 
 export default function AccountSettings({ onClose, user }) {
+  const { isOnline } = useNetworkStatus();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [email, setEmail] = useState(user?.email || '');
   const [newPassword, setNewPassword] = useState('');
@@ -169,8 +171,16 @@ export default function AccountSettings({ onClose, user }) {
           <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
             <button
               type="submit"
-              disabled={loading}
-              style={{ padding: '8px 12px', background: '#4ec9b0', color: '#000', border: 'none' }}
+              disabled={loading || !isOnline}
+              title={!isOnline ? 'You are offline' : undefined}
+              style={{
+                padding: '8px 12px',
+                background: '#4ec9b0',
+                color: '#000',
+                border: 'none',
+                opacity: loading || !isOnline ? 0.55 : 1,
+                cursor: loading || !isOnline ? 'not-allowed' : 'pointer',
+              }}
             >
               {loading ? 'Saving...' : 'Save Changes'}
             </button>
@@ -180,20 +190,29 @@ export default function AccountSettings({ onClose, user }) {
                 await signOut(auth);
                 onClose();
               }}
-              style={{ padding: '8px 12px' }}
+              disabled={!isOnline}
+              title={!isOnline ? 'You are offline' : undefined}
+              style={{
+                padding: '8px 12px',
+                opacity: !isOnline ? 0.55 : 1,
+                cursor: !isOnline ? 'not-allowed' : 'pointer',
+              }}
             >
               Log out
             </button>
             <button
               type="button"
               onClick={handleDelete}
-              disabled={loading}
+              disabled={loading || !isOnline}
+              title={!isOnline ? 'You are offline' : undefined}
               style={{
                 marginLeft: 'auto',
                 background: '#f44336',
                 color: '#fff',
                 border: 'none',
                 padding: '8px 12px',
+                opacity: loading || !isOnline ? 0.55 : 1,
+                cursor: loading || !isOnline ? 'not-allowed' : 'pointer',
               }}
             >
               Delete account

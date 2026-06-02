@@ -7,4 +7,5 @@ export { useExecution } from './useExecution';
 export { useEditor } from './useEditor';
 export { useIsMobile } from './useIsMobile';
 export { useAudioFeedback } from './useAudioFeedback';
+export { useNetworkStatus, NetworkStatusProvider } from './useNetworkStatus';
 export { useWelcomeTour } from './useWelcomeTour';

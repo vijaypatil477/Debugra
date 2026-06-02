@@ -4,6 +4,7 @@ import { LANGUAGES } from '../utils/languageConfig';
 import { EXEC_STATUS, OUTPUT_TABS } from '../config/constants';
 import toast from 'react-hot-toast';
 import { showRateLimitToast } from '../utils/rateLimitToast';
+import { useNetworkStatus } from './useNetworkStatus';
 
 /**
  * useExecution
@@ -29,6 +30,7 @@ export function useExecution({
   user,
   room,
 }) {
+  const { isOnline } = useNetworkStatus();
   const [stdout, setStdout] = useState('');
   const [stderr, setStderr] = useState('');
   const [execStatus, setExecStatus] = useState(EXEC_STATUS.IDLE);
@@ -53,6 +55,11 @@ export function useExecution({
   // Helper to compile code directly (bypassing vote check when vote is already approved)
   const executeVotedCode = useCallback(
     async (voteId) => {
+      if (!isOnline) {
+        toast.error('You are offline. Reconnect to continue.');
+        return;
+      }
+
       // Fetch full code execution payload from the separate Firestore document to avoid size limit
       const payload = await room.fetchFullVotePayload(voteId);
       if (!payload) {
@@ -104,11 +111,16 @@ export function useExecution({
         await room.clearVote();
       }
     },
-    [audioFeedback, isMobile, setMobileTab, room]
+    [audioFeedback, isMobile, isOnline, setMobileTab, room]
   );
 
   const run = useCallback(async () => {
     if (isRunning) return;
+
+    if (!isOnline) {
+      toast.error('You are offline. Reconnect to run code.');
+      return;
+    }
 
     // Check if we are inside collaborative room with active users
     if (room?.roomId && room.activeUsers?.length > 1) {
@@ -160,7 +172,7 @@ export function useExecution({
     } finally {
       setIsRunning(false);
     }
-  }, [audioFeedback, code, language, isRunning, stdin, isMobile, setMobileTab, room]);
+  }, [audioFeedback, code, language, isRunning, stdin, isMobile, setMobileTab, room, isOnline]);
 
   const clear = useCallback(() => {
     setStdout('');

@@ -55,6 +55,15 @@
   color: var(--text-hi);
   border-color: var(--border-hover);
 }
+.landing-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+}
+.landing-btn-ghost:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
 /* ─── Nav link underline ──────────────────────────────────────────── */
 .landing-nav-link::after {

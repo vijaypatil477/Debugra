@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider } from '../../services/firebase';
 import toast from 'react-hot-toast';
+import { useNetworkStatus } from '../../hooks';
 import './LandingPage.css';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -310,6 +311,7 @@ const REVIEWS = [
   },
 ];
 export default function LandingPage() {
+  const { isOnline } = useNetworkStatus();
   const navigate = useNavigate();
   const featuresCarouselRef = useRef(null);
   const { theme, toggleTheme } = useTheme();
@@ -643,6 +645,8 @@ export default function LandingPage() {
           <div className="hero-cta d-flex flex-column flex-sm-row gap-3 justify-content-center">
             <button
               onClick={() => navigate('/editor')}
+              disabled={!isOnline}
+              title={!isOnline ? 'You are offline' : undefined}
               className="landing-btn-primary landing-btn-lg"
             >
               <svg
@@ -656,7 +660,7 @@ export default function LandingPage() {
               </svg>
               Open Editor — it&apos;s free
             </button>
-            <button onClick={() => setShowLogin(true)} className="landing-btn-ghost landing-btn-lg">
+            <button onClick={() => setShowLogin(true)} disabled={!isOnline} title={!isOnline ? 'You are offline' : undefined} className="landing-btn-ghost landing-btn-lg">
               Sign in to save code
             </button>
           </div>

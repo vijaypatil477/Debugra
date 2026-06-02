@@ -1,0 +1,42 @@
+.network-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  padding: 12px 16px 0;
+  box-sizing: border-box;
+  animation: network-banner-slide-in 180ms ease-out;
+}
+
+.network-banner__inner {
+  pointer-events: none;
+  width: min(100%, 760px);
+  border: 1px solid rgba(248, 113, 113, 0.34);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(127, 29, 29, 0.96), rgba(88, 19, 19, 0.94));
+  color: #fecaca;
+  box-shadow: 0 16px 36px rgba(69, 10, 10, 0.34);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 11px 18px;
+  text-align: center;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+@keyframes network-banner-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -46,6 +46,7 @@ import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import MobileDrawer from './MobileDrawer';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import { useNetworkStatus } from '../../hooks';
 import Loader from '../Loader';
 import ComplexityOverlay from './ComplexityOverlay';
 
@@ -113,6 +114,7 @@ export default function EditorPage({ user }) {
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
+  const { isOnline } = useNetworkStatus();
   const tour = useWelcomeTour();
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
@@ -568,6 +570,8 @@ export default function EditorPage({ user }) {
               <button
                 className="topbar-link ms-2"
                 onClick={() => setShowVideoCall(!showVideoCall)}
+                disabled={!isOnline}
+                title={!isOnline ? 'You are offline' : undefined}
                 style={{
                   background: showVideoCall
                     ? 'rgba(239, 68, 68, 0.15)'
@@ -580,6 +584,8 @@ export default function EditorPage({ user }) {
                   borderRadius: '6px',
                   fontWeight: 600,
                   transition: 'all 0.2s',
+                  opacity: !isOnline ? 0.55 : 1,
+                  cursor: !isOnline ? 'not-allowed' : 'pointer',
                 }}
               >
                 📹 {showVideoCall ? 'Leave Call' : 'Join Call'}
@@ -587,6 +593,8 @@ export default function EditorPage({ user }) {
               <button
                 className="topbar-link ms-2"
                 onClick={() => setShowVoiceCall((s) => !s)}
+                disabled={!isOnline}
+                title={!isOnline ? 'You are offline' : undefined}
                 style={{
                   background: showVoiceCall ? 'rgba(34,197,94,0.12)' : 'rgba(99,102,241,0.06)',
                   color: showVoiceCall ? '#16a34a' : '#4f46e5',
@@ -597,6 +605,8 @@ export default function EditorPage({ user }) {
                   borderRadius: '6px',
                   fontWeight: 600,
                   transition: 'all 0.18s',
+                  opacity: !isOnline ? 0.55 : 1,
+                  cursor: !isOnline ? 'not-allowed' : 'pointer',
                 }}
               >
                 🔊 {showVoiceCall ? 'Leave Voice' : 'Join Voice'}
@@ -657,6 +667,8 @@ export default function EditorPage({ user }) {
                   const created = await room.createRoom(roomPassword);
                   if (created) setRoomPassword('');
                 }}
+                disabled={!isOnline}
+                title={!isOnline ? 'You are offline' : undefined}
               >
                 + New Room
               </button>
@@ -708,6 +720,8 @@ export default function EditorPage({ user }) {
                           (ok) => ok && (setShowJoin(false), setJoinId(''), setJoinPassword(''))
                         )
                     }
+                    disabled={!isOnline}
+                    title={!isOnline ? 'You are offline' : undefined}
                   >
                     Join
                   </button>
@@ -726,6 +740,8 @@ export default function EditorPage({ user }) {
                     }
                     setShowJoin(true);
                   }}
+                  disabled={!isOnline}
+                  title={!isOnline ? 'You are offline' : undefined}
                 >
                   Join Room
                 </button>
@@ -740,6 +756,8 @@ export default function EditorPage({ user }) {
                   signOut(auth);
                   toast.success('Logged out');
                 }}
+                disabled={!isOnline}
+                title={!isOnline ? 'You are offline' : undefined}
               >
                 Log Out
               </button>
@@ -769,6 +787,8 @@ export default function EditorPage({ user }) {
                   setAuthMode('login');
                   setShowAuth(true);
                 }}
+                disabled={!isOnline}
+                title={!isOnline ? 'You are offline' : undefined}
               >
                 Sign In
               </button>
@@ -779,6 +799,8 @@ export default function EditorPage({ user }) {
                   setAuthMode('signup');
                   setShowAuth(true);
                 }}
+                disabled={!isOnline}
+                title={!isOnline ? 'You are offline' : undefined}
               >
                 Sign Up
               </button>
@@ -874,11 +896,17 @@ export default function EditorPage({ user }) {
             <button
               className="ai-btn"
               onClick={ai.generateTests}
-              disabled={ai.isAILoading || room.isReadOnly}
+              disabled={ai.isAILoading || room.isReadOnly || !isOnline}
+              title={!isOnline ? 'You are offline' : undefined}
             >
               Tests
             </button>
-            <button className="ai-btn" onClick={ai.audit} disabled={ai.isAILoading}>
+            <button
+              className="ai-btn"
+              onClick={ai.audit}
+              disabled={ai.isAILoading || !isOnline}
+              title={!isOnline ? 'You are offline' : undefined}
+            >
               <svg
                 width="12"
                 height="12"
@@ -892,7 +920,12 @@ export default function EditorPage({ user }) {
               </svg>
               Audit
             </button>
-            <button className="ai-btn" onClick={ai.visualize} disabled={ai.isAILoading}>
+            <button
+              className="ai-btn"
+              onClick={ai.visualize}
+              disabled={ai.isAILoading || !isOnline}
+              title={!isOnline ? 'You are offline' : undefined}
+            >
               <svg
                 width="12"
                 height="12"
@@ -907,7 +940,12 @@ export default function EditorPage({ user }) {
               </svg>
               Visualize
             </button>
-            <button className="ai-btn" onClick={ai.explain} disabled={ai.isAILoading}>
+            <button
+              className="ai-btn"
+              onClick={ai.explain}
+              disabled={ai.isAILoading || !isOnline}
+              title={!isOnline ? 'You are offline' : undefined}
+            >
               <svg
                 width="12"
                 height="12"
@@ -953,7 +991,8 @@ export default function EditorPage({ user }) {
           <button
             className="ai-btn fix"
             onClick={ai.fix}
-            disabled={ai.isAILoading || room.isReadOnly}
+            disabled={ai.isAILoading || room.isReadOnly || !isOnline}
+            title={!isOnline ? 'You are offline' : undefined}
           >
             <svg
               width="12"
@@ -1059,7 +1098,8 @@ export default function EditorPage({ user }) {
           <button
             className="run-btn d-none d-sm-flex align-items-center"
             onClick={execution.run}
-            disabled={execution.isRunning}
+            disabled={execution.isRunning || !isOnline}
+            title={!isOnline ? 'You are offline' : undefined}
           >
             {execution.isRunning ? (
               <>
@@ -1464,6 +1504,7 @@ export default function EditorPage({ user }) {
                     ai.debugError();
                     setShowDebugOverlay(true);
                   }}
+                  disabled={!isOnline || ai.isDebugLoading}
                   title="Explain this error in plain English"
                   aria-label="Debug with AI"
                 >
@@ -1732,6 +1773,7 @@ export default function EditorPage({ user }) {
           roomId={room.roomId}
           hasError={!!execution.stderr && execution.execStatus.type === 'error'}
           isReadOnly={room.isReadOnly}
+          isOnline={isOnline}
         />
       )}
 
