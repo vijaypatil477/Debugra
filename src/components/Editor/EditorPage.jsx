@@ -106,10 +106,49 @@ export default function EditorPage({ user }) {
   const [consoleCollapsed, setConsoleCollapsed] = useState(false);
   const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [files, setFiles] = useState([
+  {
+    id: 1,
+    name: 'main.py',
+    content: '',
+  },
+]);
+
+const [activeFileId, setActiveFileId] = useState(1);
   const resizingRef = useRef(false);
+  const activeFile =
+  files.find((file) => file.id === activeFileId) || files[0];
+
   const toggleConsoleCollapsed = () => {
     setConsoleCollapsed((prev) => !prev);
   };
+
+  const addFile = () => {
+  const newFile = {
+    id: Date.now(),
+    name: `file${files.length + 1}.txt`,
+    content: '',
+  };
+
+  setFiles([...files, newFile]);
+  setActiveFileId(newFile.id);
+};
+
+const closeFile = (id) => {
+  if (files.length === 1) return;
+
+  const updated = files.filter((file) => file.id !== id);
+
+  setFiles(updated);
+
+  if (activeFileId === id) {
+    setActiveFileId(updated[0].id);
+  }
+};
+
+const switchFile = (id) => {
+  setActiveFileId(id);
+};
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
@@ -510,7 +549,7 @@ export default function EditorPage({ user }) {
   };
 
   const langConfig = LANGUAGES[editor.language];
-  const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
+  
 
   return (
     <div
@@ -1203,18 +1242,44 @@ export default function EditorPage({ user }) {
           style={isMobile && mobileTab !== MOBILE_TABS.CODE ? { display: 'none' } : {}}
         >
           <div className="editor-tab-bar">
-            <div className="editor-tab">
-              <FileIcon filename={editorFileName} size={17} />
-              <span className="editor-tab-name">{editorFileName}</span>
-              <button
-                className="editor-tab-close"
-                type="button"
-                aria-label={`Close ${editorFileName}`}
-                title="Close tab"
-              >
-                ×
-              </button>
-            </div>
+            {files.map((file) => (
+  <div
+    key={file.id}
+    className="editor-tab"
+    onClick={() => switchFile(file.id)}
+    style={{
+      background:
+        activeFileId === file.id
+          ? 'var(--bg-active)'
+          : 'transparent',
+    }}
+  >
+    <FileIcon filename={file.name} size={17} />
+
+    <span className="editor-tab-name">
+      {file.name}
+    </span>
+
+    <button
+      className="editor-tab-close"
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        closeFile(file.id);
+      }}
+    >
+      ×
+    </button>
+  </div>
+))}
+
+<button
+  className="editor-tab"
+  type="button"
+  onClick={addFile}
+>
+  +
+</button>
             {room.roomId && (
               <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
                 <AudioChannel room={room} user={user} />
@@ -1248,10 +1313,23 @@ export default function EditorPage({ user }) {
             <Editor
               height="100%"
               language={langConfig.monacoLang}
-              value={editor.code}
+              value={activeFile?.content || ''}
               onChange={(val) => {
-                if (!room.isReadOnly) editor.setCode(val || '');
-              }}
+  if (room.isReadOnly) return;
+
+  const updated = files.map((file) =>
+    file.id === activeFileId
+      ? {
+          ...file,
+          content: val || '',
+        }
+      : file
+  );
+
+  setFiles(updated);
+
+  editor.setCode(val || '');
+}}
               beforeMount={handleEditorWillMount}
               onMount={handleEditorMount}
               theme={editor.theme}
