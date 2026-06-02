@@ -419,56 +419,6 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     [roomId, user]
   );
 
-  const castVote = useCallback(
-    async (voteType) => {
-      if (!roomId || !user) return;
-
-      const roomRef = doc(db, 'rooms', roomId);
-      try {
-        await runTransaction(db, async (transaction) => {
-          const roomDoc = await transaction.get(roomRef);
-          if (!roomDoc.exists()) throw new Error('Room does not exist');
-
-          const data = roomDoc.data();
-          const activeVote = data.activeVote;
-          if (!activeVote || activeVote.status !== 'voting') {
-            throw new Error('No active vote in progress');
-          }
-
-          const approvals = [...(activeVote.approvals || [])];
-          const rejections = [...(activeVote.rejections || [])];
-
-          if (voteType === 'approve') {
-            if (!approvals.includes(user.uid)) approvals.push(user.uid);
-            const rejIdx = rejections.indexOf(user.uid);
-            if (rejIdx > -1) rejections.splice(rejIdx, 1);
-          } else if (voteType === 'reject') {
-            if (!rejections.includes(user.uid)) rejections.push(user.uid);
-            const appIdx = approvals.indexOf(user.uid);
-            if (appIdx > -1) approvals.splice(appIdx, 1);
-          }
-
-          activeVote.approvals = approvals;
-          activeVote.rejections = rejections;
-
-          // Consensus threshold: strictly greater than 50% for BOTH approved and rejected (symmetry)
-          const totalUsersCount = (data.activeUsers || []).length;
-          if (approvals.length > totalUsersCount / 2) {
-            activeVote.status = 'approved';
-          } else if (rejections.length > totalUsersCount / 2) {
-            activeVote.status = 'rejected';
-          }
-
-          transaction.update(roomRef, { activeVote });
-        });
-      } catch (error) {
-        console.error('Voting transaction failed: ', error);
-        toast.error(error.message || 'Failed to cast vote');
-      }
-    },
-    [roomId, user]
-  );
-
   const clearVote = useCallback(async () => {
     if (!roomId) return;
     try {
