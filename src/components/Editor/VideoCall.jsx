@@ -197,6 +197,21 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
       };
       peersRef.current.set(peerId, peerObj);
 
+      let remoteDescriptionSet = false;
+      const remoteCandidatesQueue = [];
+
+      const flushRemoteCandidates = async () => {
+        remoteDescriptionSet = true;
+        while (remoteCandidatesQueue.length > 0) {
+          const candidate = remoteCandidatesQueue.shift();
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch (e) {
+            console.error('Error adding queued remote ice candidate:', e);
+          }
+        }
+      };
+
       // Add local tracks to this connection
       const streamToShare = screenStreamRef.current || localStreamRef.current;
       if (streamToShare) {
@@ -290,10 +305,14 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
           if (change.type === 'added') {
             const data = change.doc.data();
             if (data.sender !== myPeerId) {
-              try {
-                await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-              } catch (e) {
-                console.error('Error adding remote ice candidate:', e);
+              if (remoteDescriptionSet || pc.remoteDescription) {
+                try {
+                  await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+                } catch (e) {
+                  console.error('Error adding remote ice candidate:', e);
+                }
+              } else {
+                remoteCandidatesQueue.push(data.candidate);
               }
             }
           }
@@ -318,6 +337,7 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
             const data = snap.data();
             if (data.answer && !pc.currentRemoteDescription) {
               await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+              await flushRemoteCandidates();
             }
           }
         });
@@ -333,6 +353,7 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
               await updateDoc(connectionRef, {
                 answer: { type: answer.type, sdp: answer.sdp },
               });
+              await flushRemoteCandidates();
             }
           }
         });
@@ -505,10 +526,15 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
     localStreamRef.current = null;
     screenStreamRef.current = null;
 
-    peersRef.current.forEach((peerObj) => {
+    peersRef.current.forEach((peerObj, peerId) => {
       peerObj.connection.close();
       if (peerObj.unsubConnection) peerObj.unsubConnection();
       if (peerObj.unsubCandidates) peerObj.unsubCandidates();
+
+      // Clean up connection documents in Firestore
+      const connectionId = myPeerId < peerId ? `${myPeerId}_${peerId}` : `${peerId}_${myPeerId}`;
+      const connectionRef = doc(db, 'rooms', roomId, 'connections', connectionId);
+      deleteDoc(connectionRef).catch((e) => console.warn('Failed to clean up WebRTC connection document:', e));
     });
     peersRef.current.clear();
     setPeers(new Map());
