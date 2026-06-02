@@ -5,8 +5,8 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Settings, FolderOpen } from 'lucide-react';
-import { Menu } from 'lucide-react';
+import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 
 import {
   useRoom,
@@ -15,6 +15,7 @@ import {
   useEditor,
   useIsMobile,
   useAudioFeedback,
+  useWelcomeTour,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
@@ -40,10 +41,12 @@ import EditorStatusBar from './EditorStatusBar';
 import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
+import WelcomeTour from './WelcomeTour';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import MobileDrawer from './MobileDrawer';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import Loader from '../Loader';
 import ComplexityOverlay from './ComplexityOverlay';
 
 function getApiKeyStatus() {
@@ -51,7 +54,23 @@ function getApiKeyStatus() {
   if (isSecureApiKeyStored()) return 'locked';
   return 'empty';
 }
-
+const REVIEWS = [
+  {
+    name: 'Alex',
+    rating: 5,
+    review: 'Excellent debugging platform. The AI explanations are incredibly helpful.',
+  },
+  {
+    name: 'Sarah',
+    rating: 5,
+    review: 'The execution visualizer helped me understand recursion much faster.',
+  },
+  {
+    name: 'John',
+    rating: 4,
+    review: 'Clean interface and smooth collaboration features.',
+  },
+];
 export default function EditorPage({ user }) {
   const isTestRoom =
     typeof window !== 'undefined' &&
@@ -60,6 +79,7 @@ export default function EditorPage({ user }) {
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
   const fileInputRef = useRef(null);
+  const providerRegisteredRef = useRef(false);
 
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
@@ -67,7 +87,6 @@ export default function EditorPage({ user }) {
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  // const [showApiKey, setShowApiKey] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
@@ -83,19 +102,19 @@ export default function EditorPage({ user }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
-  const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
+  const [blurIntensity, setBlurIntensity] = useState(10);
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const [consoleCollapsed, setConsoleCollapsed] = useState(false);
   const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const resizingRef = useRef(false);
-
   const toggleConsoleCollapsed = () => {
     setConsoleCollapsed((prev) => !prev);
   };
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
+  const tour = useWelcomeTour();
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
   const handleCopyOutput = async () => {
@@ -162,6 +181,21 @@ export default function EditorPage({ user }) {
   const vimEnabled = editor.vimEnabled;
   const setVimEnabled = editor.setVimEnabled;
 
+  const { theme: globalTheme, toggleTheme: toggleGlobalTheme } = useTheme();
+
+  // Synchronize Monaco editor theme with global light/dark theme toggle
+  useEffect(() => {
+    if (globalTheme === 'light') {
+      if (editor.theme !== 'vs') {
+        editor.setTheme('vs');
+      }
+    } else {
+      if (editor.theme === 'vs') {
+        editor.setTheme('debugra-dark');
+      }
+    }
+  }, [globalTheme, editor.theme, editor.setTheme]);
+
   const tabSizeRef = useRef(editor.tabSize);
   const vimControllerRef = useRef(null);
   const [vimMode, setVimMode] = useState('NORMAL');
@@ -214,9 +248,10 @@ export default function EditorPage({ user }) {
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
     monacoRef.current = monaco;
-    if (!window.__MONACO_SNIPPETS_REGISTERED__) {
+    if (!window.__MONACO_SNIPPETS_REGISTERED__ && !providerRegisteredRef.current) {
       registerSnippets(monaco);
       window.__MONACO_SNIPPETS_REGISTERED__ = true;
+      providerRegisteredRef.current = true;
     }
 
     monaco.editor.defineTheme('debugra-dark', {
@@ -539,7 +574,11 @@ export default function EditorPage({ user }) {
             onClick={() => navigate('/')}
             className="topbar-logo d-flex align-items-center gap-2"
           >
-            <img src="/icon-dark.svg" height="20" alt="Debugra Logo" />
+            <img
+              src={globalTheme === 'light' ? '/icon-light.svg' : '/icon-dark.svg'}
+              height="20"
+              alt="Debugra Logo"
+            />
             <span className="d-none d-sm-inline">Debugra</span>
           </button>
           <div className="topbar-sep mx-2 d-none d-md-block" />
@@ -602,6 +641,44 @@ export default function EditorPage({ user }) {
         </div>
 
         <div className="topbar-right d-flex align-items-center gap-2">
+          <button
+            onClick={toggleGlobalTheme}
+            className="topbar-link p-0 d-flex align-items-center justify-content-center"
+            title="Toggle theme"
+            style={{ width: '26px', height: '26px', borderRadius: '4px' }}
+          >
+            {globalTheme === 'light' ? (
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            ) : (
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" strokeLinecap="round" />
+                <line x1="12" y1="21" x2="12" y2="23" strokeLinecap="round" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" strokeLinecap="round" />
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" strokeLinecap="round" />
+                <line x1="1" y1="12" x2="3" y2="12" strokeLinecap="round" />
+                <line x1="21" y1="12" x2="23" y2="12" strokeLinecap="round" />
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" strokeLinecap="round" />
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" strokeLinecap="round" />
+              </svg>
+            )}
+          </button>
           {!(room.roomId || isTestRoom) && (
             <div className="room-controls d-flex align-items-center gap-2">
               <button
@@ -1298,6 +1375,8 @@ export default function EditorPage({ user }) {
                 suggestOnTriggerCharacters: true,
                 quickSuggestions: true,
                 formatOnPaste: true,
+                multiCursorModifier: 'alt',
+                columnSelection: true,
               }}
             />
           </div>
@@ -1785,8 +1864,23 @@ export default function EditorPage({ user }) {
         />
       )}
 
+      {/* Premium Full-Screen Code Execution Loading Overlay */}
+      <Loader isVisible={execution.isRunning} />
       {/* Real-time Democratic Vote Popup */}
       <VotePopup room={room} user={user} />
+
+      {/* Welcome Tour for first-time users */}
+      {!isMobile && (
+        <WelcomeTour
+          isActive={tour.isActive}
+          currentStep={tour.currentStep}
+          totalSteps={tour.totalSteps}
+          step={tour.step}
+          onNext={tour.nextStep}
+          onPrev={tour.prevStep}
+          onSkip={tour.skipTour}
+        />
+      )}
 
       {/* Mobile Drawer */}
       <MobileDrawer

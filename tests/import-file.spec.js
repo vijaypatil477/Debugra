@@ -3,6 +3,11 @@ import { test, expect } from '@playwright/test';
 test('imports a code file and sets the correct language and code content via the tab bar button', async ({
   page,
 }) => {
+  // Bypass the welcome tour
+  await page.addInitScript(() => {
+    localStorage.setItem('debugra_hasCompletedTour', 'true');
+  });
+
   await page.goto('/editor');
   await page.waitForSelector('.monaco-editor');
 
@@ -38,6 +43,11 @@ test('imports a code file and sets the correct language and code content via the
 test('imports an unknown file type and sets content as text without changing language via the tab bar button', async ({
   page,
 }) => {
+  // Bypass the welcome tour
+  await page.addInitScript(() => {
+    localStorage.setItem('debugra_hasCompletedTour', 'true');
+  });
+
   await page.goto('/editor');
   await page.waitForSelector('.monaco-editor');
 

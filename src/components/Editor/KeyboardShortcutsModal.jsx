@@ -16,6 +16,8 @@ const SHORTCUT_GROUPS = [
         ],
       },
       { label: 'Format document', combos: [['Shift', 'Alt', 'F']] },
+      { label: 'Add cursor', combos: [['Alt', 'Click']] },
+      { label: 'Column selection', combos: [['Shift', 'Alt', 'Drag']] },
     ],
   },
   {
