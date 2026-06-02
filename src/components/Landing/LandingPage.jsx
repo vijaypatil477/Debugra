@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useRef, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import {
   signInWithPopup,
@@ -389,9 +389,13 @@ export default function LandingPage() {
     }
   };
   const [showPassword, setShowPassword] = useState(false);
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [theme, setTheme] = useState(
+    localStorage.getItem('theme') || 'dark');
+  useEffect(() => {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+}, [theme]);
+
 
   const handleGoogle = async () => {
     try {
@@ -444,12 +448,14 @@ export default function LandingPage() {
           <a href="#languages" className="landing-nav-link">
             Languages
           </a>
-          <a href="#faq" className="landing-nav-link">
-            FAQ
-          </a>
-          <button onClick={() => navigate('/feedback')} className="landing-nav-link nav-link-button">
-            Feedback
-          </button>
+          <button
+          onClick={() =>
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
+  }
+  className="landing-btn-outline"
+>
+  {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+</button>
           <button onClick={() => setShowLogin(true)} className="landing-btn-outline">
             Log In
           </button>

@@ -4,7 +4,7 @@
   --brand: #4ec9b0; /* VS Code teal — already in the editor */
   --brand-dim: rgba(78, 201, 176, 0.12);
   --brand-border: rgba(78, 201, 176, 0.2);
-  --surface: rgba(255, 255, 255, 0.025);
+  --surface: #0a0a0f;
   --surface-hover: rgba(255, 255, 255, 0.045);
   --border-subtle: rgba(255, 255, 255, 0.07);
   --border-hover: rgba(255, 255, 255, 0.14);
@@ -12,6 +12,24 @@
   --text-mid: #a1a1aa;
   --text-lo: #888888;
   --btn-primary-text: #09090b;
+}
+
+[data-theme='light'] {
+  --surface: #ffffff;
+  --surface-hover: #f3f4f6;
+
+  --border-subtle: rgba(0, 0, 0, 0.12);
+  --border-hover: rgba(0, 0, 0, 0.22);
+
+  --text-hi: #111827;
+  --text-mid: #4b5563;
+  --text-lo: #6b7280;
+}
+
+.landing-root {
+  background: var(--surface);
+  color: var(--text-hi);
+  min-height: 100vh;
 }
 
 /* ─── Kill every glow blob — no exceptions ───────────────────────── */
@@ -170,17 +188,17 @@
   align-items: center;
   gap: 16px;
 }
-
-.features-carousel {
-  flex: 1;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  overscroll-behavior-x: contain;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  outline: none;
+.bento-card {
+  position: relative;
+  overflow: hidden;
+  padding: 32px 28px;
+  background: var(--surface);
+  border: none;
+  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.2s;
+  cursor: default;
+  border-radius: 0;
 }
 .features-carousel::-webkit-scrollbar {
   display: none;
@@ -197,25 +215,8 @@
   min-height: 100%;
 }
 
-.feature-card {
-  flex: 0 0 clamp(280px, 34vw, 360px);
-  position: relative;
-  overflow: hidden;
-  padding: 32px 28px 30px;
-  background: #0c0c0e;
-  border: 1px solid var(--border-subtle);
-  border-radius: 18px;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-  transition:
-    transform 0.22s ease,
-    border-color 0.22s ease,
-    background 0.22s ease;
-}
-.feature-card:hover {
-  transform: translateY(-2px);
-  background: #111115;
-  border-color: var(--border-hover);
+.bento-card:hover {
+  background: var(--surface-hover);
 }
 .feature-card::before {
   content: '';
