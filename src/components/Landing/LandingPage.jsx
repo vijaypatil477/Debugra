@@ -355,6 +355,20 @@ export default function LandingPage() {
     };
   }, []);
 
+  // Back-to-top visibility — show after scrolling 400 px
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 400);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Reset confirm-password state whenever the user toggles login ↔ sign-up
+  useEffect(() => {
+    setConfirmPassword('');
+    setShowConfirmPassword(false);
+    setShowPassword(false);
+  }, [isSignUp]);
+
   const scrollFeaturesCarousel = (direction) => {
     const carousel = featuresCarouselRef.current;
     if (!carousel) return;
@@ -395,6 +409,10 @@ export default function LandingPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSignUp && password !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
     setLoading(true);
     try {
       if (isSignUp) {
@@ -417,17 +435,9 @@ export default function LandingPage() {
       {/* ===== NAVBAR ===== */}
       <nav className="landing-nav">
         <div className="landing-nav-left">
-          <img src="/icon-dark.svg" height="26" alt="Debugra Logo" />
+          <img src={theme === 'light' ? "/icon-light.svg" : "/icon-dark.svg"} height="26" alt="Debugra Logo" />
           <span className="landing-logo">Debugra</span>
-          <span
-            style={{
-              fontSize: '0.6rem',
-              color: '#888888',
-              fontFamily: 'JetBrains Mono, monospace',
-              marginLeft: '4px',
-              paddingBottom: '1px',
-            }}
-          >
+          <span className="landing-version-badge">
             v1.0
           </span>
         </div>
@@ -950,7 +960,7 @@ export default function LandingPage() {
         </div>
 
         <p className="review-text">
-          "{review.review}"
+          &quot;{review.review}&quot;
         </p>
 
         <span className="review-author">
@@ -1050,8 +1060,8 @@ export default function LandingPage() {
       {/* ===== FOOTER ===== */}
 <footer className="landing-footer">
   <div className="d-flex align-items-center gap-2 justify-content-center mb-1">
-    <img src="/icon-dark.svg" height="14" alt="Debugra Logo" />
-    <span style={{ fontWeight: 600, color: '#e2e8f0' }}>Debugra</span>
+    <img src={theme === 'light' ? "/icon-light.svg" : "/icon-dark.svg"} height="14" alt="Debugra Logo" />
+    <span className="landing-footer-logo-text">Debugra</span>
   </div>
 
   <p style={{ margin: 0, fontSize: '0.72rem', color: '#4a4a6a' }}>
@@ -1065,6 +1075,28 @@ export default function LandingPage() {
   </p>
 </footer>
 
+
+      {/* ===== BACK TO TOP ===== */}
+      {showBackToTop && (
+        <button
+          className="back-to-top-btn"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="Back to top"
+          title="Scroll back to top"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          >
+            <polyline points="18 15 12 9 6 15" />
+          </svg>
+        </button>
+      )}
 
       {/* ===== LOGIN MODAL ===== */}
       {showLogin && (
@@ -1142,15 +1174,43 @@ export default function LandingPage() {
                 <button
                   type="button"
                   className="password-toggle"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   onClick={() => setShowPassword(!showPassword)}
                 >
+                  {/* Icon shows current state: EyeOff = hidden, Eye = visible (#513) */}
                   {showPassword ? (
-                    <EyeOff size={18} strokeWidth={2} />
-                  ) : (
                     <Eye size={18} strokeWidth={2} />
+                  ) : (
+                    <EyeOff size={18} strokeWidth={2} />
                   )}
                 </button>
               </div>
+              {isSignUp && (
+                <div className="password-wrapper">
+                  <input
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    aria-label="Confirm Password"
+                    placeholder="Confirm Password"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    className="modal-input"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <Eye size={18} strokeWidth={2} />
+                    ) : (
+                      <EyeOff size={18} strokeWidth={2} />
+                    )}
+                  </button>
+                </div>
+              )}
             </form>
 
             <p className="modal-toggle">

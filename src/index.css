@@ -1509,6 +1509,15 @@ body {
   font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+  color: var(--text-hi);
+}
+
+.landing-version-badge {
+  font-size: 0.6rem;
+  color: #888888;
+  font-family: 'JetBrains Mono', monospace;
+  margin-left: 4px;
+  padding-bottom: 1px;
 }
 
 .landing-nav-right {
@@ -1805,6 +1814,59 @@ body {
   color: #475569;
 }
 
+.landing-footer-logo-text {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* Back to Top Button — #542 */
+.back-to-top-btn {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  z-index: 90;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(14, 112, 91, 0.85);
+  backdrop-filter: blur(12px);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transition:
+    background 0.2s,
+    transform 0.2s,
+    opacity 0.2s;
+  animation: fadeInUp 0.3s ease;
+}
+
+.back-to-top-btn:hover {
+  background: rgba(14, 112, 91, 1);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(14, 112, 91, 0.4);
+}
+
+[data-theme='light'] .back-to-top-btn {
+  background: rgba(14, 112, 91, 0.9);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
 /* Editor Preview */
 .editor-preview {
   border-radius: 12px;
@@ -2007,6 +2069,20 @@ body {
 
 .modal-input:focus {
   border-color: #f97316;
+}
+
+/* Suppress browser-native password reveal button (Edge / Chrome / Safari) — #525 */
+.modal-input[type='password']::-ms-reveal,
+.modal-input[type='password']::-ms-clear {
+  display: none;
+}
+.modal-input[type='password']::-webkit-contacts-auto-fill-button,
+.modal-input[type='password']::-webkit-credentials-auto-fill-button {
+  display: none;
+}
+input[type='password']::-ms-reveal,
+input[type='password']::-ms-clear {
+  display: none;
 }
 
 .modal-toggle {

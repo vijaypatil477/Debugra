@@ -548,7 +548,7 @@ const resizingRef = useRef(false);
             onClick={() => navigate('/')}
             className="topbar-logo d-flex align-items-center gap-2"
           >
-            <img src="/icon-dark.svg" height="20" alt="Debugra Logo" />
+            <img src={globalTheme === 'light' ? "/icon-light.svg" : "/icon-dark.svg"} height="20" alt="Debugra Logo" />
             <span className="d-none d-sm-inline">Debugra</span>
           </button>
           <div className="topbar-sep mx-2 d-none d-md-block" />
@@ -1266,6 +1266,8 @@ const resizingRef = useRef(false);
                 suggestOnTriggerCharacters: true,
                 quickSuggestions: true,
                 formatOnPaste: true,
+                multiCursorModifier: 'alt',
+                columnSelection: true,
               }}
             />
           </div>

@@ -133,7 +133,7 @@ function buildCspDirectives() {
       'https://cdn.jsdelivr.net',
       'https://cdnjs.cloudflare.com',
     ]),
-    styleSrc: unique(["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com']),
+    styleSrc: unique(["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdn.jsdelivr.net']),
     imgSrc: ["'self'", 'data:', 'blob:', 'https://*.googleusercontent.com'],
     connectSrc: unique([
       "'self'",
@@ -145,6 +145,9 @@ function buildCspDirectives() {
       'https://securetoken.googleapis.com',
       'https://firestore.googleapis.com',
       'https://wandbox.org',
+      'https://cdn.jsdelivr.net',
+      'https://debugra.onrender.com',
+      'https://*.onrender.com',
     ]),
     fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
     objectSrc: ["'none'"],
@@ -152,6 +155,8 @@ function buildCspDirectives() {
     frameSrc: ["'none'"],
     frameAncestors: ["'none'"],
     formAction: ["'self'"],
+    workerSrc: ["'self'", 'blob:'],
+    childSrc: ["'self'", 'blob:'],
   };
 
   if (isProd) {
