@@ -5,7 +5,7 @@ service cloud.firestore {
     match /rooms/{roomId} {
 
       // ── READ ─────────────────────────────────────────────────────────────
-      allow read: if request.auth != null && request.auth.uid in resource.data.participants;
+      allow read: if request.auth != null && request.auth.uid in resource.data.participantIds;
 
       // ── WRITE ────────────────────────────────────────────────────────────
       // Only authenticated users (room owners) can create/update rooms.
@@ -13,12 +13,14 @@ service cloud.firestore {
       // they are set exclusively by the trusted backend via Admin SDK.
       allow create: if
         request.auth != null
+        && request.auth.uid in request.resource.data.participantIds
         && !('passwordHash' in request.resource.data)
         && !('passwordSalt' in request.resource.data);
 
       allow update: if
         request.auth != null
-        && request.auth.uid == resource.data.createdBy
+        && (request.auth.uid == resource.data.createdBy
+            || request.auth.uid in resource.data.participantIds)
         && !('passwordHash' in request.resource.data)
         && !('passwordSalt' in request.resource.data);
 
