@@ -83,7 +83,7 @@ async function verifyPassword(plainPassword, storedSalt, storedHash) {
  * Response (200): { accessToken: string, expiresAt: number }
  */
 router.post('/verify-password', passwordRateLimiter, async (req, res) => {
-  const { roomId, password } = req.body;
+  const { roomId, password, uid } = req.body;
 
   // ── Basic validation ─────────────────────────────────────────────────────
   if (!roomId || typeof roomId !== 'string' || roomId.trim() === '') {
@@ -142,6 +142,13 @@ router.post('/verify-password', passwordRateLimiter, async (req, res) => {
     const signature = crypto.createHmac('sha256', ROOM_TOKEN_SECRET).update(payload).digest('hex');
 
     const accessToken = `${Buffer.from(payload).toString('base64')}.${signature}`;
+
+    // Add user to participantIds if uid is provided
+    if (uid && typeof uid === 'string') {
+      await db.collection('rooms').doc(roomId.trim()).update({
+        participantIds: admin.firestore.FieldValue.arrayUnion(uid)
+      });
+    }
 
     return res.status(200).json({ accessToken, expiresAt });
   } catch (err) {
