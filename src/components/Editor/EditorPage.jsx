@@ -589,33 +589,27 @@ export default function EditorPage({ user }) {
     >
       {/* E2E anchor: always present so Playwright can click it reliably */}
       <div style={{ padding: 8 }}>
-        {/* Always-in-DOM accessible control for Playwright */}
         <button
           type="button"
+          role="button"
+          data-testid="settings-button"
           aria-label="Settings"
-          onClick={() => setShowSettings(true)}
+          onClick={() => {
+            if (typeof window !== 'undefined') window.__DEBUGRA_SETTINGS_BUTTON_CLICKED__ = true;
+            setShowSettings(true);
+          }}
+          onMouseEnter={() => {
+            if (typeof window !== 'undefined') window.__DEBUGRA_SETTINGS_BUTTON_RENDERED__ = true;
+          }}
           style={{
-            position: 'absolute',
-            left: -9999,
-            width: 1,
-            height: 1,
-            overflow: 'hidden',
+            marginRight: 8,
+            display: 'inline-block',
+            opacity: 1,
+            visibility: 'visible',
+            zIndex: 9999,
           }}
         >
           Settings
-        </button>
-
-        <button
-          type="button"
-          aria-label="Settings"
-          onClick={() => setShowSettings(true)}
-          style={{ marginRight: 8 }}
-        >
-          Settings
-        </button>
-
-        <button type="button" aria-label="Open Settings" onClick={() => setShowSettings(true)}>
-          Open Settings
         </button>
       </div>
 

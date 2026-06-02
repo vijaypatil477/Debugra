@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 test('loads the selected editor font and applies it in Monaco', async ({ page }) => {
   await page.goto('/editor');
 
-  await page.getByRole('button', { name: /Settings/i }).click();
+  await page.getByRole('button', { name: /Open Settings/i }).click();
 
   const fontSelect = page.getByLabel('Editor font');
   await expect(fontSelect).toBeVisible();
