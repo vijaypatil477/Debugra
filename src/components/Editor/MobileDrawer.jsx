@@ -20,6 +20,7 @@ export default function MobileDrawer({
   onLoadCode,
   onSignIn,
   onSignUp,
+  onStartTour,
 }) {
   const [activeTab, setActiveTab] = useState('menu'); // 'menu' or 'history'
 
@@ -188,6 +189,21 @@ export default function MobileDrawer({
                     aria-label="Volume level"
                   />
                 </label>
+              </div>
+
+              {/* Help Guide Action */}
+              <div className="drawer-settings-group">
+                <label className="drawer-settings-label">
+                  <i className="bi bi-question-circle" style={{ fontSize: '14px' }} />
+                  <span>Help Guide</span>
+                </label>
+                <button
+                  className="drawer-toggle-btn active"
+                  onClick={onStartTour}
+                  style={{ background: 'var(--accent)', color: 'white', borderColor: 'var(--accent)' }}
+                >
+                  Start Tour
+                </button>
               </div>
             </div>
           )}

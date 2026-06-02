@@ -3732,13 +3732,24 @@ input[type='password']::-ms-clear {
   letter-spacing: 0.04em;
 }
 
-/* Hide tour on mobile */
-@media (max-width: 768px) {
+/* Styling for React Joyride Spotlight Glow */
+.react-joyride__spotlight {
+  border: 2px solid rgba(0, 120, 212, 0.6) !important;
+  box-shadow:
+    0 0 12px rgba(0, 120, 212, 0.4),
+    0 0 32px rgba(0, 120, 212, 0.15),
+    inset 0 0 12px rgba(0, 120, 212, 0.08) !important;
+  animation: tour-glow-pulse 2s ease-in-out infinite !important;
+  border-radius: 8px !important;
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-  .tour-overlay,
-  .tour-glow-ring,
+/* Ensure the tour is fully responsive and centered nicely on mobile */
+@media (max-width: 768px) {
   .tour-tooltip {
-    display: none !important;
+    max-width: calc(100vw - 24px) !important;
+    left: 12px !important;
+    right: 12px !important;
   }
 }
 

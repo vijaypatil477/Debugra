@@ -644,6 +644,13 @@ export default function EditorPage({ user }) {
               </svg>
             )}
           </button>
+          <button
+            className="topbar-link d-none d-md-block"
+            onClick={tour.resetTour}
+            title="Interactive Tutorial"
+          >
+            Help Guide
+          </button>
           {!(room.roomId || isTestRoom) && (
             <div className="room-controls d-flex align-items-center gap-2">
               <button
@@ -1788,18 +1795,14 @@ export default function EditorPage({ user }) {
       {/* Real-time Democratic Vote Popup */}
       <VotePopup room={room} user={user} />
 
-      {/* Welcome Tour for first-time users */}
-      {!isMobile && (
-        <WelcomeTour
-          isActive={tour.isActive}
-          currentStep={tour.currentStep}
-          totalSteps={tour.totalSteps}
-          step={tour.step}
-          onNext={tour.nextStep}
-          onPrev={tour.prevStep}
-          onSkip={tour.skipTour}
-        />
-      )}
+      {/* Welcome Tour for first-time and returning users */}
+      <WelcomeTour
+        isActive={tour.isActive}
+        steps={tour.steps}
+        currentStep={tour.currentStep}
+        setCurrentStep={tour.setCurrentStep}
+        onClose={tour.completeTour}
+      />
 
       {/* Mobile Drawer */}
       <MobileDrawer
@@ -1823,6 +1826,10 @@ export default function EditorPage({ user }) {
         onSignUp={() => {
           setAuthMode('signup');
           setShowAuth(true);
+          setDrawerOpen(false);
+        }}
+        onStartTour={() => {
+          tour.resetTour();
           setDrawerOpen(false);
         }}
       />
