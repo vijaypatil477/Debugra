@@ -6,6 +6,9 @@ import {
   orderBy,
   onSnapshot,
   serverTimestamp,
+  limit,
+  startAfter,
+  getDocs,
 } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 
@@ -39,19 +42,149 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
   const inputRef = useRef(null);
   const prevCountRef = useRef(0);
 
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  
+  const oldestDocRef = useRef(null);
+  const observerRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+  const initialLoadDone = useRef(false);
+
+  const PAGE_SIZE = 50;
+
   useEffect(() => {
     if (!roomId) return;
-    const q = query(collection(db, 'rooms', roomId, 'messages'), orderBy('createdAt', 'asc'));
-    return onSnapshot(q, (snap) => {
-      const msgs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setMessages(msgs);
-      if (!isOpen && msgs.length > prevCountRef.current) {
-        setUnreadCount((prev) => prev + (msgs.length - prevCountRef.current));
+    
+    setMessages([]);
+    setHasMore(true);
+    oldestDocRef.current = null;
+    initialLoadDone.current = false;
+    prevCountRef.current = 0;
+
+    let unsub = () => {};
+
+    const initChat = async () => {
+      const q = query(
+        collection(db, 'rooms', roomId, 'messages'),
+        orderBy('createdAt', 'desc'),
+        limit(PAGE_SIZE)
+      );
+      
+      const snap = await getDocs(q);
+      const docs = snap.docs;
+      
+      if (docs.length < PAGE_SIZE) setHasMore(false);
+      if (docs.length > 0) oldestDocRef.current = docs[docs.length - 1];
+
+      const initialMsgs = docs.map((d) => ({ id: d.id, ...d.data() })).reverse();
+      setMessages(initialMsgs);
+      prevCountRef.current = initialMsgs.length;
+      
+      initialLoadDone.current = true;
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'auto' }), 100);
+
+      let latestDoc = docs.length > 0 ? docs[0] : null;
+      let liveQ;
+      if (latestDoc) {
+        liveQ = query(
+          collection(db, 'rooms', roomId, 'messages'),
+          orderBy('createdAt', 'asc'),
+          startAfter(latestDoc)
+        );
+      } else {
+        liveQ = query(
+          collection(db, 'rooms', roomId, 'messages'),
+          orderBy('createdAt', 'asc'),
+          limit(PAGE_SIZE)
+        );
       }
-      prevCountRef.current = msgs.length;
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-    });
+
+      unsub = onSnapshot(liveQ, (liveSnap) => {
+        if (liveSnap.empty) return;
+        
+        const newMsgs = liveSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map(m => m.id));
+          const uniqueNew = newMsgs.filter(m => !existingIds.has(m.id));
+          
+          if (uniqueNew.length === 0) return prev;
+          const updated = [...prev, ...uniqueNew];
+          
+          if (!isOpen) {
+             setUnreadCount((count) => count + uniqueNew.length);
+          }
+          prevCountRef.current = updated.length;
+          
+          setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+          return updated;
+        });
+      });
+    };
+
+    initChat();
+
+    return () => unsub();
   }, [roomId, isOpen]);
+
+  const loadMoreHistory = async () => {
+    if (loadingMore || !hasMore || !roomId || !oldestDocRef.current) return;
+    
+    setLoadingMore(true);
+    const scrollContainer = scrollContainerRef.current;
+    const oldScrollHeight = scrollContainer?.scrollHeight || 0;
+
+    try {
+      const q = query(
+        collection(db, 'rooms', roomId, 'messages'),
+        orderBy('createdAt', 'desc'),
+        startAfter(oldestDocRef.current),
+        limit(PAGE_SIZE)
+      );
+      
+      const snap = await getDocs(q);
+      const docs = snap.docs;
+      
+      if (docs.length < PAGE_SIZE) setHasMore(false);
+      if (docs.length > 0) oldestDocRef.current = docs[docs.length - 1];
+      
+      if (docs.length > 0) {
+        const olderMsgs = docs.map((d) => ({ id: d.id, ...d.data() })).reverse();
+        
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map(m => m.id));
+          const uniqueOlder = olderMsgs.filter(m => !existingIds.has(m.id));
+          return [...uniqueOlder, ...prev];
+        });
+
+        setTimeout(() => {
+          if (scrollContainer) {
+            const newScrollHeight = scrollContainer.scrollHeight;
+            scrollContainer.scrollTop += (newScrollHeight - oldScrollHeight);
+          }
+        }, 0);
+      }
+    } catch (err) {
+      console.error('Failed to load history', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && initialLoadDone.current) {
+          loadMoreHistory();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    
+    if (observerRef.current) observer.observe(observerRef.current);
+    
+    return () => observer.disconnect();
+  }, [roomId, loadingMore, hasMore]);
 
   useEffect(() => {
     if (isOpen) {
@@ -315,6 +448,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
 
           {/* Messages */}
           <div
+            ref={scrollContainerRef}
             style={{
               flex: 1,
               overflowY: 'auto',
@@ -325,7 +459,18 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
               gap: '2px',
             }}
           >
-            {messages.length === 0 && (
+            {/* Observer Target */}
+            <div ref={observerRef} style={{ height: '1px', flexShrink: 0 }} />
+            
+            {loadingMore && (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0' }}>
+                 <div className="spinner-border text-secondary spinner-border-sm" role="status" style={{ opacity: 0.5 }}>
+                    <span className="visually-hidden">Loading...</span>
+                 </div>
+              </div>
+            )}
+            
+            {messages.length === 0 && !loadingMore && (
               <div
                 style={{
                   display: 'flex',
