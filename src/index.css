@@ -5429,8 +5429,6 @@ details[open] .debug-stderr-summary::before {
   .d-none.d-md-block { display: none !important; }
 }
 
-
-
   .breakdown-note {
     display: none;
   }
@@ -5438,5 +5436,15 @@ details[open] .debug-stderr-summary::before {
   .d-none.d-md-block {
     display: none !important;
   }
+}
+
+/*Hide Edge inbuilt password icon*/
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  display: none !important;
 }
 
