@@ -11,6 +11,7 @@
   --text-hi: #f4f4f5;
   --text-mid: #a1a1aa;
   --text-lo: #888888;
+  --btn-primary-text: #09090b;
 }
 
 /* ─── Kill every glow blob — no exceptions ───────────────────────── */
@@ -23,7 +24,7 @@
 /* ─── Buttons ─────────────────────────────────────────────────────── */
 .landing-btn-primary {
   background: var(--brand) !important;
-  color: #09090b !important; /* dark text on teal — readable */
+  color: var(--btn-primary-text, #09090b) !important; /* support contrast customization */
   border: none !important;
   font-weight: 700 !important;
   display: inline-flex !important;
@@ -350,6 +351,80 @@
   background: var(--brand-dim);
   border-color: var(--brand-border);
   color: var(--brand);
+}
+
+/* ─── Reviews Carousel ───────────────────────────────────────────── */
+
+.reviews-carousel {
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+}
+
+.reviews-track {
+  display: flex;
+  gap: 20px;
+  width: max-content;
+  animation: scrollReviews 25s linear infinite;
+}
+
+.reviews-carousel:hover .reviews-track {
+  animation-play-state: paused;
+}
+
+.review-card {
+  flex: 0 0 320px;
+  min-height: 180px;
+  padding: 24px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-subtle);
+  transition: all 0.25s ease;
+}
+
+.review-card:hover {
+  border-color: var(--brand-border);
+  transform: translateY(-4px);
+}
+
+.review-stars {
+  color: #fbbf24;
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+
+.review-text {
+  color: var(--text-mid);
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+
+.review-author {
+  color: var(--text-hi);
+  font-weight: 600;
+}
+
+@keyframes scrollReviews {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 768px) {
+  .review-card {
+    flex: 0 0 260px;
+  }
+
+  .reviews-track {
+    gap: 14px;
+  }
+}
+
+.feedback-form-card {
+  margin-top: 48px;
 }
 /* ─── Modal Close Button ─────────────────────────────────────────── */
 

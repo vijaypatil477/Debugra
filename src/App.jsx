@@ -66,10 +66,11 @@ export default function App() {
           <BacktoTop/>
         </main>
 
-        {/* Footer is safely placed outside <Routes> so it renders globally */}
-        <Footer />
-        
-      </div>
-    </BrowserRouter>
+          {/* Footer is safely placed outside <Routes> so it renders globally */}
+          <Footer />
+          
+        </div>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
