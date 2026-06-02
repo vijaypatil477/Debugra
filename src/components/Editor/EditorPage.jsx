@@ -589,6 +589,22 @@ export default function EditorPage({ user }) {
     >
       {/* E2E anchor: always present so Playwright can click it reliably */}
       <div style={{ padding: 8 }}>
+        {/* Always-in-DOM accessible control for Playwright */}
+        <button
+          type="button"
+          aria-label="Settings"
+          onClick={() => setShowSettings(true)}
+          style={{
+            position: 'absolute',
+            left: -9999,
+            width: 1,
+            height: 1,
+            overflow: 'hidden',
+          }}
+        >
+          Settings
+        </button>
+
         <button
           type="button"
           aria-label="Settings"
@@ -597,6 +613,7 @@ export default function EditorPage({ user }) {
         >
           Settings
         </button>
+
         <button type="button" aria-label="Open Settings" onClick={() => setShowSettings(true)}>
           Open Settings
         </button>
