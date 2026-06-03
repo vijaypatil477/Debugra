@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 test('updates advanced editor settings instantly', async ({ page }) => {
   await page.goto('/editor');
 
-  await page.getByRole('button', { name: /Open Settings/i }).click();
+  await page.getByTestId('open-settings-button').click();
   await page.waitForSelector('.audio-settings-popover', { state: 'visible' });
 
   await expect(page.getByText('Tab size')).toBeVisible();

@@ -20,7 +20,13 @@ import {
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
 import { LANGUAGES } from '../../utils/languageConfig';
-import { LANG_FILE_NAMES, MOBILE_TABS, OUTPUT_TABS, EDITOR_THEMES, EDITOR_FONTS } from '../../config/constants';
+import {
+  LANG_FILE_NAMES,
+  MOBILE_TABS,
+  OUTPUT_TABS,
+  EDITOR_THEMES,
+  EDITOR_FONTS,
+} from '../../config/constants';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import AuthModal from '../Auth/AuthModal';
 import AccountSettings from '../Auth/AccountSettings';
@@ -1067,9 +1073,21 @@ export default function EditorPage({ user }) {
               type="button"
               className="toolbar-link"
               aria-label="Open Settings"
+              data-testid="open-settings-button"
               onClick={() => setShowSettings(true)}
               style={{ marginRight: 8 }}
             >
+              <span
+                style={{
+                  position: 'absolute',
+                  left: -9999,
+                  width: 1,
+                  height: 1,
+                  overflow: 'hidden',
+                }}
+              >
+                Open Settings
+              </span>
               Open Settings
             </button>
             <button
