@@ -100,26 +100,14 @@ function validateWebhookPayload(req, res, next) {
 }
 
 // ── Mention/formatting neutraliser ──────────────────────────────────────────
-/**
- * Escapes Discord/Slack special characters that could trigger mentions,
- * channel links, formatting abuse, or injection of embed fields.
- *
- * Discord: @everyone, @here, <@id>, <#id>, <@&role>
- * Slack:   <!channel>, <!here>, <!everyone>, <@user>
- */
 function sanitizeForMessaging(str) {
   if (typeof str !== 'string') return String(str);
 
   return str
-    // Neutralise Discord/Slack @mentions and special tokens
     .replace(/@(everyone|here|channel)/gi, '[@$1]')
-    // Neutralise user/role/channel ID mentions: <@123>, <#123>, <@&123>
     .replace(/<(@[!&]?|#)\d+>/g, '[mention]')
-    // Neutralise Slack special mentions
     .replace(/<!(\w+)>/g, '[!$1]')
-    // Strip backtick code block injections that could break embed formatting
     .replace(/`{3}/g, "'''")
-    // Trim whitespace
     .trim();
 }
 
@@ -174,8 +162,9 @@ function buildSlackPayload(event, roomId, userName, passwordProtected) {
 // ── POST /api/webhooks/room-event ─────────────────────────────────────────────
 router.post(
   '/room-event',
-  webhookRateLimiter, // 1. Rate limit first (cheapest check)
-  validateWebhookPayload, // 2. Validate + sanitize input fields
+  webhookRateLimiter,         // 1. Rate limit first (cheapest check)
+  validateWebhookPayload,     // 2. Validate + sanitize input fields
+  verifyWebhookSignature,     // 3. ✅ FIX: Verify HMAC signature
   async (req, res) => {
     const { event, roomId, userName, passwordProtected = false } = req.body;
 
