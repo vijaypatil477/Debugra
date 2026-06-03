@@ -120,7 +120,7 @@ export default function EditorPage({ user }) {
     if (!execution.stdout) return;
 
     try {
-      await navigator.clipboard.writeText(execution.stdout);
+      await navigator.clipboard.writeText(execution.stdout).catch(err => console.error("Clipboard error:", err));
 
       setCopied(true);
 
@@ -558,7 +558,7 @@ export default function EditorPage({ user }) {
               <button
                 className="topbar-link ms-2"
                 onClick={() => {
-                  navigator.clipboard.writeText(room.roomId);
+                  navigator.clipboard.writeText(room.roomId).catch(err => console.error("Clipboard error:", err));
                   toast.success('Copied!');
                 }}
               >
@@ -1561,7 +1561,7 @@ export default function EditorPage({ user }) {
                       zIndex: 10,
                     }}
                     onClick={() => {
-                      navigator.clipboard.writeText(execution.stdout);
+                      navigator.clipboard.writeText(execution.stdout).catch(err => console.error("Clipboard error:", err));
                       toast.success('Output copied!');
                     }}
                     title="Copy output"

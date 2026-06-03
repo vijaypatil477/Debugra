@@ -12,7 +12,7 @@ function TestCard({ tc, i }) {
   const [copied, setCopied] = useState(false);
   const isEdge = tc.type === 'edge';
   const handleCopy = () => {
-    navigator.clipboard.writeText(`Input: ${tc.input}\nExpected: ${tc.expected}`);
+    navigator.clipboard.writeText(`Input: ${tc.input}\nExpected: ${tc.expected}`).catch(err => console.error("Clipboard error:", err));
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
