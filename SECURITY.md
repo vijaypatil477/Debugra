@@ -4,9 +4,9 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| Latest  | :white_check_mark: |
+| 1.0.x   | :white_check_mark: |
+| < 1.0   | :x:                |
 
 ## Reporting a Vulnerability
 
-Please do not report security vulnerabilities through public GitHub issues.
-Instead, please contact the maintainers directly or use GitHub Security Advisories.
+Please report security vulnerabilities by creating a GitHub advisory or emailing the maintainers. Do not open public issues for security vulnerabilities.
