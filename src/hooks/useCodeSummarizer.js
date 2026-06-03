@@ -1,14 +1,9 @@
 import { useState, useCallback } from "react";
 
-/**
- * useCodeSummarizer
- * Sends code to the existing /api/ai endpoint and parses a structured
- * JSON response with summary, complexity, and step-by-step breakdown.
- */
 export function useCodeSummarizer(apiUrl) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState(null); // { summary, timeComplexity, spaceComplexity, steps }
+  const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
   const summarize = useCallback(
@@ -25,32 +20,12 @@ export function useCodeSummarizer(apiUrl) {
       setError(null);
       setResult(null);
 
-      const prompt = `You are a code analysis assistant. Analyze the following ${language} code.
-
-Respond ONLY with a valid JSON object in exactly this format — no markdown, no explanation outside JSON:
-{
-  "summary": "2-3 sentence plain-English explanation of what this code does",
-  "timeComplexity": "O(...)",
-  "spaceComplexity": "O(...)",
-  "steps": [
-    "Step 1: ...",
-    "Step 2: ...",
-    "Step 3: ..."
-  ]
-}
-
-Code to analyze:
-\`\`\`${language}
-${code.slice(0, 3000)}
-\`\`\``;
-
       try {
-        const response = await fetch(`${apiUrl}/api/ai`, {
+        const response = await fetch(`${apiUrl}/api/ai/summarize`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            action: "summarize",
-            code: prompt,
+            code: code.slice(0, 3000),
             language,
           }),
         });
@@ -58,16 +33,9 @@ ${code.slice(0, 3000)}
         if (!response.ok) throw new Error(`Server error: ${response.status}`);
 
         const data = await response.json();
-        const rawText = data.result || data.explanation || data.message || "";
+        const parsed = data.content;
 
-        const cleaned = rawText
-          .replace(/```json\s*/gi, "")
-          .replace(/```\s*/g, "")
-          .trim();
-
-        const parsed = JSON.parse(cleaned);
-
-        if (!parsed.summary) throw new Error("Invalid AI response structure");
+        if (!parsed || !parsed.summary) throw new Error("Invalid AI response structure");
 
         setResult({
           summary: parsed.summary || "No summary available.",
