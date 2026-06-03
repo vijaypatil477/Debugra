@@ -21,7 +21,13 @@ async function chatCompletion(systemPrompt, userPrompt, apiKey = '', model = DEF
     max_tokens: 2000,response_format: { type: 'json_object' },
   });
 
-  const aiMessage = JSON.parse(response.choices[0].message.content);
+  let aiMessage;
+  try {
+    aiMessage = JSON.parse(response.choices[0].message.content);
+  } catch (parseError) {
+    console.error('[groqService] JSON.parse failed on LLM output:', parseError.message);
+    aiMessage = { error: 'AI response was malformed. Please try again.' };
+  }
   const tokenUsage = response.usage;
 
   console.log("Metadata caught: ", tokenUsage);
