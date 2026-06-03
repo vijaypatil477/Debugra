@@ -5537,3 +5537,10 @@ details[open] .debug-stderr-summary::before {
   }
 }
 
+
+
+/* Accessibility: Keyboard Focus */
+*:focus-visible {
+  outline: 2px solid var(--accent, #6366f1) !important;
+  outline-offset: 2px !important;
+}
