@@ -63,14 +63,14 @@ export default function MobileDrawer({
 
         {/* Tab Navigation */}
         <div className="drawer-tabs">
-          <button
+          <button aria-label="Button"
             className={`drawer-tab ${activeTab === 'menu' ? 'active' : ''}`}
             onClick={() => setActiveTab('menu')}
           >
             Settings
           </button>
           {user && (
-            <button
+            <button aria-label="Button"
               className={`drawer-tab ${activeTab === 'history' ? 'active' : ''}`}
               onClick={() => setActiveTab('history')}
             >
@@ -87,13 +87,13 @@ export default function MobileDrawer({
               {/* Auth Buttons (if not logged in) */}
               {!user && (
                 <div className="drawer-auth-buttons">
-                  <button
+                  <button aria-label="Button"
                     className="drawer-auth-btn drawer-signin-btn"
                     onClick={onSignIn}
                   >
                     Sign In
                   </button>
-                  <button
+                  <button aria-label="Button"
                     className="drawer-auth-btn drawer-signup-btn"
                     onClick={onSignUp}
                   >
@@ -129,7 +129,7 @@ export default function MobileDrawer({
                   <span>Font Size</span>
                 </label>
                 <div className="drawer-font-size-control">
-                  <button
+                  <button aria-label="Button"
                     className="drawer-size-btn"
                     onClick={() =>
                       editor.setFontSize(Math.max(10, editor.fontSize - 2))
@@ -139,7 +139,7 @@ export default function MobileDrawer({
                     −
                   </button>
                   <span className="drawer-size-value">{editor.fontSize}px</span>
-                  <button
+                  <button aria-label="Button"
                     className="drawer-size-btn"
                     onClick={() =>
                       editor.setFontSize(Math.min(28, editor.fontSize + 2))
@@ -161,7 +161,7 @@ export default function MobileDrawer({
                   )}
                   <span>Audio Feedback</span>
                 </label>
-                <button
+                <button aria-label="Button"
                   className={`drawer-toggle-btn ${
                     !audioFeedback.muted ? 'active' : ''
                   }`}

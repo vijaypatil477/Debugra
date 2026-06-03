@@ -110,7 +110,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
     <>
       {/* FAB */}
       {!isOpen && (
-        <button
+        <button aria-label="Button"
           onClick={onToggle}
           title="Team Chat"
           className="chat-fab"
@@ -226,7 +226,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
               </div>
             </div>
             {/* Download Report Button */}
-            <button
+            <button aria-label="Button"
               onClick={handleDownloadReport}
               title="Download Report as Markdown"
               style={{
@@ -282,7 +282,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
                 />
                 Live
               </span>
-              <button
+              <button aria-label="Button"
                 onClick={onToggle}
                 style={{
                   width: '32px',
@@ -462,7 +462,7 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
                   padding: '5px 0',
                 }}
               />
-              <button
+              <button aria-label="Button"
                 onClick={handleSend}
                 disabled={!input.trim()}
                 style={{

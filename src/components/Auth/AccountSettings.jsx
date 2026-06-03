@@ -167,14 +167,14 @@ export default function AccountSettings({ onClose, user }) {
           </label>
 
           <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-            <button
+            <button aria-label="Button"
               type="submit"
               disabled={loading}
               style={{ padding: '8px 12px', background: '#4ec9b0', color: '#000', border: 'none' }}
             >
               {loading ? 'Saving...' : 'Save Changes'}
             </button>
-            <button
+            <button aria-label="Button"
               type="button"
               onClick={async () => {
                 await signOut(auth);
@@ -184,7 +184,7 @@ export default function AccountSettings({ onClose, user }) {
             >
               Log out
             </button>
-            <button
+            <button aria-label="Button"
               type="button"
               onClick={handleDelete}
               disabled={loading}

@@ -113,7 +113,7 @@ const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey
       {error && (
         <div className="explainer-error">
           <span>⚠️ {error}</span>
-          <button onClick={explainSnippet}>Retry</button>
+          <button aria-label="Button" onClick={explainSnippet}>Retry</button>
         </div>
       )}
 
@@ -159,7 +159,7 @@ const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey
               onChange={(e) => setFollowUpQuestion(e.target.value)}
               disabled={askingFollowUp}
             />
-            <button type="submit" disabled={askingFollowUp || !followUpQuestion.trim()}>
+            <button aria-label="Button" type="submit" disabled={askingFollowUp || !followUpQuestion.trim()}>
               {askingFollowUp ? '...' : '→'}
             </button>
           </form>

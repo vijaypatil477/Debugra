@@ -234,7 +234,7 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
         {/* ── Footer ───────────────────────────────────────────────────── */}
         {!isLoading && (
           <div className="complexity-overlay-footer">
-            <button className="complexity-footer-close-btn" onClick={onClose}>
+            <button aria-label="Button" className="complexity-footer-close-btn" onClick={onClose}>
               Close
             </button>
           </div>

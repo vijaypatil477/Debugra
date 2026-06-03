@@ -21,7 +21,7 @@ export default function MobileBottomNav({
 
   return (
     <div className="mobile-bottom-nav">
-      <button
+      <button aria-label="Button"
         className={`mobile-nav-btn ${mobileTab === MOBILE_TABS.CODE ? 'active' : ''}`}
         onClick={() => setMobileTab(MOBILE_TABS.CODE)}
       >
@@ -30,11 +30,11 @@ export default function MobileBottomNav({
       </button>
 
       {/* Floating run button */}
-      <button className="mobile-nav-run" onClick={onRun} disabled={isRunning}>
+      <button aria-label="Button" className="mobile-nav-run" onClick={onRun} disabled={isRunning}>
         {isRunning ? <span className="spinner" /> : <i className="bi bi-play-fill" />}
       </button>
 
-      <button
+      <button aria-label="Button"
         className={`mobile-nav-btn ${mobileTab === MOBILE_TABS.OUTPUT ? 'active' : ''}`}
         onClick={() => setMobileTab(MOBILE_TABS.OUTPUT)}
       >
@@ -44,14 +44,14 @@ export default function MobileBottomNav({
       </button>
 
       {user && (
-        <button className="mobile-nav-btn" onClick={onSave} disabled={isReadOnly}>
+        <button aria-label="Button" className="mobile-nav-btn" onClick={onSave} disabled={isReadOnly}>
           <i className="bi bi-cloud-arrow-up" />
           <span>Save</span>
         </button>
       )}
 
       {user && (
-        <button
+        <button aria-label="Button"
           className={`mobile-nav-btn ${mobileTab === MOBILE_TABS.SAVED ? 'active' : ''}`}
           onClick={() => setMobileTab(MOBILE_TABS.SAVED)}
         >
@@ -61,7 +61,7 @@ export default function MobileBottomNav({
       )}
 
       {roomId && (
-        <button
+        <button aria-label="Button"
           className={`mobile-nav-btn ${mobileTab === MOBILE_TABS.CHAT ? 'active' : ''}`}
           onClick={() => setMobileTab(MOBILE_TABS.CHAT)}
         >
@@ -70,7 +70,7 @@ export default function MobileBottomNav({
         </button>
       )}
 
-      <button className="mobile-nav-btn" onClick={() => navigate('/feedback')}>
+      <button aria-label="Button" className="mobile-nav-btn" onClick={() => navigate('/feedback')}>
         <i className="bi bi-chat-square-text" />
         <span>Feedback</span>
       </button>

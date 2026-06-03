@@ -62,7 +62,7 @@ export default function VotePopup({ room, user }) {
             <span>Democratic Execution Vote</span>
           </div>
           {isInitiator && (
-            <button className="vp-cancel-btn" onClick={clearVote} title="Cancel Vote (Esc)">
+            <button aria-label="Button" className="vp-cancel-btn" onClick={clearVote} title="Cancel Vote (Esc)">
               Cancel
             </button>
           )}
@@ -118,14 +118,14 @@ export default function VotePopup({ room, user }) {
 
           {/* Action Buttons */}
           <div className="vp-actions">
-            <button
+            <button aria-label="Button"
               className={`vp-btn vp-btn--approve ${hasApproved ? 'active' : ''}`}
               onClick={() => castVote('approve')}
               disabled={hasApproved}
             >
               {hasApproved ? 'Approved 👍' : 'Approve'}
             </button>
-            <button
+            <button aria-label="Button"
               className={`vp-btn vp-btn--reject ${hasRejected ? 'active' : ''}`}
               onClick={() => castVote('reject')}
               disabled={hasRejected}
@@ -136,7 +136,7 @@ export default function VotePopup({ room, user }) {
 
           {/* Collapsible Code Preview (Uses Lightweight Firestore Previews) */}
           <div className="vp-preview-section">
-            <button className="vp-preview-toggle" onClick={() => setShowCode(!showCode)}>
+            <button aria-label="Button" className="vp-preview-toggle" onClick={() => setShowCode(!showCode)}>
               <span>{showCode ? '▼ Hide Code Preview' : '▶ Show Code Preview'}</span>
               <span className="vp-preview-lang">{activeVote.language || 'text'}</span>
             </button>

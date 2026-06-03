@@ -18,7 +18,7 @@ export default function CodeSummarizerFAB({ code, language }) {
   return (
     <>
       {!isOpen && (
-        <button
+        <button aria-label="Button"
           className="csf-fab"
           onClick={() => summarize(code, language || "javascript")}
           aria-label="Summarize code with AI"
@@ -41,7 +41,7 @@ export default function CodeSummarizerFAB({ code, language }) {
               <span className="csf-accent">✦</span> Code Summary
             </span>
             <div className="csf-header-actions">
-              <button
+              <button aria-label="Button"
                 className="csf-refresh-btn"
                 onClick={() => summarize(code, language || "javascript")}
                 aria-label="Re-summarize"
