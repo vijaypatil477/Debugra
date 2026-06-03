@@ -7,6 +7,7 @@ import {
   aiGenerateTests,
   aiAuditCode,
   aiExplainError,
+  aiGenerateDocs,
   aiAnalyzeComplexity,
 } from '../services/api';
 import { showRateLimitToast } from '../utils/rateLimitToast';
@@ -85,6 +86,15 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, m
     [withAI, code, language, model]
   );
 
+  const generateDocs = useCallback(
+    () => withAI(async () => {
+      const sel = editorRef?.current?.getSelection();
+      const selectedCode = sel && !sel.isEmpty() ? editorRef.current.getModel().getValueInRange(sel) : code;
+      return await aiGenerateDocs(selectedCode, LANGUAGES[language].name, model);
+    }),
+    [withAI, code, language, editorRef, model]
+  );
+
   const audit = useCallback(
     () => withAI(() => aiAuditCode(code, LANGUAGES[language].name, model)),
     [withAI, code, language, model]
@@ -134,6 +144,7 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, m
     explain,
     visualize,
     generateTests,
+    generateDocs,
     audit,
     clearAI,
     debugResponse,

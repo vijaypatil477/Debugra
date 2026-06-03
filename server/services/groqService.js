@@ -319,7 +319,29 @@ Rules:
   );
 }
 
+
+// 10. Generate Documentation
+async function generateDocsAI(code, language, apiKey = '', model = DEFAULT_MODEL) {
+  return chatCompletion(
+    `You are an expert technical writer. Generate professional documentation (JSDoc, Docstrings, etc.) for the provided code. Always respond in valid JSON.`,
+    `Generate documentation for this <language>${language}</language> code:
+
+<code>
+${code}
+</code>
+
+Respond in this EXACT JSON format:
+{
+  "documentation": "The generated documentation block (e.g. JSDoc or Python Docstring) that should be placed above the function/class. Do NOT include the original code, ONLY the documentation block.",
+  "summary": "A 1-sentence summary of what the code does."
+}`,
+    apiKey,
+    model
+  );
+}
+
 module.exports = {
+  generateDocsAI,
   explainError,
   fixCodeAI,
   explainLogicAI,
