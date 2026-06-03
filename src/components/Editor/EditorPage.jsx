@@ -40,6 +40,7 @@ import AudioChannel from './AudioChannel';
 import EditorStatusBar from './EditorStatusBar';
 import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
+import SharedNotes from './SharedNotes';
 import VotePopup from './VotePopup';
 import WelcomeTour from './WelcomeTour';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
@@ -85,6 +86,7 @@ export default function EditorPage({ user }) {
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
@@ -1640,6 +1642,9 @@ export default function EditorPage({ user }) {
 
       {/* ===== STATUS BAR ===== */}
       <EditorStatusBar
+          showNotes={showNotes}
+          setShowNotes={setShowNotes}
+
         execStatus={execution.execStatus}
         langName={langConfig.name}
         cursorPos={editor.cursorPos}

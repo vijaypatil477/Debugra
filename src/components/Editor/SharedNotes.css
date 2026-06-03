@@ -1,0 +1,32 @@
+
+.shared-notes-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-1);
+  border-left: 1px solid var(--border);
+  width: 300px;
+}
+.shared-notes-header {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-2);
+  background: var(--bg-2);
+}
+.shared-notes-textarea {
+  flex: 1;
+  background: transparent;
+  color: var(--text-0);
+  border: none;
+  padding: 10px;
+  resize: none;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+.shared-notes-textarea:focus {
+  outline: none;
+}
