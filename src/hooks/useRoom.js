@@ -169,7 +169,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       setRoomId(id);
       localStorage.setItem('debugra_roomId', id);
       toast.success(`Room created! ID: ${id}`);
-      navigator.clipboard.writeText(id);
+      navigator.clipboard.writeText(id).catch(err => console.error("Clipboard error:", err));
 
       // Trigger Webhook via Backend API
       fetch(import.meta.env.VITE_API_URL + '/api/webhooks/room-event', {
