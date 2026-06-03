@@ -9,7 +9,10 @@ test.beforeEach(async ({ page }) => {
 test('loads the selected editor font and applies it in Monaco', async ({ page }) => {
   await page.goto('/editor');
 
-  await page.getByRole('button', { name: /Open Settings/i }).click();
+  // Use stable test id for settings trigger
+  const settingsBtn = page.getByTestId('settings-button');
+  await settingsBtn.waitFor({ state: 'attached', timeout: 10000 });
+  await settingsBtn.click();
 
   const fontSelect = page.getByLabel('Editor font');
   await expect(fontSelect).toBeVisible();

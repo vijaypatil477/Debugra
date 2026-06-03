@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { createMonacoVimController } from '../../utils/monacoVim';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
@@ -20,14 +20,8 @@ import {
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
 import { LANGUAGES } from '../../utils/languageConfig';
-import {
-  LANG_FILE_NAMES,
-  MOBILE_TABS,
-  OUTPUT_TABS,
-  EDITOR_THEMES,
-  EDITOR_FONTS,
-} from '../../config/constants';
-
+import { LANG_FILE_NAMES, MOBILE_TABS, OUTPUT_TABS, EDITOR_THEMES, EDITOR_FONTS } from '../../config/constants';
+import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import AuthModal from '../Auth/AuthModal';
 import AccountSettings from '../Auth/AccountSettings';
 import ChatPanel from '../Chat/ChatPanel';
@@ -44,10 +38,17 @@ import VotePopup from './VotePopup';
 import WelcomeTour from './WelcomeTour';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import MobileDrawer from './MobileDrawer';
-import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
 import Loader from '../Loader';
 import ComplexityOverlay from './ComplexityOverlay';
+
+const TAB_SIZE_OPTIONS = [2, 4];
+const MINIMAP_OPTIONS = [
+  { value: 'enabled', label: 'Enabled' },
+  { value: 'disabled', label: 'Disabled' },
+];
+const RULER_OPTIONS = [80, 120];
+const AUTOSAVE_INTERVAL_OPTIONS = [0, 5000, 10000];
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -71,6 +72,7 @@ const REVIEWS = [
     review: 'Clean interface and smooth collaboration features.',
   },
 ];
+
 export default function EditorPage({ user }) {
   const isTestRoom =
     typeof window !== 'undefined' &&
@@ -162,10 +164,6 @@ export default function EditorPage({ user }) {
     }
   }, [globalTheme, editor.theme, editor.setTheme]);
 
-  const tabSizeRef = useRef(editor.tabSize);
-  const vimControllerRef = useRef(null);
-  const [vimMode, setVimMode] = useState('NORMAL');
-
   // ─── Room/Collaboration Logic ──────────────────────────────────────────────
   const room = useRoom({
     user,
@@ -188,6 +186,10 @@ export default function EditorPage({ user }) {
     room,
   });
 
+  const tabSizeRef = useRef(editor.tabSize);
+  const vimControllerRef = useRef(null);
+  const [vimMode, setVimMode] = useState('NORMAL');
+  const reviewDecorationsRef = useRef([]);
   const executionRunRef = useRef(execution.run);
   useEffect(() => {
     executionRunRef.current = execution.run;
