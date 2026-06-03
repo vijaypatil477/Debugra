@@ -90,6 +90,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   const [activeUsers, setActiveUsers] = useState([]);
   const [showOnlineDropdown, setShowOnlineDropdown] = useState(false);
   const [showRequestsDropdown, setShowRequestsDropdown] = useState(false);
+  const [notes, setNotes] = useState("");
 
   // ─── Derived permissions ────────────────────────────────────────────────────
   const myRole = roomId
@@ -110,6 +111,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       if (data.code !== undefined && data._lastEditor !== user?.uid) setCode(data.code);
       if (data.language) setLanguage(data.language);
       if (data.stdin !== undefined && data._lastEditor !== user?.uid) setStdinValue(data.stdin);
+      if (data.notes !== undefined) setNotes(data.notes);
       setActiveUsers(data.activeUsers || []);
     });
     return unsub;
@@ -530,5 +532,12 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     clearExecutionResult,
     fetchFullVotePayload,
     transitionVoteToExecuting,
+    notes,
+    updateNotes: async (newNotes) => {
+      setNotes(newNotes);
+      if (roomId) {
+        await updateDoc(doc(db, "rooms", roomId), { notes: newNotes });
+      }
+    },
   };
 }

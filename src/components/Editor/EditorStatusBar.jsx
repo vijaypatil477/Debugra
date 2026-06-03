@@ -18,6 +18,8 @@ export default function EditorStatusBar({
   user,
   vimEnabled,
   vimMode,
+  showNotes,
+  setShowNotes,
 }) {
   const { roomId, activeUsers, showOnlineDropdown, setShowOnlineDropdown } = room;
 
@@ -212,6 +214,19 @@ export default function EditorStatusBar({
             )}
           </div>
         )}
+        
+        {/* Notes */}
+        <span 
+          onClick={() => setShowNotes(!showNotes)}
+          style={{ cursor: 'pointer', color: showNotes ? '#4ec9b0' : 'inherit' }}
+          title="Toggle Shared Notes"
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          </svg>
+          Notes
+        </span>
+
         {/* Backend label */}
         <span>
           <svg
