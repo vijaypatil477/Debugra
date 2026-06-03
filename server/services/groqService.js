@@ -319,6 +319,30 @@ Rules:
   );
 }
 
+// 10. Code Summarization
+async function summarizeCode(code, language, apiKey = '', model = DEFAULT_MODEL) {
+  return chatCompletion(
+    `You are a code analysis assistant. Analyze the given code and provide a structured summary. Always respond in valid JSON.`,
+    `Analyze this ${language} code and provide summary, complexity, and step-by-step breakdown:
+
+${code}
+
+Respond in this EXACT JSON format:
+{
+  "summary": "2-3 sentence plain-English explanation of what this code does",
+  "timeComplexity": "O(...)",
+  "spaceComplexity": "O(...)",
+  "steps": [
+    "Step 1: ...",
+    "Step 2: ...",
+    "Step 3: ..."
+  ]
+}`,
+    apiKey,
+    model
+  );
+}
+
 module.exports = {
   explainError,
   fixCodeAI,
@@ -329,4 +353,5 @@ module.exports = {
   explainCodeSnippetAI,
   askFollowUpAI,
   analyzeComplexityAI,
+  summarizeCode,
 };
