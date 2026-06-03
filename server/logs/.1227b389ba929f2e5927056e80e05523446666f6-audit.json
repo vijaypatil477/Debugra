@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "D:\\Imp Docs\\AdvanceDev\\OpenSourceContributions\\Debugra_repo\\server\\logs\\.1227b389ba929f2e5927056e80e05523446666f6-audit.json",
+    "files": [
+        {
+            "date": 1780238181903,
+            "name": "D:\\Imp Docs\\AdvanceDev\\OpenSourceContributions\\Debugra_repo\\server\\logs\\application-2026-05-31.log",
+            "hash": "36dbc8f7883e0b837c6c13e31ec74ee7309ed8455e367ef0d3e49919f92f9305"
+        }
+    ],
+    "hashType": "sha256"
+}

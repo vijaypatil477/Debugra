@@ -13,13 +13,13 @@ import toast from 'react-hot-toast';
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
 
-async function verifyRoomPassword(roomId, password) {
+async function verifyRoomPassword(roomId, password, uid) {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const res = await fetch(`${apiUrl}/api/rooms/verify-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roomId, password }),
+    body: JSON.stringify({ roomId, password, uid }),
   });
 
   const data = await res.json();
@@ -39,7 +39,7 @@ async function verifyRoomPassword(roomId, password) {
   return true;
 }
 
-async function hasValidRoomAccess(roomId) {
+async function hasValidRoomAccess(roomId, uid) {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
   const stored = sessionStorage.getItem(`${ROOM_AUTH_PREFIX}${roomId}`);
 
@@ -55,7 +55,7 @@ async function hasValidRoomAccess(roomId) {
     const res = await fetch(`${apiUrl}/api/rooms/validate-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomId, accessToken }),
+      body: JSON.stringify({ roomId, accessToken, uid }),
     });
 
     if (res.ok) return true;
@@ -216,7 +216,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
           Boolean(data.passwordProtected || data.isPrivate) && !isCreator && !isAllowed;
 
         if (requiresPassword) {
-          const alreadyAuthorized = await hasValidRoomAccess(newRoomId);
+          const alreadyAuthorized = await hasValidRoomAccess(newRoomId, user.uid);
           if (!alreadyAuthorized) {
             const suppliedPassword = roomPassword.trim();
             if (!suppliedPassword) {
@@ -224,7 +224,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
               return false;
             }
 
-            await verifyRoomPassword(newRoomId, suppliedPassword);
+            await verifyRoomPassword(newRoomId, suppliedPassword, user.uid);
           }
         }
 
