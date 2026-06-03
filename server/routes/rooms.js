@@ -83,7 +83,7 @@ async function verifyPassword(plainPassword, storedSalt, storedHash) {
  * Response (200): { accessToken: string, expiresAt: number }
  */
 router.post('/verify-password', passwordRateLimiter, async (req, res) => {
-  const { roomId, password } = req.body;
+  const { roomId, password, uid } = req.body;
 
   // ── Basic validation ─────────────────────────────────────────────────────
   if (!roomId || typeof roomId !== 'string' || roomId.trim() === '') {
@@ -138,7 +138,7 @@ router.post('/verify-password', passwordRateLimiter, async (req, res) => {
     }
 
     const expiresAt = Date.now() + 30 * 60 * 1000; // 30 minutes from now
-    const payload = `${roomId}:${expiresAt}`;
+    const payload = `${roomId}:${uid}:${expiresAt}`;
     const signature = crypto.createHmac('sha256', ROOM_TOKEN_SECRET).update(payload).digest('hex');
 
     const accessToken = `${Buffer.from(payload).toString('base64')}.${signature}`;
@@ -159,10 +159,14 @@ router.post('/verify-password', passwordRateLimiter, async (req, res) => {
  * Response (200): { valid: true }
  */
 router.post('/validate-token', async (req, res) => {
-  const { roomId, accessToken } = req.body;
+  const { roomId, accessToken, uid } = req.body;
 
   if (!roomId || !accessToken) {
     return res.status(400).json({ error: 'roomId and accessToken are required.' });
+  }
+
+  if (!uid) {
+    return res.status(400).json({ error: 'uid is required.' });
   }
 
   try {
@@ -190,9 +194,18 @@ router.post('/validate-token', async (req, res) => {
     }
 
     // Verify payload structure and room match
-    const [tokenRoomId, expiresAtStr] = payload.split(':');
+    const parts = payload.split(':');
+    if (parts.length < 3) {
+      return res.status(401).json({ error: 'Invalid token payload.' });
+    }
+    const [tokenRoomId, tokenUid, expiresAtStr] = parts;
     if (tokenRoomId !== roomId) {
       return res.status(401).json({ error: 'Token is not valid for this room.' });
+    }
+
+    // Verify the token belongs to the requesting user
+    if (tokenUid !== uid) {
+      return res.status(403).json({ error: 'Token does not belong to this user.' });
     }
 
     // Check expiry
