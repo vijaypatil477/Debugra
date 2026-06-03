@@ -525,7 +525,7 @@ export default function EditorPage({ user }) {
       <div className="topbar px-2 px-md-3">
         <div className="topbar-left d-flex align-items-center">
           {isMobile && (
-            <button
+            <button aria-label="Button"
               className="mobile-drawer-toggle"
               onClick={() => setDrawerOpen(true)}
               aria-label="Open menu"
@@ -535,7 +535,7 @@ export default function EditorPage({ user }) {
               <Menu size={18} />
             </button>
           )}
-          <button
+          <button aria-label="Button"
             onClick={() => navigate('/')}
             className="topbar-logo d-flex align-items-center gap-2"
           >
@@ -555,7 +555,7 @@ export default function EditorPage({ user }) {
                 ✦ Room: {room.roomId}
                 <span className="d-none d-lg-inline"> ({room.activeUsers.length} online)</span>
               </span>
-              <button
+              <button aria-label="Button"
                 className="topbar-link ms-2"
                 onClick={() => {
                   navigator.clipboard.writeText(room.roomId);
@@ -565,7 +565,7 @@ export default function EditorPage({ user }) {
                 <span className="d-none d-sm-inline">Copy ID</span>
                 <span className="d-inline d-sm-none">ID</span>
               </button>
-              <button
+              <button aria-label="Button"
                 className="topbar-link ms-2"
                 onClick={() => setShowVideoCall(!showVideoCall)}
                 style={{
@@ -584,7 +584,7 @@ export default function EditorPage({ user }) {
               >
                 📹 {showVideoCall ? 'Leave Call' : 'Join Call'}
               </button>
-              <button
+              <button aria-label="Button"
                 className="topbar-link ms-2"
                 onClick={() => setShowVoiceCall((s) => !s)}
                 style={{
@@ -606,7 +606,7 @@ export default function EditorPage({ user }) {
         </div>
 
         <div className="topbar-right d-flex align-items-center gap-2">
-          <button
+          <button aria-label="Button"
             onClick={toggleGlobalTheme}
             className="topbar-link p-0 d-flex align-items-center justify-content-center"
             title="Toggle theme"
@@ -646,7 +646,7 @@ export default function EditorPage({ user }) {
           </button>
           {!(room.roomId || isTestRoom) && (
             <div className="room-controls d-flex align-items-center gap-2">
-              <button
+              <button aria-label="Button"
                 className="topbar-link"
                 onClick={async () => {
                   if (!user) {
@@ -699,7 +699,7 @@ export default function EditorPage({ user }) {
                     className="topbar-input topbar-password-input"
                     type="password"
                   />
-                  <button
+                  <button aria-label="Button"
                     className="topbar-link"
                     onClick={() =>
                       room
@@ -711,12 +711,12 @@ export default function EditorPage({ user }) {
                   >
                     Join
                   </button>
-                  <button className="topbar-link" onClick={() => setShowJoin(false)}>
+                  <button aria-label="Button" className="topbar-link" onClick={() => setShowJoin(false)}>
                     ✕
                   </button>
                 </>
               ) : (
-                <button
+                <button aria-label="Button"
                   className="topbar-link"
                   onClick={() => {
                     if (!user) {
@@ -734,7 +734,7 @@ export default function EditorPage({ user }) {
           )}
           {user ? (
             <div className="d-flex align-items-center gap-2">
-              <button
+              <button aria-label="Button"
                 className="topbar-link"
                 onClick={() => {
                   signOut(auth);
@@ -743,14 +743,14 @@ export default function EditorPage({ user }) {
               >
                 Log Out
               </button>
-              <button
+              <button aria-label="Button"
                 className="topbar-link"
                 onClick={() => setShowAccount(true)}
                 title="Account settings"
               >
                 Account
               </button>
-              <button className="topbar-link" onClick={() => navigate('/feedback')}>
+              <button aria-label="Button" className="topbar-link" onClick={() => navigate('/feedback')}>
                 Feedback
               </button>
               <div className="user-avatar">{user.displayName?.[0]?.toUpperCase() || '?'}</div>
@@ -763,7 +763,7 @@ export default function EditorPage({ user }) {
             </div>
           ) : (
             <div className="d-none d-md-flex gap-2">
-              <button
+              <button aria-label="Button"
                 className="topbar-link"
                 onClick={() => {
                   setAuthMode('login');
@@ -772,7 +772,7 @@ export default function EditorPage({ user }) {
               >
                 Sign In
               </button>
-              <button
+              <button aria-label="Button"
                 className="topbar-link"
                 style={{ background: '#8b5cf6', color: 'white', border: 'none' }}
                 onClick={() => {
@@ -815,16 +815,16 @@ export default function EditorPage({ user }) {
             ))}
           </select>
           <div className="font-size-ctrl d-none d-sm-flex align-items-center gap-1">
-            <button onClick={editor.decreaseFontSize}>−</button>
+            <button aria-label="Button" onClick={editor.decreaseFontSize}>−</button>
             <span>{editor.fontSize}px</span>
-            <button onClick={editor.increaseFontSize}>+</button>
+            <button aria-label="Button" onClick={editor.increaseFontSize}>+</button>
           </div>
           <div
             className="minimap-side-ctrl d-none d-md-flex align-items-center gap-1"
             aria-label="Minimap position"
           >
             <span>Minimap</span>
-            <button
+            <button aria-label="Button"
               type="button"
               className={minimapSide === 'left' ? 'active' : ''}
               aria-pressed={minimapSide === 'left'}
@@ -832,7 +832,7 @@ export default function EditorPage({ user }) {
             >
               Left
             </button>
-            <button
+            <button aria-label="Button"
               type="button"
               className={minimapSide === 'right' ? 'active' : ''}
               aria-pressed={minimapSide === 'right'}
@@ -864,21 +864,21 @@ export default function EditorPage({ user }) {
               <option value="llama-3.1-8b-instant">Llama 8B</option>
               {/* <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>*/}
             </select>
-            <button
+            <button aria-label="Button"
               className={`ai-btn api-key-toggle ${apiKeyStatus}`}
               onClick={() => setShowApiKey(true)}
               title="Groq API key settings"
             >
               Key
             </button>
-            <button
+            <button aria-label="Button"
               className="ai-btn"
               onClick={ai.generateTests}
               disabled={ai.isAILoading || room.isReadOnly}
             >
               Tests
             </button>
-            <button className="ai-btn" onClick={ai.audit} disabled={ai.isAILoading}>
+            <button aria-label="Button" className="ai-btn" onClick={ai.audit} disabled={ai.isAILoading}>
               <svg
                 width="12"
                 height="12"
@@ -892,7 +892,7 @@ export default function EditorPage({ user }) {
               </svg>
               Audit
             </button>
-            <button className="ai-btn" onClick={ai.visualize} disabled={ai.isAILoading}>
+            <button aria-label="Button" className="ai-btn" onClick={ai.visualize} disabled={ai.isAILoading}>
               <svg
                 width="12"
                 height="12"
@@ -907,7 +907,7 @@ export default function EditorPage({ user }) {
               </svg>
               Visualize
             </button>
-            <button className="ai-btn" onClick={ai.explain} disabled={ai.isAILoading}>
+            <button aria-label="Button" className="ai-btn" onClick={ai.explain} disabled={ai.isAILoading}>
               <svg
                 width="12"
                 height="12"
@@ -921,7 +921,7 @@ export default function EditorPage({ user }) {
               </svg>
               Explain
             </button>
-            <button
+            <button aria-label="Button"
               className="ai-btn"
               onClick={() => {
                 ai.analyzeComplexity();
@@ -950,7 +950,7 @@ export default function EditorPage({ user }) {
               Big-O
             </button>
           </div>
-          <button
+          <button aria-label="Button"
             className="ai-btn fix"
             onClick={ai.fix}
             disabled={ai.isAILoading || room.isReadOnly}
@@ -1046,7 +1046,7 @@ export default function EditorPage({ user }) {
             </div>
           </div>
           <span className="kbd-hint d-none d-lg-inline">Ctrl+Enter</span>
-          <button
+          <button aria-label="Button"
             className="clear-btn d-none d-sm-block"
             onClick={() => {
               execution.clear();
@@ -1056,7 +1056,7 @@ export default function EditorPage({ user }) {
           >
             Clear
           </button>
-          <button
+          <button aria-label="Button"
             className="run-btn d-none d-sm-flex align-items-center"
             onClick={execution.run}
             disabled={execution.isRunning}
@@ -1305,7 +1305,7 @@ export default function EditorPage({ user }) {
               flexShrink: 0,
             }}
           >
-            <button
+            <button aria-label="Button"
               onClick={() => editor.setStdinOpen(!editor.stdinOpen)}
               className="stdin-toggle-btn"
               style={{ color: editor.needsInput ? '#dcdcaa' : 'var(--text-2)' }}
@@ -1378,7 +1378,7 @@ export default function EditorPage({ user }) {
           }
         >
           <div className="output-tabs">
-            <button
+            <button aria-label="Button"
               type="button"
               className={`console-minimize-btn ${consoleCollapsed ? 'collapsed' : ''}`}
               onClick={() => {
@@ -1407,7 +1407,7 @@ export default function EditorPage({ user }) {
                 gap: '8px',
               }}
             >
-              <button
+              <button aria-label="Button"
                 className={`output-tab ${
                   execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''
                 }`}
@@ -1417,7 +1417,7 @@ export default function EditorPage({ user }) {
               </button>
 
               {execution.stdout && (
-                <button
+                <button aria-label="Button"
                   onClick={handleCopyOutput}
                   title="Copy Output"
                   style={{
@@ -1441,7 +1441,7 @@ export default function EditorPage({ user }) {
                   gap: '4px',
                 }}
               >
-                <button
+                <button aria-label="Button"
                   className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.STDERR ? 'active' : ''}`}
                   onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.STDERR)}
                 >
@@ -1455,7 +1455,7 @@ export default function EditorPage({ user }) {
                   </span>
                 </button>
                 {/* ── Debug with AI inline button ── */}
-                <button
+                <button aria-label="Button"
                   id="debug-with-ai-btn"
                   className="debug-ai-btn"
                   onClick={(e) => {
@@ -1484,7 +1484,7 @@ export default function EditorPage({ user }) {
               </div>
             )}
             {(ai.aiResponse || ai.isAILoading) && (
-              <button
+              <button aria-label="Button"
                 className={`output-tab ${execution.activeOutputTab === OUTPUT_TABS.AI ? 'active' : ''}`}
                 onClick={() => execution.setActiveOutputTab(OUTPUT_TABS.AI)}
               >
@@ -1497,7 +1497,7 @@ export default function EditorPage({ user }) {
                 )}
               </button>
             )}
-            <button
+            <button aria-label="Button"
               className="output-collapse-btn"
               onClick={() => setIsOutputCollapsed((prev) => !prev)}
               title={isOutputCollapsed ? 'Restore Console' : 'Minimize Console'}
@@ -1524,7 +1524,7 @@ export default function EditorPage({ user }) {
               className="console-restore-banner-wrap"
               style={{ display: consoleCollapsed ? 'flex' : 'none' }}
             >
-              <button
+              <button aria-label="Button"
                 type="button"
                 className="console-restore-banner"
                 onClick={() => {
@@ -1551,7 +1551,7 @@ export default function EditorPage({ user }) {
             >
               {execution.stdout ? (
                 <>
-                  <button
+                  <button aria-label="Button"
                     className="toolbar-icon-btn"
                     style={{
                       position: 'absolute',
@@ -1627,7 +1627,7 @@ export default function EditorPage({ user }) {
 
         {/* Restore Console strip — shown only when output pane is collapsed */}
         {!isMobile && isOutputCollapsed && (
-          <button
+          <button aria-label="Button"
             className="restore-console-strip"
             onClick={() => setIsOutputCollapsed(false)}
             aria-label="Restore Console"
@@ -1694,7 +1694,7 @@ export default function EditorPage({ user }) {
             <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-0)' }}>
               Code History
             </span>
-            <button
+            <button aria-label="Button"
               onClick={() => setMobileTab(MOBILE_TABS.CODE)}
               style={{
                 background: 'none',

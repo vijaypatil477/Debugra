@@ -43,7 +43,7 @@ function TestCard({ tc, i }) {
             {isEdge ? '⚡ edge' : '✓ normal'}
           </span>
         </span>
-        <button
+        <button aria-label="Button"
           onClick={handleCopy}
           style={{
             fontSize: '0.6rem',
@@ -133,7 +133,7 @@ function TestCasesPanel({ testCases }) {
             {normalCount} normal · {edgeCount} edge
           </span>
         </div>
-        <button
+        <button aria-label="Button"
           onClick={handleDownload}
           style={{
             fontSize: '0.65rem',
@@ -221,7 +221,7 @@ export default function AIResponsePanel({
     <div>
       {/* ─── Download Button ─────────────────────────────────────────────── */}
       <div className="ai-download-wrap" ref={dropdownRef}>
-        <button
+        <button aria-label="Button"
           className="ai-download-btn"
           onClick={() => setDropdownOpen((o) => !o)}
           title="Download AI report"
@@ -264,7 +264,7 @@ export default function AIResponsePanel({
 
         {dropdownOpen && (
           <div className="ai-download-dropdown" role="menu">
-            <button className="ai-download-option" role="menuitem" onClick={handleDownloadMarkdown}>
+            <button aria-label="Button" className="ai-download-option" role="menuitem" onClick={handleDownloadMarkdown}>
               {/* Markdown icon */}
               <svg
                 width="13"
@@ -285,7 +285,7 @@ export default function AIResponsePanel({
               <span>Download as Markdown</span>
               <span className="ai-download-ext">.md</span>
             </button>
-            <button className="ai-download-option" role="menuitem" onClick={handleDownloadText}>
+            <button aria-label="Button" className="ai-download-option" role="menuitem" onClick={handleDownloadText}>
               {/* Text file icon */}
               <svg
                 width="13"
@@ -336,7 +336,7 @@ export default function AIResponsePanel({
           >
             <span>Fixed Code</span>
             {onApplyFix && (
-              <button
+              <button aria-label="Button"
                 onClick={() => onApplyFix(response.fixedCode)}
                 style={{
                   background: 'var(--green)',

@@ -121,7 +121,7 @@ export default function FeedbackPage() {
             <input name="screenshot" type="file" accept="image/*" onChange={handleChange} />
           </label>
 
-          <button type="submit" className="feedback-submit">
+          <button aria-label="Button" type="submit" className="feedback-submit">
             Submit feedback
           </button>
         </form>

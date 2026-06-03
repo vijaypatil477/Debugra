@@ -125,14 +125,14 @@ export default function ApiKeyModal({ onClose, onStatusChange }) {
         />
 
         <div className="api-key-actions">
-          <button
+          <button aria-label="Button"
             type="submit"
             className="run-btn"
             disabled={!cryptoAvailable || isSaving || !apiKey || !passphrase}
           >
             Save
           </button>
-          <button
+          <button aria-label="Button"
             type="button"
             className="clear-btn"
             onClick={handleUnlock}
@@ -140,10 +140,10 @@ export default function ApiKeyModal({ onClose, onStatusChange }) {
           >
             Unlock
           </button>
-          <button type="button" className="clear-btn" onClick={handleLock} disabled={isSaving}>
+          <button aria-label="Button" type="button" className="clear-btn" onClick={handleLock} disabled={isSaving}>
             Lock
           </button>
-          <button
+          <button aria-label="Button"
             type="button"
             className="clear-btn danger"
             onClick={handleClear}

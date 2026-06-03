@@ -169,7 +169,7 @@ export default function DebugOverlay({ isOpen, isLoading, response, onClose, onA
         {/* ── Footer actions ────────────────────────────────────────────── */}
         {!isLoading && content && (
           <div className="debug-overlay-footer">
-            <button
+            <button aria-label="Button"
               className="debug-footer-fix-btn"
               onClick={() => {
                 onApplyFix();
@@ -189,7 +189,7 @@ export default function DebugOverlay({ isOpen, isLoading, response, onClose, onA
               </svg>
               Fix My Code
             </button>
-            <button className="debug-footer-close-btn" onClick={onClose}>
+            <button aria-label="Button" className="debug-footer-close-btn" onClick={onClose}>
               Close
             </button>
           </div>

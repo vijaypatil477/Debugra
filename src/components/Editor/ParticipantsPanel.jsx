@@ -53,7 +53,7 @@ export default function ParticipantsPanel({ room, user, onClose }) {
         >
           <User size={18} /> Participants ({activeUsers.length})
         </h3>
-        <button
+        <button aria-label="Button"
           onClick={onClose}
           style={{ background: 'none', border: 'none', color: 'var(--text-2)', cursor: 'pointer' }}
         >

@@ -222,21 +222,21 @@ export default function WelcomeTour({
 
             {/* Navigation */}
             <div className="tour-tooltip-nav">
-              <button
+              <button aria-label="Button"
                 className="tour-tooltip-skip"
                 onClick={onSkip}
               >
                 Skip Tour
               </button>
               {!isFirstStep && (
-                <button
+                <button aria-label="Button"
                   className="tour-nav-btn tour-nav-btn--back"
                   onClick={onPrev}
                 >
                   Back
                 </button>
               )}
-              <button
+              <button aria-label="Button"
                 className="tour-nav-btn tour-nav-btn--next"
                 onClick={onNext}
               >

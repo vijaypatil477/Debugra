@@ -165,7 +165,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-24px' }}>
-          <button
+          <button aria-label="Button"
             onClick={onClose}
             style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
           >
@@ -203,7 +203,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
               required
               style={{ ...inputStyle, marginBottom: '16px' }}
             />
-            <button
+            <button aria-label="Button"
               type="submit"
               disabled={loading}
               style={{
@@ -230,7 +230,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
               }}
             >
               Remember your password?{' '}
-              <button
+              <button aria-label="Button"
                 onClick={() => setForgotMode(false)}
                 style={{
                   background: 'none',
@@ -251,7 +251,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
           /* ─── Login / Signup Form ─── */
           <>
             {/* Google */}
-            <button
+            <button aria-label="Button"
               onClick={handleGoogle}
               disabled={loading}
               style={{
@@ -328,7 +328,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
               />
               {isLogin && (
                 <p style={{ textAlign: 'right', marginBottom: '12px' }}>
-                  <button
+                  <button aria-label="Button"
                     type="button"
                     onClick={() => {
                       setForgotMode(true);
@@ -348,7 +348,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                   </button>
                 </p>
               )}
-              <button
+              <button aria-label="Button"
                 type="submit"
                 disabled={loading}
                 style={{
@@ -377,7 +377,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
               }}
             >
               {!isLogin ? 'Already have an account? ' : "Don't have an account? "}
-              <button
+              <button aria-label="Button"
                 onClick={(e) => {
                   e.preventDefault();
                   setIsLogin(!isLogin);

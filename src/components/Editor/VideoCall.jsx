@@ -720,7 +720,7 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
         {error && (
           <div className="vc-error">
             <span>⚠️ {error}</span>
-            <button
+            <button aria-label="Button"
               onClick={() => {
                 setError(null);
                 startLocalStream();
@@ -745,7 +745,7 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
                       { value: '#fb7185', label: 'Coral' },
                       { value: '#f8f8f2', label: 'White' },
                     ].map((color) => (
-                      <button
+                      <button aria-label="Button"
                         key={color.value}
                         className={`vc-color-btn ${brushColor === color.value && !isEraser ? 'vc-color-btn--active' : ''}`}
                         style={{ backgroundColor: color.value }}
@@ -756,7 +756,7 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
                         title={color.label}
                       />
                     ))}
-                    <button
+                    <button aria-label="Button"
                       className={`vc-eraser-btn ${isEraser ? 'vc-eraser-btn--active' : ''}`}
                       onClick={() => setIsEraser(true)}
                       title="Eraser"
@@ -770,7 +770,7 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
                   <span className="vc-tool-label">Size:</span>
                   <div className="vc-size-palette">
                     {[2, 5, 10, 20].map((size) => (
-                      <button
+                      <button aria-label="Button"
                         key={size}
                         className={`vc-size-btn ${brushWidth === size ? 'vc-size-btn--active' : ''}`}
                         onClick={() => setBrushWidth(size)}
@@ -782,14 +782,14 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
                 </div>
 
                 <div className="vc-tool-actions">
-                  <button
+                  <button aria-label="Button"
                     className="vc-action-btn vc-action-btn--clear"
                     onClick={clearCanvas}
                     title="Clear board for everyone"
                   >
                     🗑️ Clear
                   </button>
-                  <button
+                  <button aria-label="Button"
                     className="vc-action-btn vc-action-btn--export"
                     onClick={exportImage}
                     title="Export as PNG"
@@ -857,28 +857,28 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
         </div>
 
         <div className="vc-controls">
-          <button
+          <button aria-label="Button"
             className={`vc-ctrl-btn ${isMuted ? 'vc-ctrl-btn--active' : ''}`}
             onClick={toggleMute}
             title={isMuted ? 'Unmute' : 'Mute'}
           >
             {isMuted ? '🔇' : '🎤'}
           </button>
-          <button
+          <button aria-label="Button"
             className={`vc-ctrl-btn ${isVideoOff ? 'vc-ctrl-btn--active' : ''}`}
             onClick={toggleVideo}
             title={isVideoOff ? 'Turn Camera On' : 'Turn Camera Off'}
           >
             {isVideoOff ? '📷' : '🎥'}
           </button>
-          <button
+          <button aria-label="Button"
             className={`vc-ctrl-btn ${isScreenSharing ? 'vc-ctrl-btn--active' : ''}`}
             onClick={toggleScreenShare}
             title={isScreenSharing ? 'Stop Sharing' : 'Share Screen'}
           >
             🖥️
           </button>
-          <button
+          <button aria-label="Button"
             className={`vc-ctrl-btn ${showWhiteboard ? 'vc-ctrl-btn--active' : ''}`}
             onClick={() => setShowWhiteboard(!showWhiteboard)}
             title={showWhiteboard ? 'Hide Whiteboard' : 'Show Whiteboard'}
@@ -889,7 +889,7 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
           >
             🎨
           </button>
-          <button className="vc-ctrl-btn vc-ctrl-btn--hangup" onClick={hangUp} title="Hang Up">
+          <button aria-label="Button" className="vc-ctrl-btn vc-ctrl-btn--hangup" onClick={hangUp} title="Hang Up">
             📞
           </button>
         </div>

@@ -27,7 +27,7 @@ export default function AudioChannel({ room, user }) {
       ))}
 
       {!inCall ? (
-        <button
+        <button aria-label="Button"
           onClick={joinCall}
           style={{
             background: 'var(--accent)',
@@ -58,7 +58,7 @@ export default function AudioChannel({ room, user }) {
             <span className="stdin-pulse-dot" style={{ background: 'var(--green)' }} />
             Voice ({peers.length + 1})
           </span>
-          <button
+          <button aria-label="Button"
             onClick={toggleMute}
             style={{
               background: 'var(--bg-3)',
@@ -75,7 +75,7 @@ export default function AudioChannel({ room, user }) {
           >
             {isMuted ? <MicOff size={12} /> : <Mic size={12} />}
           </button>
-          <button
+          <button aria-label="Button"
             onClick={leaveCall}
             style={{
               background: '#f44747',

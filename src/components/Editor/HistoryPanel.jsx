@@ -110,7 +110,7 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
           </span>
         </div>
         <div className="d-flex gap-1">
-          <button
+          <button aria-label="Button"
             onClick={loadHistory}
             className="btn btn-link btn-sm p-1 text-secondary history-action-btn"
             title="Refresh"
@@ -128,7 +128,7 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
               <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
             </svg>
           </button>
-          <button
+          <button aria-label="Button"
             onClick={onClose}
             className="btn btn-link btn-sm p-1 text-secondary history-action-btn"
             title="Close"
@@ -220,7 +220,7 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
                 {item.code?.length > 120 ? '...' : ''}
               </pre>
               <div className="history-item-actions d-flex gap-2 mt-2">
-                <button
+                <button aria-label="Button"
                   onClick={() => {
                     onLoadCode(item.code, item.language);
                     toast.success('Code loaded!');
@@ -241,7 +241,7 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
                   </svg>
                   Load
                 </button>
-                <button
+                <button aria-label="Button"
                   onClick={() => startRename(item.id, item.name || 'untitled')}
                   className="btn btn-sm btn-outline-warning x-small d-flex align-items-center justify-content-center py-1"
                   title="Rename"
@@ -260,7 +260,7 @@ export default function HistoryPanel({ user, onLoadCode, onClose }) {
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                   </svg>
                 </button>
-                <button
+                <button aria-label="Button"
                   onClick={() => handleDelete(item.id)}
                   className="btn btn-sm btn-outline-danger x-small d-flex align-items-center justify-content-center py-1"
                   title="Delete"

@@ -447,13 +447,13 @@ export default function LandingPage() {
           <a href="#faq" className="landing-nav-link">
             FAQ
           </a>
-          <button onClick={() => navigate('/feedback')} className="landing-nav-link nav-link-button">
+          <button aria-label="Button" onClick={() => navigate('/feedback')} className="landing-nav-link nav-link-button">
             Feedback
           </button>
-          <button onClick={() => setShowLogin(true)} className="landing-btn-outline">
+          <button aria-label="Button" onClick={() => setShowLogin(true)} className="landing-btn-outline">
             Log In
           </button>
-          <button
+          <button aria-label="Button"
             onClick={() => {
               setIsSignUp(true);
               setShowLogin(true);
@@ -462,7 +462,7 @@ export default function LandingPage() {
           >
             Sign Up Free
           </button>
-          <button
+          <button aria-label="Button"
             onClick={toggleTheme}
             className="landing-btn-outline p-0 d-flex align-items-center justify-content-center"
             title="Toggle theme"
@@ -503,7 +503,7 @@ export default function LandingPage() {
         </div>
 
         <div className="d-flex align-items-center gap-2 mobile-only">
-          <button
+          <button aria-label="Button"
             onClick={toggleTheme}
             className="landing-btn-outline p-0 d-flex align-items-center justify-content-center"
             title="Toggle theme"
@@ -588,7 +588,7 @@ export default function LandingPage() {
           <a href="#faq" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>
             FAQ
           </a>
-          <button
+          <button aria-label="Button"
             className="mobile-dropdown-link"
             onClick={() => {
               setMobileMenu(false);
@@ -597,7 +597,7 @@ export default function LandingPage() {
           >
             Feedback
           </button>
-          <button
+          <button aria-label="Button"
             onClick={() => {
               setShowLogin(true);
               setMobileMenu(false);
@@ -606,7 +606,7 @@ export default function LandingPage() {
           >
             Log In
           </button>
-          <button
+          <button aria-label="Button"
             onClick={() => {
               setIsSignUp(true);
               setShowLogin(true);
@@ -641,7 +641,7 @@ export default function LandingPage() {
           </p>
 
           <div className="hero-cta d-flex flex-column flex-sm-row gap-3 justify-content-center">
-            <button
+            <button aria-label="Button"
               onClick={() => navigate('/editor')}
               className="landing-btn-primary landing-btn-lg"
             >
@@ -656,7 +656,7 @@ export default function LandingPage() {
               </svg>
               Open Editor — it&apos;s free
             </button>
-            <button onClick={() => setShowLogin(true)} className="landing-btn-ghost landing-btn-lg">
+            <button aria-label="Button" onClick={() => setShowLogin(true)} className="landing-btn-ghost landing-btn-lg">
               Sign in to save code
             </button>
           </div>
@@ -790,7 +790,7 @@ export default function LandingPage() {
         </div>
 
         <div className="features-carousel-shell">
-          <button
+          <button aria-label="Button"
             type="button"
             className="features-carousel-nav features-carousel-nav-left"
             onClick={() => scrollFeaturesCarousel(-1)}
@@ -847,7 +847,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <button
+          <button aria-label="Button"
             type="button"
             className="features-carousel-nav features-carousel-nav-right"
             onClick={() => scrollFeaturesCarousel(1)}
@@ -907,7 +907,7 @@ export default function LandingPage() {
             const isOpen = openFaq === index;
             return (
               <div key={item.question} className={`faq-item ${isOpen ? 'is-open' : ''}`}>
-                <button
+                <button aria-label="Button"
                   type="button"
                   className="faq-question"
                   aria-expanded={isOpen}
@@ -997,7 +997,7 @@ export default function LandingPage() {
         required
       />
 
-      <button
+      <button aria-label="Button"
         type="submit"
         className="landing-btn-primary"
         style={{ width: 'fit-content' }}
@@ -1019,7 +1019,7 @@ export default function LandingPage() {
           </h2>
           <p className="section-subtitle">No install. No signup required. Just open and write.</p>
           <div className="d-flex flex-column flex-sm-row gap-3 justify-content-center mt-4">
-            <button
+            <button aria-label="Button"
               onClick={() => navigate('/editor')}
               className="landing-btn-primary landing-btn-lg"
               style={{ boxShadow: '0 8px 40px rgba(139,92,246,0.35)' }}
@@ -1035,7 +1035,7 @@ export default function LandingPage() {
               </svg>
               Open Editor
             </button>
-            <button
+            <button aria-label="Button"
               onClick={() => {
                 setIsSignUp(true);
                 setShowLogin(true);
@@ -1072,7 +1072,7 @@ export default function LandingPage() {
 
       {/* ===== BACK TO TOP ===== */}
       {showBackToTop && (
-        <button
+        <button aria-label="Button"
           className="back-to-top-btn"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           aria-label="Back to top"
@@ -1097,7 +1097,7 @@ export default function LandingPage() {
         <div className="modal-backdrop" onClick={() => setShowLogin(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             {/* CLOSE BUTTON - ADD HERE */}
-            <button className="modal-close-btn" onClick={() => setShowLogin(false)}>
+            <button aria-label="Button" className="modal-close-btn" onClick={() => setShowLogin(false)}>
               ✕
             </button>
 
@@ -1106,7 +1106,7 @@ export default function LandingPage() {
               {isSignUp ? 'Sign up to save code & collaborate' : 'Sign in to access saved code'}
             </p>
 
-            <button onClick={handleGoogle} className="google-btn">
+            <button aria-label="Button" onClick={handleGoogle} className="google-btn">
               <svg width="16" height="16" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
@@ -1209,7 +1209,7 @@ export default function LandingPage() {
 
             <p className="modal-toggle">
               {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
-              <button onClick={() => setIsSignUp(!isSignUp)} className="modal-toggle-btn">
+              <button aria-label="Button" onClick={() => setIsSignUp(!isSignUp)} className="modal-toggle-btn">
                 {isSignUp ? 'Sign In' : 'Sign Up'}
               </button>
             </p>
