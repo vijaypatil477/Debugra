@@ -15,7 +15,7 @@ const roomCleanupService = require('./services/roomCleanupService');
 const errorHandler = require('./middleware/errorHandler');
 const webhookRoutes = require('./routes/webhooks');
 const roomsRoutes = require('./routes/rooms');
-const { executeLimiter, aiLimiter } = require('./middleware/rateLimiters');
+const { executeLimiter, aiLimiter, authLimiter } = require('./middleware/rateLimiters');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -324,6 +324,9 @@ app.use('/api/ai', aiLimiter, aiRoutes);
 app.use('/api/admin/memory-profile', memoryRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/rooms', roomsRoutes);
+app.use('/api/login', authLimiter);
+app.use('/api/register', authLimiter);
+app.use('/api/auth', authLimiter);
 
 // ──────────────────────────────────────────────
 // Error Handler
