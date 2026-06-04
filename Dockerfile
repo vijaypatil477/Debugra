@@ -7,13 +7,16 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Install dependencies
-RUN npm install
+RUN npm install && chown -R node:node /app
 
 # Copy application files
-COPY . .
+COPY --chown=node:node . .
 
 # Expose Vite development server port
 EXPOSE 5173
+
+# Switch to non-root user
+USER node
 
 # Start the application in development mode
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
