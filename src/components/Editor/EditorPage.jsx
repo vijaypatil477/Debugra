@@ -354,7 +354,12 @@ export default function EditorPage({ user }) {
   const handleEditorMount = (editorInstance) => {
     editorRef.current = editorInstance;
     window.__DEBUGRA_EDITOR__ = editorInstance;
+    // Deterministic E2E anchor: Monaco instance is ready.
+    if (typeof window !== 'undefined') {
+      window.__DEBUGRA_EDITOR_READY__ = true;
+    }
     const monaco = monacoRef.current;
+
     if (!monaco) return;
 
     const editorDomNode = editorInstance.getDomNode();

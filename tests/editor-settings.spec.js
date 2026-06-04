@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('updates advanced editor settings instantly', async ({ page }) => {
-  await page.goto('/editor');
+  await page.goto('/editor?testUser=1');
 
   await page.getByTestId('open-settings-button').click();
   await page.waitForSelector('.audio-settings-popover', { state: 'visible' });
@@ -38,7 +38,7 @@ test('updates advanced editor settings instantly', async ({ page }) => {
 });
 
 test('inserts tabs using the selected indentation size', async ({ page }) => {
-  await page.goto('/editor');
+  await page.goto('/editor?testUser=1');
 
   await page.getByRole('button', { name: /Open Settings/i }).click();
   await page.waitForSelector('.audio-settings-popover', { state: 'visible' });
@@ -58,7 +58,7 @@ test('inserts tabs using the selected indentation size', async ({ page }) => {
 });
 
 test('restores autosaved drafts after reload', async ({ page }) => {
-  await page.goto('/editor');
+  await page.goto('/editor?testUser=1');
 
   await page.getByRole('button', { name: /Open Settings/i }).click();
   await page.waitForSelector('.audio-settings-popover', { state: 'visible' });
@@ -84,7 +84,7 @@ test('restores autosaved drafts after reload', async ({ page }) => {
 });
 
 test('hides the editor divider when minimap is disabled', async ({ page }) => {
-  await page.goto('/editor');
+  await page.goto('/editor?testUser=1');
 
   await page.getByRole('button', { name: /Open Settings/i }).click();
   await page.waitForSelector('.audio-settings-popover', { state: 'visible' });
@@ -107,7 +107,7 @@ test('hides the editor divider when minimap is disabled', async ({ page }) => {
 });
 
 test('enables multi-cursor and column selection options', async ({ page }) => {
-  await page.goto('/editor');
+  await page.goto('/editor?testUser=1');
 
   const editorOptions = await page.evaluate(() => {
     const editor = window.__DEBUGRA_EDITOR__;
