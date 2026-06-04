@@ -1,7 +1,17 @@
 import axios from 'axios';
 import { getSessionApiKey } from './secureApiKeyStore';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.MODE !== 'production' ? 'http://localhost:3001' : '');
+
+if (!import.meta.env.VITE_API_URL && import.meta.env.MODE !== 'production') {
+  console.warn(
+    '[api.js] VITE_API_URL is not set. ' +
+      'Falling back to http://localhost:3001 for development. ' +
+      'Create a .env file and set VITE_API_URL to silence this warning.'
+  );
+}
 
 // ─── Axios Instance ────────────────────────────────────────────────────────────
 const api = axios.create({
@@ -58,6 +68,7 @@ export const executeCode = async (sourceCode, languageId, stdin = '') => {
 };
 
 // ─── AI Features ──────────────────────────────────────────────────────────────
+
 export const aiExplainError = async (code, error, language, systemPrompt = '') => {
   const { data } = await api.post('/api/ai/explain-error', { code, error, language, systemPrompt });
   return data;
@@ -85,6 +96,40 @@ export const aiAuditCode = async (code, language, systemPrompt = '') => {
 
 export const aiVisualizeExecution = async (code, language, input = '', systemPrompt = '') => {
   const { data } = await api.post('/api/ai/visualize', { code, language, input, systemPrompt });
+
+export const aiExplainError = async (code, error, language, model = '') => {
+  const { data } = await api.post('/api/ai/explain-error', { code, error, language, model });
+  return data;
+};
+
+export const aiFixCode = async (code, error, language, model = '') => {
+  const { data } = await api.post('/api/ai/fix-code', { code, error, language, model });
+  return data;
+};
+
+export const aiExplainLogic = async (code, language, model = '') => {
+  const { data } = await api.post('/api/ai/explain-logic', { code, language, model });
+  return data;
+};
+
+export const aiGenerateTests = async (code, language, model = '') => {
+  const { data } = await api.post('/api/ai/generate-tests', { code, language, model });
+  return data;
+};
+
+export const aiAuditCode = async (code, language, model = '') => {
+  const { data } = await api.post('/api/ai/audit-code', { code, language, model });
+  return data;
+};
+
+export const aiVisualizeExecution = async (code, language, input = '', model = '') => {
+  const { data } = await api.post('/api/ai/visualize', { code, language, input, model });
+  return data;
+};
+
+export const aiAnalyzeComplexity = async (code, language) => {
+  const { data } = await api.post('/api/ai/analyze-complexity', { code, language });
+
   return data;
 };
 
