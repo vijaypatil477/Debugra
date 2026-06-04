@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import './VotePopup.css';
 
 /**
@@ -29,9 +29,10 @@ export default function VotePopup({ room, user }) {
   // Scroll lock effect
   useEffect(() => {
     if (!activeVote) return;
+    const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = originalOverflow;
     };
   }, [activeVote]);
 
@@ -53,12 +54,7 @@ export default function VotePopup({ room, user }) {
 
   return (
     <div className="vp-overlay">
-      <div
-        className="vp-container"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="vp-title"
-      >
+      <div className="vp-container" role="dialog" aria-modal="true" aria-labelledby="vp-title">
         {/* Header */}
         <div className="vp-header">
           <div className="vp-header-title" id="vp-title">
@@ -146,11 +142,15 @@ export default function VotePopup({ room, user }) {
             </button>
             {showCode && (
               <div className="vp-code-box">
-                <pre><code>{activeVote.codePreview}</code></pre>
+                <pre>
+                  <code>{activeVote.codePreview}</code>
+                </pre>
                 {activeVote.stdinPreview && (
                   <div className="vp-stdin-preview">
                     <strong>stdin:</strong>
-                    <pre><code>{activeVote.stdinPreview}</code></pre>
+                    <pre>
+                      <code>{activeVote.stdinPreview}</code>
+                    </pre>
                   </div>
                 )}
               </div>
