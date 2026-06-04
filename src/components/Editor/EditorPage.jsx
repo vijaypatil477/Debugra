@@ -357,6 +357,8 @@ export default function EditorPage({ user }) {
     // Deterministic E2E anchor: Monaco instance is ready.
     if (typeof window !== 'undefined') {
       window.__DEBUGRA_EDITOR_READY__ = true;
+      // Also provide a stable flag for E2E.
+      window.__DEBUGRA_MONACO_MOUNTED__ = true;
     }
     const monaco = monacoRef.current;
 
@@ -407,8 +409,7 @@ export default function EditorPage({ user }) {
     });
 
     // Prevent our custom Ctrl+S and Tab handlers from being blocked by Vim command-mode.
-    // These are handled via the capture-phase DOM keydown listener above, and Vim mode toggling
-    // should not override these specific shortcuts.
+    // These are handled via the capture-phase DOM keydown listener above.
 
     // Ctrl+Enter → Run
     editorInstance.addCommand(2048 | 3, () => {
