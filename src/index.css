@@ -2192,6 +2192,30 @@ input[type='password']::-ms-clear {
   color: #64748b;
 }
 
+.modal-submit-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #4ec9b0;
+  border: none;
+  color: #09090b;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s;
+  margin-top: 6px;
+}
+
+.modal-submit-btn:hover {
+  background: #45b89e;
+}
+
+.modal-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .modal-toggle-btn {
   background: none;
   border: none;
