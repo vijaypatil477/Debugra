@@ -377,7 +377,7 @@
   min-height: 180px;
   padding: 24px;
   border-radius: 16px;
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-subtle);
   transition: all 0.25s ease;
 }
