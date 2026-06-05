@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback } from 'react';
 
 /**
  * useCodeSummarizer
@@ -15,7 +15,7 @@ export function useCodeSummarizer(apiUrl) {
     async (code, language) => {
       if (!code || !code.trim()) {
         setResult(null);
-        setError("No code to summarize. Write something in the editor first.");
+        setError('No code to summarize. Write something in the editor first.');
         setIsOpen(true);
         return;
       }
@@ -46,10 +46,10 @@ ${code.slice(0, 3000)}
 
       try {
         const response = await fetch(`${apiUrl}/api/ai`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: "summarize",
+            action: 'summarize',
             code: prompt,
             language,
           }),
@@ -58,28 +58,28 @@ ${code.slice(0, 3000)}
         if (!response.ok) throw new Error(`Server error: ${response.status}`);
 
         const data = await response.json();
-        const rawText = data.result || data.explanation || data.message || "";
+        const rawText = data.result || data.explanation || data.message || '';
 
         const cleaned = rawText
-          .replace(/```json\s*/gi, "")
-          .replace(/```\s*/g, "")
+          .replace(/```json\s*/gi, '')
+          .replace(/```\s*/g, '')
           .trim();
 
         const parsed = JSON.parse(cleaned);
 
-        if (!parsed.summary) throw new Error("Invalid AI response structure");
+        if (!parsed.summary) throw new Error('Invalid AI response structure');
 
         setResult({
-          summary: parsed.summary || "No summary available.",
-          timeComplexity: parsed.timeComplexity || "N/A",
-          spaceComplexity: parsed.spaceComplexity || "N/A",
+          summary: parsed.summary || 'No summary available.',
+          timeComplexity: parsed.timeComplexity || 'N/A',
+          spaceComplexity: parsed.spaceComplexity || 'N/A',
           steps: Array.isArray(parsed.steps) ? parsed.steps : [],
         });
       } catch (err) {
         if (err instanceof SyntaxError) {
-          setError("AI returned an unexpected format. Please try again.");
+          setError('AI returned an unexpected format. Please try again.');
         } else {
-          setError(err.message || "Something went wrong. Please try again.");
+          setError(err.message || 'Something went wrong. Please try again.');
         }
       } finally {
         setIsLoading(false);
