@@ -1,4 +1,4 @@
-const Groq = require('groq-sdk');
+﻿const Groq = require('groq-sdk');
 
 const MODELS = {
   'llama-3.3-70b-versatile': 'Llama 3.3 70B',
@@ -6,6 +6,11 @@ const MODELS = {
   'mixtral-8x7b-32768': 'Mixtral 8x7B',
 };
 const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+
+function sanitizePromptInput(input) {
+  if (typeof input !== 'string') return '';
+  return input.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 function getGroqClient(apiKey) {
   return new Groq({ apiKey: apiKey || process.env.GROQ_API_KEY || 'missing_key' });
@@ -330,3 +335,22 @@ module.exports = {
   askFollowUpAI,
   analyzeComplexityAI,
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
