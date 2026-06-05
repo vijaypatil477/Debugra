@@ -1,0 +1,219 @@
+/* ── Search & Replace Panel ──────────────────────────────────────────────── */
+
+.sr-panel {
+  position: absolute;
+  top: 8px;
+  right: 16px;
+  z-index: 100;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  min-width: 360px;
+  max-width: calc(100% - 32px);
+}
+
+.sr-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Input wrapper ── */
+.sr-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 6px;
+  gap: 4px;
+  min-width: 0;
+  transition: border-color 0.15s;
+}
+
+.sr-input-wrap:focus-within {
+  border-color: var(--accent);
+}
+
+.sr-input-wrap.sr-error {
+  border-color: var(--red);
+}
+
+.sr-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-0);
+  font-size: 0.8rem;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 5px 0;
+  min-width: 0;
+}
+
+.sr-input::placeholder {
+  color: var(--text-2);
+}
+
+/* ── Match counter ── */
+.sr-match-count {
+  font-size: 0.68rem;
+  color: var(--text-1);
+  white-space: nowrap;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* ── Toggle buttons (Aa / \b / .*) ── */
+.sr-toggles {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.sr-toggle {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--text-1);
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 2px 5px;
+  line-height: 1.4;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+  user-select: none;
+}
+
+.sr-toggle:hover {
+  background: var(--bg-3);
+  color: var(--text-0);
+}
+
+.sr-toggle.active {
+  background: rgba(0, 120, 212, 0.18);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sr-toggle.sr-toggle-error {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* ── Nav buttons (↑ ↓) ── */
+.sr-nav-btns {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.sr-nav-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-1);
+  cursor: pointer;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.sr-nav-btn:hover:not(:disabled) {
+  background: var(--bg-3);
+  color: var(--text-0);
+}
+
+.sr-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── Close button ── */
+.sr-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-1);
+  cursor: pointer;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  border-radius: 3px;
+  flex-shrink: 0;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.sr-close-btn:hover {
+  background: var(--bg-3);
+  color: var(--text-0);
+}
+
+/* ── Replace action buttons ── */
+.sr-action-btns {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sr-action-btn {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-0);
+  cursor: pointer;
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.sr-action-btn:hover:not(:disabled) {
+  background: var(--bg-active);
+}
+
+.sr-action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── Monaco inline decorations ── */
+.sr-match {
+  background-color: rgba(234, 92, 0, 0.25);
+  outline: 1px solid rgba(234, 92, 0, 0.5);
+  border-radius: 2px;
+}
+
+.sr-match-current {
+  background-color: rgba(255, 215, 0, 0.35);
+  outline: 1px solid rgba(255, 215, 0, 0.75);
+  border-radius: 2px;
+}
+
+/* ── Mobile: shrink panel ── */
+@media (max-width: 480px) {
+  .sr-panel {
+    min-width: 0;
+    right: 8px;
+    left: 8px;
+  }
+}

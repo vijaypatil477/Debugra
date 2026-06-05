@@ -431,11 +431,13 @@ export default function LandingPage() {
       {/* ===== NAVBAR ===== */}
       <nav className="landing-nav">
         <div className="landing-nav-left">
-          <img src={theme === 'light' ? "/icon-light.svg" : "/icon-dark.svg"} height="26" alt="Debugra Logo" />
+          <img
+            src={theme === 'light' ? '/icon-light.svg' : '/icon-dark.svg'}
+            height="26"
+            alt="Debugra Logo"
+          />
           <span className="landing-logo">Debugra</span>
-          <span className="landing-version-badge">
-            v1.0
-          </span>
+          <span className="landing-version-badge">v1.0</span>
         </div>
         <div className="landing-nav-right desktop-only">
           <a href="#features" className="landing-nav-link">
@@ -447,7 +449,10 @@ export default function LandingPage() {
           <a href="#faq" className="landing-nav-link">
             FAQ
           </a>
-          <button onClick={() => navigate('/feedback')} className="landing-nav-link nav-link-button">
+          <button
+            onClick={() => navigate('/feedback')}
+            className="landing-nav-link nav-link-button"
+          >
             Feedback
           </button>
           <button onClick={() => setShowLogin(true)} className="landing-btn-outline">
@@ -699,7 +704,7 @@ export default function LandingPage() {
                   <span className="preview-tag">Explain</span>
                   <span
                     className="preview-tag"
-                    style={{ color: '#dcdcaa', borderColor: 'rgba(220,220,170,0.3)' }}
+                    style={{ color: 'var(--warning)', borderColor: 'var(--border)' }}
                   >
                     Fix
                   </span>
@@ -755,7 +760,7 @@ export default function LandingPage() {
                     }}
                   >
                     <div className="preview-success-badge">✓ SUCCESS</div>
-                    <div className="text-light mt-2">[0, 1]</div>
+                    <div className="mt-2">[0, 1]</div>
                     <div className="mt-2" style={{ color: '#6a6a6a', fontSize: '0.68rem' }}>
                       Time: 0.03s
                     </div>
@@ -928,7 +933,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-  {/* <div className="reviews-grid">
+      {/* <div className="reviews-grid">
     {REVIEWS.map((review, index) => (
       <div key={index} className="review-card">
         <div className="review-stars">
@@ -945,68 +950,53 @@ export default function LandingPage() {
       </div>
     ))}
   </div> */}
-  <div className="reviews-carousel">
-  <div className="reviews-track">
-    {[...REVIEWS, ...REVIEWS].map((review, index) => (
-      <div key={index} className="review-card">
-        <div className="review-stars">
-          {'★'.repeat(review.rating)}
+      <div className="reviews-carousel">
+        <div className="reviews-track">
+          {[...REVIEWS, ...REVIEWS].map((review, index) => (
+            <div key={index} className="review-card">
+              <div className="review-stars">{'★'.repeat(review.rating)}</div>
+
+              <p className="review-text">&quot;{review.review}&quot;</p>
+
+              <span className="review-author">— {review.name}</span>
+            </div>
+          ))}
         </div>
-
-        <p className="review-text">
-          &quot;{review.review}&quot;
-        </p>
-
-        <span className="review-author">
-          — {review.name}
-        </span>
       </div>
-    ))}
-  </div>
-</div>
 
-  <div className="feedback-form-card">
-    <h3 style={{ marginBottom: '16px' }}>Share Your Feedback</h3>
+      <div className="feedback-form-card">
+        <h3 style={{ marginBottom: '16px' }}>Share Your Feedback</h3>
 
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        toast.success('Thank you for your feedback!');
-      }}
-    >
-      <input
-        type="text"
-        placeholder="Your Name"
-        className="modal-input"
-        required
-      />
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            toast.success('Thank you for your feedback!');
+          }}
+        >
+          <input type="text" placeholder="Your Name" className="modal-input" required />
 
-      <select className="modal-input" required>
-        <option value="">Select Rating</option>
-        <option value="5">★★★★★ (5)</option>
-        <option value="4">★★★★☆ (4)</option>
-        <option value="3">★★★☆☆ (3)</option>
-        <option value="2">★★☆☆☆ (2)</option>
-        <option value="1">★☆☆☆☆ (1)</option>
-      </select>
+          <select className="modal-input" required>
+            <option value="">Select Rating</option>
+            <option value="5">★★★★★ (5)</option>
+            <option value="4">★★★★☆ (4)</option>
+            <option value="3">★★★☆☆ (3)</option>
+            <option value="2">★★☆☆☆ (2)</option>
+            <option value="1">★☆☆☆☆ (1)</option>
+          </select>
 
-      <textarea
-        placeholder="Tell us about your experience..."
-        className="modal-input"
-        rows="4"
-        required
-      />
+          <textarea
+            placeholder="Tell us about your experience..."
+            className="modal-input"
+            rows="4"
+            required
+          />
 
-      <button
-        type="submit"
-        className="landing-btn-primary"
-        style={{ width: 'fit-content' }}
-      >
-        Submit Feedback
-      </button>
-    </form>
-  </div>
-{/* </section> */}
+          <button type="submit" className="landing-btn-primary" style={{ width: 'fit-content' }}>
+            Submit Feedback
+          </button>
+        </form>
+      </div>
+      {/* </section> */}
       {/* ===== CTA ===== */}
       <section className="landing-cta-section">
         <div className="cta-glow" />
@@ -1052,23 +1042,26 @@ export default function LandingPage() {
       </section>
 
       {/* ===== FOOTER ===== */}
-<footer className="landing-footer">
-  <div className="d-flex align-items-center gap-2 justify-content-center mb-1">
-    <img src={theme === 'light' ? "/icon-light.svg" : "/icon-dark.svg"} height="14" alt="Debugra Logo" />
-    <span className="landing-footer-logo-text">Debugra</span>
-  </div>
+      <footer className="landing-footer">
+        <div className="d-flex align-items-center gap-2 justify-content-center mb-1">
+          <img
+            src={theme === 'light' ? '/icon-light.svg' : '/icon-dark.svg'}
+            height="14"
+            alt="Debugra Logo"
+          />
+          <span className="landing-footer-logo-text">Debugra</span>
+        </div>
 
-  <p style={{ margin: 0, fontSize: '0.72rem', color: '#4a4a6a' }}>
-    © {new Date().getFullYear()} Debugra · Built for Hackathon SVKM 2026 ·{" "}
-    <a
-      href="https://github.com/omkhandare55/Debugra"
-      style={{ color: '#6a6a8a', textDecoration: 'none' }}
-    >
-      GitHub
-    </a>
-  </p>
-</footer>
-
+        <p style={{ margin: 0, fontSize: '0.72rem', color: '#4a4a6a' }}>
+          © {new Date().getFullYear()} Debugra · Built for Hackathon SVKM 2026 ·{' '}
+          <a
+            href="https://github.com/omkhandare55/Debugra"
+            style={{ color: '#6a6a8a', textDecoration: 'none' }}
+          >
+            GitHub
+          </a>
+        </p>
+      </footer>
 
       {/* ===== BACK TO TOP ===== */}
       {showBackToTop && (
@@ -1194,7 +1187,9 @@ export default function LandingPage() {
                   <button
                     type="button"
                     className="password-toggle"
-                    aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                    aria-label={
+                      showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'
+                    }
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
                     {showConfirmPassword ? (

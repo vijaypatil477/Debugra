@@ -526,13 +526,9 @@ export default function AIResponsePanel({
           })}
         </div>
       )}
-     {Array.isArray(response.testCases) && (
-        <TestCasesPanel testCases={response.testCases} />
-      )}
-            {Array.isArray(response.testCases) && (
-        <TestCasesPanel testCases={response.testCases} />
-      )}
-        
+      {Array.isArray(response.testCases) && <TestCasesPanel testCases={response.testCases} />}
+      {Array.isArray(response.testCases) && <TestCasesPanel testCases={response.testCases} />}
+
       {auditFindings && (
         <div style={{ marginBottom: '10px' }}>
           <div

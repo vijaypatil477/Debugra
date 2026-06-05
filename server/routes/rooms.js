@@ -1,47 +1,8 @@
 const express = require('express');
 const crypto = require('crypto');
 const admin = require('firebase-admin'); // already initialised in server/index.js
+const { roomPasswordLimiter } = require('../middleware/rateLimiter');
 const router = express.Router();
-
-// ── In-memory rate limiter for password attempts ─────────────────────────────
-const ATTEMPT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const MAX_ATTEMPTS = 5; // max 5 wrong passwords per window per IP+room
-
-const attemptLog = new Map(); // key: `${ip}:${roomId}` -> [timestamp,...]
-
-function passwordRateLimiter(req, res, next) {
-  const ip = req.ip || req.connection.remoteAddress || 'unknown';
-  const roomId = req.body.roomId || 'unknown';
-  const key = `${ip}:${roomId}`;
-  const now = Date.now();
-
-  const timestamps = (attemptLog.get(key) || []).filter((t) => now - t < ATTEMPT_WINDOW_MS);
-
-  if (timestamps.length >= MAX_ATTEMPTS) {
-    const retryAfterSec = Math.ceil((ATTEMPT_WINDOW_MS - (now - timestamps[0])) / 1000);
-    res.set('Retry-After', String(retryAfterSec));
-    return res.status(429).json({
-      error: `Too many failed attempts. Try again in ${Math.ceil(retryAfterSec / 60)} minute(s).`,
-    });
-  }
-
-  // Attach helper to record a failed attempt
-  req._recordFailedAttempt = () => {
-    timestamps.push(Date.now());
-    attemptLog.set(key, timestamps);
-  };
-
-  // Cleanup stale keys occasionally
-  if (Math.random() < 0.01) {
-    for (const [k, ts] of attemptLog.entries()) {
-      if (ts.every((t) => Date.now() - t >= ATTEMPT_WINDOW_MS)) {
-        attemptLog.delete(k);
-      }
-    }
-  }
-
-  next();
-}
 
 // ── Slow hash comparison using scrypt ────────────────────────────────────────
 /**
@@ -77,12 +38,11 @@ async function verifyPassword(plainPassword, storedSalt, storedHash) {
 /**
  * Verifies a room password server-side.
  * On success: returns a short-lived signed access token (JWT-like HMAC token).
- * On failure: records the attempt for rate limiting.
  *
  * Body: { roomId: string, password: string }
  * Response (200): { accessToken: string, expiresAt: number }
  */
-router.post('/verify-password', passwordRateLimiter, async (req, res) => {
+router.post('/verify-password', roomPasswordLimiter, async (req, res) => {
   const { roomId, password } = req.body;
 
   // ── Basic validation ─────────────────────────────────────────────────────
@@ -103,7 +63,6 @@ router.post('/verify-password', passwordRateLimiter, async (req, res) => {
 
     if (!roomSnap.exists) {
       // Deliberate: same response as wrong password to prevent room enumeration
-      req._recordFailedAttempt?.();
       return res.status(401).json({ error: 'Invalid room or password.' });
     }
 
@@ -126,7 +85,6 @@ router.post('/verify-password', passwordRateLimiter, async (req, res) => {
     const isValid = await verifyPassword(password, passwordSalt, passwordHash);
 
     if (!isValid) {
-      req._recordFailedAttempt?.();
       return res.status(401).json({ error: 'Invalid room or password.' });
     }
 
