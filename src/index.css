@@ -142,26 +142,57 @@
   background: rgba(0, 0, 0, 0.04);
 }
 
-[data-theme='light'] .bento-card {
+[data-theme='light'] .feature-card {
   background: #ffffff;
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.05),
     0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
-[data-theme='light'] .bento-card:hover {
+[data-theme='light'] .feature-card:hover {
   background: #fdfdfd;
+  border-color: rgba(0, 0, 0, 0.16);
 }
 
-[data-theme='light'] .bento-tag {
+[data-theme='light'] .feature-card-tag {
   background: rgba(14, 112, 91, 0.08) !important;
   color: #0e705b !important;
   border: 1px solid rgba(14, 112, 91, 0.15) !important;
 }
 
-[data-theme='light'] .bento-icon {
+[data-theme='light'] .feature-card-icon {
   background: rgba(14, 112, 91, 0.08) !important;
   color: #0e705b !important;
+}
+
+[data-theme='light'] .review-card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='light'] .faq-item {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='light'] .faq-item:hover,
+[data-theme='light'] .faq-item.is-open {
+  background: #fdfdfd;
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+[data-theme='light'] .features-carousel-nav {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  color: var(--text-hi);
+}
+
+[data-theme='light'] .features-carousel-nav:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: rgba(0, 0, 0, 0.16);
 }
 
 [data-theme='light'] .lang-chip {
@@ -1967,6 +1998,18 @@ body {
 
 /* Editor Preview */
 .editor-preview {
+  --bg-0: #1e1e1e;
+  --bg-1: #252526;
+  --bg-2: #2d2d2d;
+  --bg-3: #3c3c3c;
+  --bg-active: #37373d;
+  --border: #404040;
+  --text-0: #d4d4d4;
+  --text-1: #9d9d9d;
+  --text-2: #6a6a6a;
+  --accent: #0078d4;
+  --warning: #dcdcaa;
+
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);

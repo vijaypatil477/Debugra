@@ -704,7 +704,7 @@ export default function LandingPage() {
                   <span className="preview-tag">Explain</span>
                   <span
                     className="preview-tag"
-                    style={{ color: '#dcdcaa', borderColor: 'rgba(220,220,170,0.3)' }}
+                    style={{ color: 'var(--warning)', borderColor: 'var(--border)' }}
                   >
                     Fix
                   </span>
@@ -760,7 +760,7 @@ export default function LandingPage() {
                     }}
                   >
                     <div className="preview-success-badge">✓ SUCCESS</div>
-                    <div className="text-light mt-2">[0, 1]</div>
+                    <div className="mt-2">[0, 1]</div>
                     <div className="mt-2" style={{ color: '#6a6a6a', fontSize: '0.68rem' }}>
                       Time: 0.03s
                     </div>
