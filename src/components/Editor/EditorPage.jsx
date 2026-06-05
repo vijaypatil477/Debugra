@@ -818,7 +818,7 @@ export default function EditorPage({ user }) {
               </button>
               <button
                 className="topbar-link"
-                style={{ background: '#8b5cf6', color: 'white', border: 'none' }}
+                style={{ background: '#6d28d9', color: 'white', border: 'none' }}
                 onClick={() => {
                   setAuthMode('signup');
                   setShowAuth(true);
