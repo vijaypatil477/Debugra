@@ -39,19 +39,22 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
   const inputRef = useRef(null);
   const prevCountRef = useRef(0);
 
+  const isOpenRef = useRef(isOpen);
+  useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
+
   useEffect(() => {
     if (!roomId) return;
     const q = query(collection(db, 'rooms', roomId, 'messages'), orderBy('createdAt', 'asc'));
     return onSnapshot(q, (snap) => {
       const msgs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setMessages(msgs);
-      if (!isOpen && msgs.length > prevCountRef.current) {
+      if (!isOpenRef.current && msgs.length > prevCountRef.current) {
         setUnreadCount((prev) => prev + (msgs.length - prevCountRef.current));
       }
       prevCountRef.current = msgs.length;
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     });
-  }, [roomId, isOpen]);
+  }, [roomId]);
 
   useEffect(() => {
     if (isOpen) {
