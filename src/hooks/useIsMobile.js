@@ -7,7 +7,7 @@ import { MOBILE_BREAKPOINT } from '../config/constants';
  * Automatically updates on window resize.
  */
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
