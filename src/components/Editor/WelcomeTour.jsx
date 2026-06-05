@@ -222,24 +222,15 @@ export default function WelcomeTour({
 
             {/* Navigation */}
             <div className="tour-tooltip-nav">
-              <button
-                className="tour-tooltip-skip"
-                onClick={onSkip}
-              >
+              <button className="tour-tooltip-skip" onClick={onSkip}>
                 Skip Tour
               </button>
               {!isFirstStep && (
-                <button
-                  className="tour-nav-btn tour-nav-btn--back"
-                  onClick={onPrev}
-                >
+                <button className="tour-nav-btn tour-nav-btn--back" onClick={onPrev}>
                   Back
                 </button>
               )}
-              <button
-                className="tour-nav-btn tour-nav-btn--next"
-                onClick={onNext}
-              >
+              <button className="tour-nav-btn tour-nav-btn--next" onClick={onNext}>
                 {isLastStep ? '✦ Finish' : 'Next →'}
               </button>
             </div>
