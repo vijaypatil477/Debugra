@@ -6,6 +6,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth, googleProvider } from '../../services/firebase';
 import toast from 'react-hot-toast';
@@ -300,6 +301,19 @@ export default function LandingPage() {
     }
     setLoading(false);
   };
+  const handleForgotPassword = async () => {
+  if (!email) {
+    toast.error('Please enter your email');
+    return;
+  }
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+    toast.success('Password reset email sent');
+  } catch (err) {
+    toast.error(err.message);
+  }
+};
 
   return (
     <div className="landing-root">
@@ -777,6 +791,17 @@ export default function LandingPage() {
     )}
   </button>
 </div>
+{!isSignUp && (
+  <div className="forgot-password-wrapper">
+    <button
+      type="button"
+      className="forgot-password-btn"
+      onClick={handleForgotPassword}
+    >
+      Forgot Password?
+    </button>
+  </div>
+)}
             </form>
 
             <p className="modal-toggle">
