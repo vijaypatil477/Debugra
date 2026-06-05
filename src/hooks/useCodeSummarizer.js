@@ -1,8 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback } from 'react';
 
 /**
  * useCodeSummarizer
- * Sends code to /api/ai/summarize and parses a structured
+ * Sends code to the existing /api/ai endpoint and parses a structured
  * JSON response with summary, complexity, and step-by-step breakdown.
  */
 export function useCodeSummarizer(apiUrl) {
@@ -15,7 +15,7 @@ export function useCodeSummarizer(apiUrl) {
     async (code, language) => {
       if (!code || !code.trim()) {
         setResult(null);
-        setError("No code to summarize. Write something in the editor first.");
+        setError('No code to summarize. Write something in the editor first.');
         setIsOpen(true);
         return;
       }
@@ -25,12 +25,32 @@ export function useCodeSummarizer(apiUrl) {
       setError(null);
       setResult(null);
 
+      const prompt = `You are a code analysis assistant. Analyze the following ${language} code.
+
+Respond ONLY with a valid JSON object in exactly this format — no markdown, no explanation outside JSON:
+{
+  "summary": "2-3 sentence plain-English explanation of what this code does",
+  "timeComplexity": "O(...)",
+  "spaceComplexity": "O(...)",
+  "steps": [
+    "Step 1: ...",
+    "Step 2: ...",
+    "Step 3: ..."
+  ]
+}
+
+Code to analyze:
+\`\`\`${language}
+${code.slice(0, 3000)}
+\`\`\``;
+
       try {
-        const response = await fetch(`${apiUrl}/api/ai/summarize`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const response = await fetch(`${apiUrl}/api/ai`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            code: code.slice(0, 3000),
+            action: 'summarize',
+            code: prompt,
             language,
           }),
         });
@@ -38,21 +58,28 @@ export function useCodeSummarizer(apiUrl) {
         if (!response.ok) throw new Error(`Server error: ${response.status}`);
 
         const data = await response.json();
-        const parsed = data.content;
+        const rawText = data.result || data.explanation || data.message || '';
 
-        if (!parsed || !parsed.summary) throw new Error("Invalid AI response structure");
+        const cleaned = rawText
+          .replace(/```json\s*/gi, '')
+          .replace(/```\s*/g, '')
+          .trim();
+
+        const parsed = JSON.parse(cleaned);
+
+        if (!parsed.summary) throw new Error('Invalid AI response structure');
 
         setResult({
-          summary: parsed.summary || "No summary available.",
-          timeComplexity: parsed.timeComplexity || "N/A",
-          spaceComplexity: parsed.spaceComplexity || "N/A",
+          summary: parsed.summary || 'No summary available.',
+          timeComplexity: parsed.timeComplexity || 'N/A',
+          spaceComplexity: parsed.spaceComplexity || 'N/A',
           steps: Array.isArray(parsed.steps) ? parsed.steps : [],
         });
       } catch (err) {
         if (err instanceof SyntaxError) {
-          setError("AI returned an unexpected format. Please try again.");
+          setError('AI returned an unexpected format. Please try again.');
         } else {
-          setError(err.message || "Something went wrong. Please try again.");
+          setError(err.message || 'Something went wrong. Please try again.');
         }
       } finally {
         setIsLoading(false);

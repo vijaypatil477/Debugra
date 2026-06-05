@@ -87,4 +87,6 @@ async function executeCode(sourceCode, languageId, stdin = '') {
   }
 }
 
-module.exports = { executeCode };
+const SUPPORTED_LANGUAGE_IDS = new Set(Object.keys(WANDBOX_COMPILERS).map(Number));
+
+module.exports = { executeCode, SUPPORTED_LANGUAGE_IDS };
