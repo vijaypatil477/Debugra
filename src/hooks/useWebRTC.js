@@ -29,6 +29,7 @@ export function useWebRTC(roomId, user) {
   const peersRef = useRef({});
   const streamRef = useRef(null);
   const unsubscribeRef = useRef(null);
+  const signalUnsubscribeRef = useRef(null);
   const heartbeatRef = useRef(null);
   const sweepIntervalRef = useRef(null);
   const sweepTimeoutRef = useRef(null);
@@ -92,7 +93,7 @@ export function useWebRTC(roomId, user) {
         where('createdAt', '>', signalCutoff),
         orderBy('createdAt', 'asc')
       );
-      onSnapshot(q, (snapshot) => {
+      const signalUnsub = onSnapshot(q, (snapshot) => {
         snapshot.docChanges().forEach(async (change) => {
           if (change.type === 'added') {
             const data = change.doc.data();
@@ -107,6 +108,7 @@ export function useWebRTC(roomId, user) {
           }
         });
       });
+      signalUnsubscribeRef.current = signalUnsub;
 
       // Periodic sweep for stale signals left by disconnected peers
       sweepIntervalRef.current = setInterval(async () => {
@@ -199,6 +201,10 @@ export function useWebRTC(roomId, user) {
   const leaveCall = async () => {
     if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     if (unsubscribeRef.current) unsubscribeRef.current();
+    if (signalUnsubscribeRef.current) {
+      signalUnsubscribeRef.current();
+      signalUnsubscribeRef.current = null;
+    }
     if (sweepIntervalRef.current) {
       clearInterval(sweepIntervalRef.current);
       sweepIntervalRef.current = null;

@@ -8,7 +8,7 @@ import {
   EmailAuthProvider,
   signOut,
 } from 'firebase/auth';
-import { doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import toast from 'react-hot-toast';
 
@@ -42,8 +42,24 @@ export default function AccountSettings({ onClose, user }) {
     setLoading(true);
     try {
       // Update display name locally and in profile
-      if (displayName !== user.displayName) {
-        await updateProfile(auth.currentUser, { displayName });
+      if (displayName.trim() !== user.displayName) {
+        if (!displayName.trim()) {
+          toast.error('Please enter a display name');
+          setLoading(false);
+          return;
+        }
+        const q = await getDocs(
+          query(collection(db, 'users'), where('displayNameLower', '==', displayName.trim().toLowerCase()))
+        );
+        if (q && !q.empty) {
+          const hasDuplicateOther = q.docs.some(doc => doc.id !== user.uid);
+          if (hasDuplicateOther) {
+            toast.error('This username is unavailable');
+            setLoading(false);
+            return;
+          }
+        }
+        await updateProfile(auth.currentUser, { displayName: displayName.trim() });
       }
 
       // Update email if changed (requires recent auth)

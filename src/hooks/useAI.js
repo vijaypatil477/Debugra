@@ -76,7 +76,7 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, m
   );
 
   const visualize = useCallback(
-    () => withAI(() => aiVisualizeExecution(code, LANGUAGES[language].name, model)),
+    () => withAI(() => aiVisualizeExecution(code, LANGUAGES[language].name, '', model)),
     [withAI, code, language, model]
   );
 

@@ -1,7 +1,13 @@
 module.exports = (err, req, res, next) => {
-  console.error('❌ Error:', err.message);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+  console.error('❌ Error:', err.stack || err.message);
+  const status = err.status || 500;
+  const isDev = process.env.NODE_ENV === 'development';
+  const message = (status >= 400 && status < 500) || isDev
+    ? (err.message || 'Internal server error')
+    : 'Internal server error';
+
+  res.status(status).json({
+    error: message,
+    ...(isDev && { stack: err.stack }),
   });
 };

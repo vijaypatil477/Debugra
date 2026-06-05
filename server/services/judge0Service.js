@@ -87,4 +87,4 @@ async function executeCode(sourceCode, languageId, stdin = '') {
   }
 }
 
-module.exports = { executeCode };
+module.exports = { executeCode, WANDBOX_COMPILERS };

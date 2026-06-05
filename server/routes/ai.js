@@ -149,7 +149,7 @@ router.post('/ask-followup', validateAiInput, handleCachedRequest(async (body, a
 }));
 
 // Big-O Complexity Analysis
-router.post('/analyze-complexity', handleCachedRequest(async (body, apiKey) => {
+router.post('/analyze-complexity', validateAiInput, handleCachedRequest(async (body, apiKey) => {
   const { code, language } = body;
   return await analyzeComplexityAI(code, language, apiKey);
 }));

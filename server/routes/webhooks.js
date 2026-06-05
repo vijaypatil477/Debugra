@@ -175,7 +175,8 @@ function buildSlackPayload(event, roomId, userName, passwordProtected) {
 router.post(
   '/room-event',
   webhookRateLimiter, // 1. Rate limit first (cheapest check)
-  validateWebhookPayload, // 2. Validate + sanitize input fields
+  verifyWebhookSignature, // 2. Verify webhook HMAC signature
+  validateWebhookPayload, // 3. Validate + sanitize input fields
   async (req, res) => {
     const { event, roomId, userName, passwordProtected = false } = req.body;
 

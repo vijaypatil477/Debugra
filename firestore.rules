@@ -42,7 +42,7 @@ service cloud.firestore {
 
       // Subcollection for collaborative voting
       match /votes/{voteId} {
-        allow read: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.participants;
+        allow read: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.participantIds;
         allow create, update: if request.auth != null;
         allow delete: if request.auth != null 
                       && (

@@ -3,7 +3,7 @@ const router = express.Router();
 const NodeCache = require('node-cache');
 const crypto = require('crypto');
 const { rateLimit } = require('express-rate-limit');
-const { executeCode } = require('../services/judge0Service');
+const { executeCode, WANDBOX_COMPILERS } = require('../services/judge0Service');
 
 const MAX_SOURCE_CODE_LENGTH = 100000;
 const MAX_STDIN_LENGTH = 10000;
@@ -73,8 +73,13 @@ router.post('/', executeLimiter, async (req, res, next) => {
   try {
     const { source_code, language_id, stdin } = req.body;
 
-    if (!source_code || !language_id) {
+    if (!source_code || language_id === undefined || language_id === null) {
       return res.status(400).json({ error: 'source_code and language_id are required' });
+    }
+
+    const langId = Number(language_id);
+    if (!Number.isInteger(langId) || !WANDBOX_COMPILERS[langId]) {
+      return res.status(400).json({ error: 'Invalid or unsupported language_id' });
     }
 
     if (typeof source_code !== 'string' || (stdin !== undefined && typeof stdin !== 'string')) {

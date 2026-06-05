@@ -7,6 +7,11 @@ const MODELS = {
 };
 const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 
+function sanitizePromptInput(input) {
+  if (typeof input !== 'string') return '';
+  return input.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function getGroqClient(apiKey) {
   return new Groq({ apiKey: apiKey || process.env.GROQ_API_KEY || 'missing_key' });
 }
@@ -21,7 +26,34 @@ async function chatCompletion(systemPrompt, userPrompt, apiKey = '', model = DEF
     max_tokens: 2000,response_format: { type: 'json_object' },
   });
 
-  const aiMessage = JSON.parse(response.choices[0].message.content);
+  let aiMessage;
+  const rawContent = response.choices[0].message.content;
+  try {
+    aiMessage = JSON.parse(rawContent);
+  } catch (err) {
+    console.error("Failed to parse Groq response as JSON. Trying fallback extraction.", err);
+    const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/) || rawContent.match(/```\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      try {
+        aiMessage = JSON.parse(jsonMatch[1]);
+      } catch (innerErr) {
+        // Continue to fallback
+      }
+    }
+    if (!aiMessage) {
+      aiMessage = {
+        explanation: rawContent,
+        summary: rawContent,
+        answer: rawContent,
+        issue: "Failed to parse AI response as structured JSON",
+        steps: [rawContent],
+        testCases: [],
+        findings: [],
+        remediationSteps: [],
+        rawContent: rawContent
+      };
+    }
+  }
   const tokenUsage = response.usage;
 
   console.log("Metadata caught: ", tokenUsage);
@@ -53,16 +85,19 @@ async function chatCompletionText(systemPrompt, userPrompt, apiKey = '', model =
 
 // 1. Error Explanation
 async function explainError(code, error, language, apiKey = '', model = DEFAULT_MODEL) {
+  const cleanCode = sanitizePromptInput(code);
+  const cleanError = sanitizePromptInput(error);
+  const cleanLanguage = sanitizePromptInput(language);
   return chatCompletion(
     `You are a coding mentor. Analyze errors and explain them simply. Always respond in valid JSON.`,
-    `The user wrote code in <language>${language}</language> and got this error:
+    `The user wrote code in <language>${cleanLanguage}</language> and got this error:
 
 <code>
-${code}
+${cleanCode}
 </code>
 
 <error>
-${error}
+${cleanError}
 </error>
 
 Respond in this EXACT JSON format:
@@ -79,17 +114,20 @@ Respond in this EXACT JSON format:
 
 // 2. Code Fix
 async function fixCodeAI(code, error, language, apiKey = '', model = DEFAULT_MODEL) {
+  const cleanCode = sanitizePromptInput(code);
+  const cleanError = sanitizePromptInput(error);
+  const cleanLanguage = sanitizePromptInput(language);
   const response = await chatCompletionText(
     `You are a code repair expert. Fix this code while keeping the user's logic intact. Return ONLY the corrected code. Do NOT wrap it in markdown. Do not say "Here is the code". CRITICAL: Do NOT output any <think> tags, do NOT explain your reasoning. Just output the raw code.`,
-    `Fix this <language>${language}</language> code:
+    `Fix this <language>${cleanLanguage}</language> code:
 
 <code>
-${code}
+${cleanCode}
 </code>
 
 Error (if any):
 <error>
-${error || 'No specific error, but optimize and fix any issues.'}
+${cleanError || 'No specific error, but optimize and fix any issues.'}
 </error>`,
     apiKey,
     model
@@ -123,12 +161,14 @@ ${error || 'No specific error, but optimize and fix any issues.'}
 
 // 3. Logic Explanation
 async function explainLogicAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+  const cleanCode = sanitizePromptInput(code);
+  const cleanLanguage = sanitizePromptInput(language);
   return chatCompletion(
     `You are a CS tutor. Explain code step-by-step. Always respond in valid JSON.`,
-    `Explain this <language>${language}</language> code step-by-step:
+    `Explain this <language>${cleanLanguage}</language> code step-by-step:
 
 <code>
-${code}
+${cleanCode}
 </code>
 
 Respond in JSON:
@@ -145,12 +185,14 @@ Respond in JSON:
 
 // 4. Test Case Generation
 async function generateTestsAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+  const cleanCode = sanitizePromptInput(code);
+  const cleanLanguage = sanitizePromptInput(language);
   return chatCompletion(
     `You are a QA engineer. Generate test cases. Always respond in valid JSON.`,
-    `Generate test cases for this <language>${language}</language> function:
+    `Generate test cases for this <language>${cleanLanguage}</language> function:
 
 <code>
-${code}
+${cleanCode}
 </code>
 
 Respond in JSON:
@@ -169,12 +211,14 @@ Respond in JSON:
 
 // 5. Security and refactoring audit
 async function auditCodeAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+  const cleanCode = sanitizePromptInput(code);
+  const cleanLanguage = sanitizePromptInput(language);
   return chatCompletion(
     `You are a senior application security reviewer and refactoring coach. Audit code for exploitable security risks, reliability hazards, memory/resource leaks, and unsafe architecture. Always respond in valid JSON.`,
-    `Audit this <language>${language}</language> code:
+    `Audit this <language>${cleanLanguage}</language> code:
 
 <code>
-${code}
+${cleanCode}
 </code>
 
 Respond in this EXACT JSON format:
@@ -207,16 +251,19 @@ Rules:
 
 // 6. Execution Visualization
 async function visualizeAI(code, language, input = '', apiKey = '',model = DEFAULT_MODEL) {
+  const cleanCode = sanitizePromptInput(code);
+  const cleanLanguage = sanitizePromptInput(language);
+  const cleanInput = sanitizePromptInput(input);
   return chatCompletion(
     `You are a code tracer. Trace through code step by step showing variable states. Always respond in valid JSON.`,
-    `Trace through this <language>${language}</language> code step by step. Show variable states after each line.
+    `Trace through this <language>${cleanLanguage}</language> code step by step. Show variable states after each line.
 
 <code>
-${code}
+${cleanCode}
 </code>
 
-${input ? `<input>
-${input}
+${cleanInput ? `<input>
+${cleanInput}
 </input>` : ''}
 
 Respond in JSON:
@@ -233,12 +280,14 @@ Respond in JSON:
 
 // 7. AI Code Explainer — explains a selected code snippet in plain language
 async function explainCodeSnippetAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+  const cleanCode = sanitizePromptInput(code);
+  const cleanLanguage = sanitizePromptInput(language);
   return chatCompletion(
     `You are an expert programming tutor. When a user highlights a snippet of code, explain what it does in simple, beginner-friendly language. Always respond in valid JSON.`,
-    `Explain this <language>${language}</language> code snippet in simple terms:
+    `Explain this <language>${cleanLanguage}</language> code snippet in simple terms:
 
 <code>
-${code}
+${cleanCode}
 </code>
 
 Respond in this EXACT JSON format:
@@ -255,20 +304,24 @@ Respond in this EXACT JSON format:
 
 // 8. AI Code Explainer — follow-up Q&A on previously explained code
 async function askFollowUpAI(code, language, question, previousExplanation, apiKey = '',model = DEFAULT_MODEL) {
+  const cleanCode = sanitizePromptInput(code);
+  const cleanLanguage = sanitizePromptInput(language);
+  const cleanQuestion = sanitizePromptInput(question);
+  const cleanPrevious = sanitizePromptInput(previousExplanation);
   return chatCompletion(
     `You are an expert programming tutor engaged in an interactive Q&A session. The user previously highlighted code and received an explanation. Now they have a follow-up question. Answer clearly and concisely. Always respond in valid JSON.`,
-    `The user is asking about this <language>${language}</language> code:
+    `The user is asking about this <language>${cleanLanguage}</language> code:
 
 <code>
-${code}
+${cleanCode}
 </code>
 
 <previous_explanation>
-${previousExplanation}
+${cleanPrevious}
 </previous_explanation>
 
 <question>
-${question}
+${cleanQuestion}
 </question>
 
 Respond in this EXACT JSON format:
@@ -283,11 +336,15 @@ Respond in this EXACT JSON format:
 
 // 9. Complexity Analysis — Time & Space Big-O
 async function analyzeComplexityAI(code, language, apiKey = '') {
+  const cleanCode = sanitizePromptInput(code);
+  const cleanLanguage = sanitizePromptInput(language);
   return chatCompletion(
     `You are an expert algorithms professor and competitive programmer. Analyze code for time and space complexity using Big-O notation. Be precise and accurate. Always respond in valid JSON.`,
-    `Analyze the time and space complexity of this ${language} code:
+    `Analyze the time and space complexity of this ${cleanLanguage} code:
 
-${code}
+<code>
+${cleanCode}
+</code>
 
 Respond in this EXACT JSON format:
 {
