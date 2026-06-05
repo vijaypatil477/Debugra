@@ -6,12 +6,15 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Install dependencies (ignoring audit for speed in dev)
-RUN npm install --no-audit --no-fund
+RUN npm install --no-audit --no-fund && chown -R node:node /app
 
 # Don't copy source files here, as they will be mounted via docker-compose
 # for hot-reloading.
 
 EXPOSE 5173
+
+# Switch to non-root user
+USER node
 
 # Start the Vite dev server, binding to all interfaces
 CMD ["npm", "run", "dev", "--", "--host"]
