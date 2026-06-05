@@ -32,6 +32,7 @@ export function useWebRTC(roomId, user) {
   const heartbeatRef = useRef(null);
   const sweepIntervalRef = useRef(null);
   const sweepTimeoutRef = useRef(null);
+  const signalsUnsubscribeRef = useRef(null);
 
   const joinCall = async () => {
     try {
@@ -92,7 +93,7 @@ export function useWebRTC(roomId, user) {
         where('createdAt', '>', signalCutoff),
         orderBy('createdAt', 'asc')
       );
-      onSnapshot(q, (snapshot) => {
+      signalsUnsubscribeRef.current = onSnapshot(q, (snapshot) => {
         snapshot.docChanges().forEach(async (change) => {
           if (change.type === 'added') {
             const data = change.doc.data();
@@ -205,6 +206,10 @@ export function useWebRTC(roomId, user) {
   const leaveCall = async () => {
     if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     if (unsubscribeRef.current) unsubscribeRef.current();
+    if (signalsUnsubscribeRef.current) {
+      signalsUnsubscribeRef.current();
+      signalsUnsubscribeRef.current = null;
+    }
     if (sweepIntervalRef.current) {
       clearInterval(sweepIntervalRef.current);
       sweepIntervalRef.current = null;
