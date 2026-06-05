@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+﻿import { useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
   aiFixCode,
@@ -7,6 +7,7 @@ import {
   aiGenerateTests,
   aiAuditCode,
   aiExplainError,
+  aiAnalyzeComplexity,
 } from '../services/api';
 import { showRateLimitToast } from '../utils/rateLimitToast';
 import { LANGUAGES } from '../utils/languageConfig';
@@ -22,13 +23,17 @@ import { OUTPUT_TABS } from '../config/constants';
  * @param {Function} setActiveOutputTab - to auto-switch to AI tab
  * @param {React.RefObject} editorRef - Monaco editor ref (for selection)
  */
-export function useAI({ language, code, stderr, setActiveOutputTab, editorRef }) {
+export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, model }) {
   const [aiResponse, setAiResponse] = useState(null);
   const [isAILoading, setIsAILoading] = useState(false);
 
-  // ─── Debug Error (inline button on Errors tab) ─────────────────────────────
+  // ─── Debug Error (inline button on Errors tab) ─────────────────────────────────────────────
   const [debugResponse, setDebugResponse] = useState(null);
   const [isDebugLoading, setIsDebugLoading] = useState(false);
+
+  // ─── Complexity Analysis ───────────────────────────────────────────────────────────
+  const [complexityResponse, setComplexityResponse] = useState(null);
+  const [isComplexityLoading, setIsComplexityLoading] = useState(false);
 
   const withAI = useCallback(
     async (action) => {
@@ -53,10 +58,10 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
   const fix = useCallback(
     () =>
       withAI(async () => {
-        const result = await aiFixCode(code, stderr, LANGUAGES[language].name);
+        const result = await aiFixCode(code, stderr, LANGUAGES[language].name, model);
         return result;
       }),
-    [withAI, code, stderr, language]
+    [withAI, code, stderr, language, model]
   );
 
   const explain = useCallback(
@@ -65,24 +70,24 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
         const sel = editorRef?.current?.getSelection();
         const selectedCode =
           sel && !sel.isEmpty() ? editorRef.current.getModel().getValueInRange(sel) : code;
-        return await aiExplainLogic(selectedCode, LANGUAGES[language].name);
+        return await aiExplainLogic(selectedCode, LANGUAGES[language].name, model);
       }),
-    [withAI, code, language, editorRef]
+    [withAI, code, language, editorRef, model]
   );
 
   const visualize = useCallback(
-    () => withAI(() => aiVisualizeExecution(code, LANGUAGES[language].name)),
-    [withAI, code, language]
+    () => withAI(() => aiVisualizeExecution(code, LANGUAGES[language].name, model)),
+    [withAI, code, language, model]
   );
 
   const generateTests = useCallback(
-    () => withAI(() => aiGenerateTests(code, LANGUAGES[language].name)),
-    [withAI, code, language]
+    () => withAI(() => aiGenerateTests(code, LANGUAGES[language].name, model)),
+    [withAI, code, language, model]
   );
 
   const audit = useCallback(
-    () => withAI(() => aiAuditCode(code, LANGUAGES[language].name)),
-    [withAI, code, language]
+    () => withAI(() => aiAuditCode(code, LANGUAGES[language].name, model)),
+    [withAI, code, language, model]
   );
 
   const clearAI = useCallback(() => setAiResponse(null), []);
@@ -103,6 +108,25 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
 
   const clearDebug = useCallback(() => setDebugResponse(null), []);
 
+  const analyzeComplexity = useCallback(async () => {
+    setIsComplexityLoading(true);
+    setComplexityResponse(null);
+    try {
+      const result = await aiAnalyzeComplexity(code, LANGUAGES[language].name);
+      setComplexityResponse(result);
+    } catch (err) {
+      if (err.status === 429) {
+        showRateLimitToast(err.message, err.retryAfter);
+      } else {
+        toast.error(err.message || 'Complexity analysis failed');
+      }
+    } finally {
+      setIsComplexityLoading(false);
+    }
+  }, [code, language]);
+
+  const clearComplexity = useCallback(() => setComplexityResponse(null), []);
+
   return {
     aiResponse,
     isAILoading,
@@ -116,5 +140,10 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef })
     isDebugLoading,
     debugError,
     clearDebug,
+    complexityResponse,
+    isComplexityLoading,
+    analyzeComplexity,
+    clearComplexity,
   };
 }
+

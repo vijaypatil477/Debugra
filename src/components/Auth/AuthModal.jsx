@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -8,17 +8,19 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../../services/firebase';
-import { X, LogIn, UserPlus, Globe } from 'lucide-react';
+import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function AuthModal({ onClose, initialMode = 'login', mode }) {
-  const [isLogin, setIsLogin] = useState(initialMode === 'login');
+  const [isLogin, setIsLogin] = useState((mode || initialMode) === 'login');
+
   // support older callers that pass `mode` prop
   // If `mode` prop is provided, derive initial isLogin from it on first render.
-  if (mode && initialMode !== mode) {
-    // eslint-disable-next-line no-unused-expressions
-    mode === 'login' ? null : null;
-  }
+  useEffect(() => {
+    if (mode) {
+      setIsLogin(mode === 'login');
+    }
+  }, [mode]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');

@@ -1,10 +1,12 @@
 import { useRef, useState, useEffect } from 'react';
+import { createMonacoVimController } from '../../utils/monacoVim';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX } from 'lucide-react';
+import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 
 import {
   useRoom,
@@ -13,10 +15,11 @@ import {
   useEditor,
   useIsMobile,
   useAudioFeedback,
+  useWelcomeTour,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
-import { LANGUAGES } from '../../utils/languageConfig';
+import { LANGUAGES, detectLanguageByFileName } from '../../utils/languageConfig';
 import {
   LANG_FILE_NAMES,
   MOBILE_TABS,
@@ -38,21 +41,46 @@ import EditorStatusBar from './EditorStatusBar';
 import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
+import WelcomeTour from './WelcomeTour';
+import KeyboardShortcutsModal from './KeyboardShortcutsModal';
+import MobileDrawer from './MobileDrawer';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import SearchReplacePanel from './SearchReplacePanel';
+import Loader from '../Loader';
+import ComplexityOverlay from './ComplexityOverlay';
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
   if (isSecureApiKeyStored()) return 'locked';
   return 'empty';
 }
-
+const REVIEWS = [
+  {
+    name: 'Alex',
+    rating: 5,
+    review: 'Excellent debugging platform. The AI explanations are incredibly helpful.',
+  },
+  {
+    name: 'Sarah',
+    rating: 5,
+    review: 'The execution visualizer helped me understand recursion much faster.',
+  },
+  {
+    name: 'John',
+    rating: 4,
+    review: 'Clean interface and smooth collaboration features.',
+  },
+];
 export default function EditorPage({ user }) {
   const isTestRoom =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('testRoom') === '1';
   const navigate = useNavigate();
   const editorRef = useRef(null);
+  const monacoRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const providerRegisteredRef = useRef(false);
 
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
@@ -62,24 +90,33 @@ export default function EditorPage({ user }) {
   const [chatOpen, setChatOpen] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [apiKeyStatus, setApiKeyStatus] = useState(getApiKeyStatus);
   const [mobileTab, setMobileTab] = useState(MOBILE_TABS.CODE);
   const [showJoin, setShowJoin] = useState(false);
   const [joinId, setJoinId] = useState('');
   const [joinPassword, setJoinPassword] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
+  const [isOutputCollapsed, setIsOutputCollapsed] = useState(false);
   const [outputWidth, setOutputWidth] = useState(420);
   const [minimapSide, setMinimapSide] = useState('right');
-  const [showMinimap, setShowMinimap] = useState(true); // ✅ CHANGE 1: Added showMinimap state
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
-  const [blurIntensity, setBlurIntensity] = useState(10); //Adds State for wallpaper blur
+  const [blurIntensity, setBlurIntensity] = useState(10);
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [showSearchReplace, setShowSearchReplace] = useState(false);
+  const [consoleCollapsed, setConsoleCollapsed] = useState(false);
+  const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const resizingRef = useRef(false);
+  const toggleConsoleCollapsed = () => {
+    setConsoleCollapsed((prev) => !prev);
+  };
 
   const isMobile = useIsMobile();
   const audioFeedback = useAudioFeedback();
+  const tour = useWelcomeTour();
 
   // ─── Editor Logic ──────────────────────────────────────────────────────────
   const handleCopyOutput = async () => {
@@ -100,6 +137,40 @@ export default function EditorPage({ user }) {
     }
   };
 
+  const handleFileImport = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File is too large (max 5MB)');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target.result;
+      const detectedLang = detectLanguageByFileName(file.name);
+
+      editor.loadCode(content, detectedLang);
+
+      if (detectedLang) {
+        toast.success(`Imported ${file.name} (detected ${LANGUAGES[detectedLang].name})`);
+      } else {
+        toast.success(`Imported ${file.name} as text`);
+      }
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    };
+
+    reader.onerror = () => {
+      toast.error('Failed to read file');
+    };
+
+    reader.readAsText(file);
+  };
+
   const editor = useEditor({
     user,
     onNeedAuth: () => {
@@ -107,6 +178,29 @@ export default function EditorPage({ user }) {
       setShowAuth(true);
     },
   });
+  const showMinimap = editor.minimapEnabled;
+
+  const vimEnabled = editor.vimEnabled;
+  const setVimEnabled = editor.setVimEnabled;
+
+  const { theme: globalTheme, toggleTheme: toggleGlobalTheme } = useTheme();
+
+  // Synchronize Monaco editor theme with global light/dark theme toggle
+  useEffect(() => {
+    if (globalTheme === 'light') {
+      if (editor.theme !== 'vs') {
+        editor.setTheme('vs');
+      }
+    } else {
+      if (editor.theme === 'vs') {
+        editor.setTheme('debugra-dark');
+      }
+    }
+  }, [globalTheme, editor.theme, editor.setTheme]);
+
+  const tabSizeRef = useRef(editor.tabSize);
+  const vimControllerRef = useRef(null);
+  const [vimMode, setVimMode] = useState('NORMAL');
 
   // ─── Room/Collaboration Logic ──────────────────────────────────────────────
   const room = useRoom({
@@ -139,6 +233,10 @@ export default function EditorPage({ user }) {
     ensureEditorFontLoaded(editor.fontFamily);
   }, [editor.fontFamily]);
 
+  useEffect(() => {
+    tabSizeRef.current = editor.tabSize;
+  }, [editor.tabSize]);
+
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
     language: editor.language,
@@ -146,575 +244,215 @@ export default function EditorPage({ user }) {
     stderr: execution.stderr,
     setActiveOutputTab: execution.setActiveOutputTab,
     editorRef,
+    monacoRef,
+    user,
+    selectedModel,
+    room,
   });
 
-  // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
-    if (!window.__MONACO_SNIPPETS_REGISTERED__) {
+    monacoRef.current = monaco;
+    if (!providerRegisteredRef.current) {
       registerSnippets(monaco);
-      window.__MONACO_SNIPPETS_REGISTERED__ = true;
+      providerRegisteredRef.current = true;
     }
 
     monaco.editor.defineTheme('debugra-dark', {
       base: 'vs-dark',
       inherit: true,
       rules: [
-        { token: 'comment', foreground: '6a9955', fontStyle: 'italic' },
+        { token: 'comment', foreground: '6a9955' },
         { token: 'keyword', foreground: '569cd6' },
         { token: 'string', foreground: 'ce9178' },
-        { token: 'number', foreground: 'b5cea8' },
-        { token: 'type', foreground: '4ec9b0' },
-        { token: 'function', foreground: 'dcdcaa' },
-        { token: 'operator', foreground: 'd4d4d4' },
       ],
       colors: {
-        'editor.background': '#1e1e1e',
-        'editor.foreground': '#d4d4d4',
-        'editor.lineHighlightBackground': '#2a2d2e',
-        'editor.selectionBackground': '#264f78',
-        'editorCursor.foreground': '#d4d4d4',
-        'editorLineNumber.foreground': '#858585',
-        'editorLineNumber.activeForeground': '#c6c6c6',
-        'editorIndentGuide.background1': '#3b3b3b',
-        'editorIndentGuide.activeBackground1': '#4ec9b0',
-        'editorBracketHighlight.foreground1': '#4ec9b0',
-        'editorBracketHighlight.foreground2': '#dcdcaa',
-        'editorBracketHighlight.foreground3': '#ce9178',
-        'editorBracketHighlight.foreground4': '#569cd6',
-        'editorBracketHighlight.foreground5': '#c586c0',
-        'editorBracketHighlight.foreground6': '#b5cea8',
-        'editorBracketMatch.background': '#4ec9b033',
-        'editorBracketMatch.border': '#4ec9b0',
-      },
-    });
-
-    monaco.editor.defineTheme('dracula', {
-      base: 'vs-dark',
-      inherit: true,
-      rules: [
-        { token: 'comment', foreground: '6272a4', fontStyle: 'italic' },
-        { token: 'keyword', foreground: 'ff79c6' },
-        { token: 'string', foreground: 'f1fa8c' },
-        { token: 'number', foreground: 'bd93f9' },
-        { token: 'type', foreground: '8be9fd' },
-        { token: 'function', foreground: '50fa7b' },
-        { token: 'variable', foreground: 'f8f8f2' },
-        { token: 'operator', foreground: 'ff79c6' },
-      ],
-      colors: {
-        'editor.background': '#282a36',
-        'editor.foreground': '#f8f8f2',
-        'editor.lineHighlightBackground': '#44475a',
-        'editor.selectionBackground': '#44475a80',
-        'editorCursor.foreground': '#f8f8f2',
-        'editorLineNumber.foreground': '#6272a4',
-        'editorLineNumber.activeForeground': '#f8f8f2',
-        'editorIndentGuide.background1': '#44475a80',
-        'editorIndentGuide.activeBackground1': '#8be9fd',
-        'editorBracketHighlight.foreground1': '#8be9fd',
-        'editorBracketHighlight.foreground2': '#50fa7b',
-        'editorBracketHighlight.foreground3': '#f1fa8c',
-        'editorBracketHighlight.foreground4': '#ff79c6',
-        'editorBracketHighlight.foreground5': '#bd93f9',
-        'editorBracketHighlight.foreground6': '#ffb86c',
-        'editorBracketMatch.background': '#bd93f933',
-        'editorBracketMatch.border': '#bd93f9',
-      },
-    });
-
-    monaco.editor.defineTheme('monokai', {
-      base: 'vs-dark',
-      inherit: true,
-      rules: [
-        { token: 'comment', foreground: '75715e', fontStyle: 'italic' },
-        { token: 'keyword', foreground: 'f92672' },
-        { token: 'string', foreground: 'e6db74' },
-        { token: 'number', foreground: 'ae81ff' },
-        { token: 'type', foreground: '66d9ef' },
-        { token: 'function', foreground: 'a6e22e' },
-        { token: 'variable', foreground: 'f8f8f2' },
-        { token: 'operator', foreground: 'f92672' },
-      ],
-      colors: {
-        'editor.background': '#272822',
-        'editor.foreground': '#f8f8f2',
-        'editor.lineHighlightBackground': '#3e3d32',
-        'editor.selectionBackground': '#49483e',
-        'editorCursor.foreground': '#f8f8f2',
-        'editorLineNumber.foreground': '#75715e',
-        'editorLineNumber.activeForeground': '#f8f8f2',
-        'editorIndentGuide.background1': '#49483e',
-        'editorIndentGuide.activeBackground1': '#66d9ef',
-        'editorBracketHighlight.foreground1': '#66d9ef',
-        'editorBracketHighlight.foreground2': '#a6e22e',
-        'editorBracketHighlight.foreground3': '#e6db74',
-        'editorBracketHighlight.foreground4': '#f92672',
-        'editorBracketHighlight.foreground5': '#ae81ff',
-        'editorBracketHighlight.foreground6': '#fd971f',
-        'editorBracketMatch.background': '#a6e22e33',
-        'editorBracketMatch.border': '#a6e22e',
+        'editor.background': '#1e1e1e00',
+        'editor.lineHighlightBackground': '#ffffff05',
+        'editorCursor.foreground': '#00bcd4',
+        'editorIndentGuide.background': '#ffffff10',
+        'editorIndentGuide.activeBackground': '#ffffff20',
       },
     });
   };
 
-  const handleEditorMount = (editorInstance) => {
+  const handleEditorMount = (editorInstance, monaco) => {
     editorRef.current = editorInstance;
-    editorInstance.onDidChangeCursorPosition((e) => {
-      editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
+
+    editorInstance.onDidBlurEditorText(() => {
+      editor.setCursorPos(editorInstance.getPosition());
     });
-    // Ctrl+Enter → Run
-    editorInstance.addCommand(2048 | 3, () => {
+
+    editorInstance.onDidChangeCursorPosition((e) => {
+      editor.setCursorPos(e.position);
+    });
+
+    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
       if (executionRunRef.current) executionRunRef.current();
     });
+
+    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, () => {
+      setShowSearchReplace(true);
+    });
+
+    if (vimEnabled) {
+      vimControllerRef.current = createMonacoVimController(editorInstance, setVimMode);
+    }
   };
 
-  // ─── Output Pane Resize ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (vimEnabled && editorRef.current && !vimControllerRef.current) {
+      vimControllerRef.current = createMonacoVimController(editorRef.current, setVimMode);
+    } else if (!vimEnabled && vimControllerRef.current) {
+      vimControllerRef.current.dispose();
+      vimControllerRef.current = null;
+    }
+  }, [vimEnabled]);
+
   const handleResizeStart = (e) => {
-    e.preventDefault();
     resizingRef.current = true;
-    const startX = e.clientX;
-    const startW = outputWidth;
-    const onMove = (ev) => {
-      if (!resizingRef.current) return;
-      setOutputWidth(Math.max(260, Math.min(800, startW + (startX - ev.clientX))));
-    };
-    const onUp = () => {
-      resizingRef.current = false;
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+    document.body.style.cursor = 'col-resize';
   };
 
-  const langConfig = LANGUAGES[editor.language];
-  const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
+  const handleResizeMove = (e) => {
+    if (!resizingRef.current) return;
+    const newWidth = window.innerWidth - e.clientX;
+    if (newWidth > 260 && newWidth < window.innerWidth * 0.6) {
+      setOutputWidth(newWidth);
+    }
+  };
+
+  const handleResizeEnd = () => {
+    resizingRef.current = false;
+    document.removeEventListener('mousemove', handleResizeMove);
+    document.removeEventListener('mouseup', handleResizeEnd);
+    document.body.style.cursor = 'default';
+
+    if (monacoRef.current) {
+      editorRef.current?.layout();
+    }
+  };
+
+  const editorFileName = LANG_FILE_NAMES[editor.language] || 'script.txt';
+  const langConfig = LANGUAGES[editor.language] || LANGUAGES.javascript;
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      navigate('/');
+      toast.success('Signed out successfully');
+    } catch (err) {
+      toast.error('Failed to sign out');
+    }
+  };
 
   return (
-    <div
-      style={{
-        height: '100dvh',
-        display: 'flex',
-        flexDirection: 'column',
-        '--blur-intensity': `${blurIntensity}px`,
-      }}
-    >
-      {/* ===== TOP BAR ===== */}
-      <div className="topbar px-2 px-md-3">
-        <div className="topbar-left d-flex align-items-center">
+    <div className={`editor-page theme-${globalTheme}`}>
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+        onChange={handleFileImport}
+        accept=".js,.jsx,.ts,.tsx,.py,.py3,.cpp,.c,.h,.java,.java17,.go,.rs,.rb,.php,.php8,.html,.css,.json,.md"
+      />
+      {/* ===== TOOLBAR ===== */}
+      <div className="editor-toolbar glass-panel">
+        <div className="toolbar-left">
           <button
-            onClick={() => navigate('/')}
-            className="topbar-logo d-flex align-items-center gap-2"
+            className="menu-btn d-lg-none"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open menu"
           >
-            <img src="/icon-dark.svg" height="20" alt="Debugra Logo" />
-            <span className="d-none d-sm-inline">Debugra</span>
+            <Menu size={18} />
           </button>
-          <div className="topbar-sep mx-2 d-none d-md-block" />
-          <span className="topbar-title d-none d-md-block">Code Editor</span>
-          {(room.roomId || isTestRoom) && (
-            <>
-              <div className="topbar-sep mx-2 d-none d-sm-block" />
-              <span className="topbar-title text-success d-none d-sm-inline">
-                ✦ Room: {room.roomId}
-                <span className="d-none d-lg-inline"> ({room.activeUsers.length} online)</span>
-              </span>
-              <button
-                className="topbar-link ms-2"
-                onClick={() => {
-                  navigator.clipboard.writeText(room.roomId);
-                  toast.success('Copied!');
-                }}
-              >
-                <span className="d-none d-sm-inline">Copy ID</span>
-                <span className="d-inline d-sm-none">ID</span>
-              </button>
-              <button
-                className="topbar-link ms-2"
-                onClick={() => setShowVideoCall(!showVideoCall)}
-                style={{
-                  background: showVideoCall
-                    ? 'rgba(239, 68, 68, 0.15)'
-                    : 'rgba(139, 92, 246, 0.15)',
-                  color: showVideoCall ? '#ff6b6b' : '#a78bfa',
-                  border: showVideoCall
-                    ? '1px solid rgba(239, 68, 68, 0.3)'
-                    : '1px solid rgba(139, 92, 246, 0.3)',
-                  padding: '3px 10px',
-                  borderRadius: '6px',
-                  fontWeight: 600,
-                  transition: 'all 0.2s',
-                }}
-              >
-                📹 {showVideoCall ? 'Leave Call' : 'Join Call'}
-              </button>
-              <button
-                className="topbar-link ms-2"
-                onClick={() => setShowVoiceCall((s) => !s)}
-                style={{
-                  background: showVoiceCall ? 'rgba(34,197,94,0.12)' : 'rgba(99,102,241,0.06)',
-                  color: showVoiceCall ? '#16a34a' : '#4f46e5',
-                  border: showVoiceCall
-                    ? '1px solid rgba(16,185,129,0.2)'
-                    : '1px solid rgba(99,102,241,0.12)',
-                  padding: '3px 10px',
-                  borderRadius: '6px',
-                  fontWeight: 600,
-                  transition: 'all 0.18s',
-                }}
-              >
-                🔊 {showVoiceCall ? 'Leave Voice' : 'Join Voice'}
-              </button>
-            </>
-          )}
+          <div className="brand" onClick={() => navigate('/')}>
+            <div className="logo-icon">D</div>
+            <span className="logo-text d-none d-sm-inline">Debugra</span>
+          </div>
+
+          <div className="toolbar-divider d-none d-lg-block" />
+
+          {/* Model Selector */}
+          <div className="model-selector d-none d-lg-flex">
+            <i className="bi bi-cpu" />
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              aria-label="Select AI Model"
+            >
+              <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+              <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+              <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+              <option value="gemma2-9b-it">Gemma 2 9B</option>
+            </select>
+          </div>
+
+          <div className="toolbar-divider d-none d-lg-block" />
+
+          {/* Language Selector */}
+          <div className="lang-selector d-none d-sm-flex">
+            <FileIcon filename={editorFileName} size={14} />
+            <select
+              value={editor.language}
+              onChange={(e) => editor.setLanguage(e.target.value)}
+              disabled={room.isReadOnly}
+              aria-label="Select Programming Language"
+            >
+              {Object.entries(LANGUAGES).map(([id, lang]) => (
+                <option key={id} value={id}>
+                  {lang.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="topbar-right d-flex align-items-center gap-2">
-          {!(room.roomId || isTestRoom) && (
-            <div className="room-controls d-flex align-items-center gap-2">
-              <button
-                className="topbar-link"
-                onClick={async () => {
-                  if (!user) {
-                    setAuthMode('login');
-                    setShowAuth(true);
-                    return;
-                  }
-                  const created = await room.createRoom(roomPassword);
-                  if (created) setRoomPassword('');
-                }}
-              >
-                + New Room
-              </button>
-              <input
-                value={roomPassword}
-                onChange={(e) => setRoomPassword(e.target.value)}
-                placeholder="Optional password"
-                className="topbar-input topbar-password-input"
-                type="password"
-              />
-              {showJoin ? (
-                <>
-                  <input
-                    value={joinId}
-                    onChange={(e) => setJoinId(e.target.value)}
-                    onKeyDown={(e) =>
-                      e.key === 'Enter' &&
-                      room
-                        .joinRoom(joinId, joinPassword)
-                        .then(
-                          (ok) => ok && (setShowJoin(false), setJoinId(''), setJoinPassword(''))
-                        )
-                    }
-                    placeholder="Room ID"
-                    className="topbar-input"
-                    autoFocus
-                  />
-                  <input
-                    value={joinPassword}
-                    onChange={(e) => setJoinPassword(e.target.value)}
-                    onKeyDown={(e) =>
-                      e.key === 'Enter' &&
-                      room
-                        .joinRoom(joinId, joinPassword)
-                        .then(
-                          (ok) => ok && (setShowJoin(false), setJoinId(''), setJoinPassword(''))
-                        )
-                    }
-                    placeholder="Passcode"
-                    className="topbar-input topbar-password-input"
-                    type="password"
-                  />
-                  <button
-                    className="topbar-link"
-                    onClick={() =>
-                      room
-                        .joinRoom(joinId, joinPassword)
-                        .then(
-                          (ok) => ok && (setShowJoin(false), setJoinId(''), setJoinPassword(''))
-                        )
-                    }
-                  >
-                    Join
-                  </button>
-                  <button className="topbar-link" onClick={() => setShowJoin(false)}>
-                    ✕
-                  </button>
-                </>
+        <div className="toolbar-right">
+          <div className="toolbar-actions">
+            <button
+              className="toolbar-icon-btn d-none d-md-flex"
+              onClick={() => setShowHistory(true)}
+              title="History"
+            >
+              <i className="bi bi-clock-history" />
+            </button>
+            <button
+              className={`toolbar-icon-btn d-none d-md-flex ${chatOpen ? 'active' : ''}`}
+              onClick={() => setChatOpen(!chatOpen)}
+              title="Chat"
+            >
+              <i className="bi bi-chat-dots" />
+            </button>
+            <button
+              className={`toolbar-icon-btn ${apiKeyStatus !== 'empty' ? 'active' : ''}`}
+              onClick={() => setShowApiKey(true)}
+              title="AI API Key"
+            >
+              <i className={`bi bi-key${apiKeyStatus === 'locked' ? '' : '-fill'}`} />
+            </button>
+            <div className="toolbar-divider" />
+            <div className="user-profile">
+              {user ? (
+                <div className="user-avatar-wrap" onClick={() => setShowAccount(true)}>
+                  {user.photoURL ? (
+                    <img src={user.photoURL} alt={user.displayName} className="user-avatar" />
+                  ) : (
+                    <div className="user-avatar-placeholder">
+                      {(user.displayName || user.email || '?')[0].toUpperCase()}
+                    </div>
+                  )}
+                </div>
               ) : (
-                <button
-                  className="topbar-link"
-                  onClick={() => {
-                    if (!user) {
-                      setAuthMode('login');
-                      setShowAuth(true);
-                      return;
-                    }
-                    setShowJoin(true);
-                  }}
-                >
-                  Join Room
+                <button className="login-btn" onClick={() => setShowAuth(true)}>
+                  Sign In
                 </button>
               )}
             </div>
-          )}
-          {user ? (
-            <div className="d-flex align-items-center gap-2">
-              <button
-                className="topbar-link"
-                onClick={() => {
-                  signOut(auth);
-                  toast.success('Logged out');
-                }}
-              >
-                Log Out
-              </button>
-              <button
-                className="topbar-link"
-                onClick={() => setShowAccount(true)}
-                title="Account settings"
-              >
-                Account
-              </button>
-              <div className="user-avatar">{user.displayName?.[0]?.toUpperCase() || '?'}</div>
-              <span
-                className="d-none d-md-inline"
-                style={{ fontSize: '0.7rem', color: 'var(--text-1)' }}
-              >
-                {user.displayName || user.email?.split('@')[0]}
-              </span>
-            </div>
-          ) : (
-            <div className="d-flex gap-2">
-              <button
-                className="topbar-link"
-                onClick={() => {
-                  setAuthMode('login');
-                  setShowAuth(true);
-                }}
-              >
-                Sign In
-              </button>
-              <button
-                className="topbar-link"
-                style={{ background: '#8b5cf6', color: 'white', border: 'none' }}
-                onClick={() => {
-                  setAuthMode('signup');
-                  setShowAuth(true);
-                }}
-              >
-                Sign Up
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* ===== TOOLBAR ===== */}
-      <div className="toolbar px-2 py-1">
-        <div className="toolbar-left d-flex align-items-center gap-2">
-          <select
-            className="lang-select"
-            value={editor.language}
-            onChange={(e) => editor.changeLanguage(e.target.value)}
-            disabled={room.isReadOnly}
-          >
-            {Object.entries(LANGUAGES).map(([key, lang]) => (
-              <option key={key} value={key}>
-                {lang.name}
-              </option>
-            ))}
-          </select>
-          <select
-            className="lang-select d-none d-sm-block"
-            value={editor.theme}
-            onChange={(e) => editor.setTheme(e.target.value)}
-            aria-label="Editor theme"
-          >
-            {EDITOR_THEMES.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-          <div className="font-size-ctrl d-none d-sm-flex align-items-center gap-1">
-            <button onClick={editor.decreaseFontSize}>−</button>
-            <span>{editor.fontSize}px</span>
-            <button onClick={editor.increaseFontSize}>+</button>
-          </div>
-          <div
-            className="minimap-side-ctrl d-none d-md-flex align-items-center gap-1"
-            aria-label="Minimap position"
-          >
-            <span>Minimap</span>
-            <button
-              type="button"
-              className={minimapSide === 'left' ? 'active' : ''}
-              aria-pressed={minimapSide === 'left'}
-              onClick={() => setMinimapSide('left')}
-            >
-              Left
-            </button>
-            <button
-              type="button"
-              className={minimapSide === 'right' ? 'active' : ''}
-              aria-pressed={minimapSide === 'right'}
-              onClick={() => setMinimapSide('right')}
-            >
-              Right
-            </button>
-            {/* ✅ CHANGE 2: Added Show/Hide toggle button for minimap */}
-            <button
-              type="button"
-              className={showMinimap ? 'active' : ''}
-              aria-pressed={showMinimap}
-              onClick={() => setShowMinimap(!showMinimap)}
-              title="Toggle minimap visibility"
-            >
-              {showMinimap ? 'Hide' : 'Show'}
-            </button>
-          </div>
-        </div>
-        <div className="toolbar-right d-flex align-items-center gap-2">
-          <div className="d-none d-md-flex align-items-center gap-2">
-            <button
-              className={`ai-btn api-key-toggle ${apiKeyStatus}`}
-              onClick={() => setShowApiKey(true)}
-              title="Groq API key settings"
-            >
-              Key
-            </button>
-            <button
-              className="ai-btn"
-              onClick={ai.generateTests}
-              disabled={ai.isAILoading || room.isReadOnly}
-            >
-              Tests
-            </button>
-            <button className="ai-btn" onClick={ai.audit} disabled={ai.isAILoading}>
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                <path d="M9 12l2 2 4-5" />
-              </svg>
-              Audit
-            </button>
-            <button className="ai-btn" onClick={ai.visualize} disabled={ai.isAILoading}>
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="2" y1="12" x2="22" y2="12" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-              Visualize
-            </button>
-            <button className="ai-btn" onClick={ai.explain} disabled={ai.isAILoading}>
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-              </svg>
-              Explain
-            </button>
-          </div>
-          <button
-            className="ai-btn fix"
-            onClick={ai.fix}
-            disabled={ai.isAILoading || room.isReadOnly}
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-            </svg>
-            Fix
-          </button>
-          <div className="d-flex align-items-center gap-1">
-            <button
-              className="toolbar-icon-btn"
-              aria-label="Download Code"
-              onClick={editor.downloadCode}
-              title="Download"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-            </button>
-            <button
-              className="toolbar-icon-btn"
-              aria-label="Save to Cloud"
-              onClick={editor.saveToCloud}
-              title="Save to cloud"
-              disabled={room.isReadOnly}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                <polyline points="17 21 17 13 7 13 7 21" />
-                <polyline points="7 3 7 8 15 8" />
-              </svg>
-            </button>
-            {user && (
-              <button
-                className="toolbar-icon-btn"
-                aria-label="Toggle History"
-                onClick={() => setShowHistory(!showHistory)}
-                title="History"
-                style={
-                  showHistory ? { background: 'var(--bg-active)', color: 'var(--accent)' } : {}
-                }
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-              </button>
-            )}
-            <div className="audio-settings-wrap">
+            <div className="toolbar-divider" />
+
+            <div style={{ position: 'relative' }}>
               <button
                 className="toolbar-icon-btn"
                 aria-label="Open Settings"
@@ -727,117 +465,6 @@ export default function EditorPage({ user }) {
               >
                 <Settings size={14} />
               </button>
-              {showSettings && (
-                <div
-                  className="audio-settings-popover custom-layout-popover"
-                  role="dialog"
-                  aria-label="Settings"
-                >
-                  <div className="audio-settings-head">
-                    <span>Settings</span>
-                    <button
-                      className="history-action-btn"
-                      aria-label="Close Settings"
-                      onClick={() => setShowSettings(false)}
-                    >
-                      <i className="bi bi-x" />
-                    </button>
-                  </div>
-                  <div className="audio-settings-row">
-                    <div className="audio-settings-label">
-                      <i className="bi bi-type" style={{ fontSize: '14px' }} />
-                      <span>Editor font</span>
-                    </div>
-                    <select
-                      className="lang-select"
-                      value={editor.fontFamily}
-                      onChange={(e) => editor.setFontFamily(e.target.value)}
-                      aria-label="Editor font"
-                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
-                    >
-                      {EDITOR_FONTS.map((font) => (
-                        <option key={font.id} value={font.id}>
-                          {font.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="audio-settings-row">
-                    <div className="audio-settings-label">
-                      <i className="bi bi-palette" style={{ fontSize: '14px' }} />
-                      <span>Theme</span>
-                    </div>
-                    <select
-                      className="lang-select"
-                      value={editor.theme}
-                      onChange={(e) => editor.setTheme(e.target.value)}
-                      aria-label="Editor theme"
-                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
-                    >
-                      {EDITOR_THEMES.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {/* ===== WALLPAPER BLUR SETTING ROW ===== */}
-                  <div className="audio-settings-row" style={{ marginTop: '12px' }}>
-                    <div className="audio-settings-label">
-                      <i className="bi bi-sliders" style={{ fontSize: '14px' }} />
-                      <span>Wallpaper Blur</span>
-                    </div>
-                    <div
-                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}
-                    >
-                      <input
-                        type="range"
-                        min="0"
-                        max="30"
-                        step="1"
-                        value={blurIntensity}
-                        onChange={(e) => setBlurIntensity(Number(e.target.value))}
-                        style={{ flex: 1, accentColor: '#00bcd4' }}
-                      />
-                      <span style={{ fontSize: '12px', minWidth: '30px', textAlign: 'right' }}>
-                        {blurIntensity}px
-                      </span>
-                    </div>
-                  </div>
-                  <div className="audio-settings-row">
-                    <div className="audio-settings-label">
-                      {audioFeedback.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-                      <span>Audio feedback</span>
-                    </div>
-                    <button
-                      className={`audio-toggle ${audioFeedback.muted ? '' : 'active'}`}
-                      aria-pressed={!audioFeedback.muted}
-                      onClick={() => audioFeedback.setMuted(!audioFeedback.muted)}
-                    >
-                      {audioFeedback.muted ? 'Muted' : 'On'}
-                    </button>
-                  </div>
-                  <label className="audio-settings-slider">
-                    <span>Volume</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={audioFeedback.volume}
-                      onChange={(e) => audioFeedback.setVolume(e.target.value)}
-                    />
-                    <span>{Math.round(audioFeedback.volume * 100)}%</span>
-                  </label>
-                  <button
-                    className="audio-test-btn"
-                    onClick={audioFeedback.testSound}
-                    disabled={audioFeedback.muted}
-                  >
-                    Test chime
-                  </button>
-                </div>
-              )}
             </div>
           </div>
           <span className="kbd-hint d-none d-lg-inline">Ctrl+Enter</span>
@@ -872,7 +499,125 @@ export default function EditorPage({ user }) {
         </div>
       </div>
 
+      {showSettings && (
+        <div className="settings-modal-backdrop" onClick={() => setShowSettings(false)}>
+          <div className="settings-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="audio-settings-head">
+              <span>Editor Settings</span>
+              <button
+                className="history-action-btn"
+                aria-label="Close Settings"
+                onClick={() => setShowSettings(false)}
+              >
+                <i className="bi bi-x" />
+              </button>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="font-select">
+                <span>Editor font</span>
+              </label>
+              <select
+                id="font-select"
+                aria-label="Editor font"
+                className="lang-select"
+                value={editor.fontFamily}
+                onChange={(event) => editor.setFontFamily(event.target.value)}
+              >
+                {EDITOR_FONTS.map((font) => (
+                  <option key={font.id} value={font.id}>
+                    {font.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="tab-size-select">
+                <span>Tab size</span>
+              </label>
+              <select
+                id="tab-size-select"
+                aria-label="Tab size"
+                className="lang-select"
+                value={editor.tabSize}
+                onChange={(event) => editor.setTabSize(event.target.value)}
+              >
+                <option value="2">2</option>
+                <option value="4">4</option>
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="minimap-select">
+                <span>Minimap</span>
+              </label>
+              <select
+                id="minimap-select"
+                aria-label="Minimap"
+                className="lang-select"
+                value={editor.minimapEnabled ? 'enabled' : 'disabled'}
+                onChange={(event) => editor.setMinimapEnabled(event.target.value === 'enabled')}
+              >
+                <option value="enabled">enabled</option>
+                <option value="disabled">disabled</option>
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="ruler-select">
+                <span>Vertical ruler</span>
+              </label>
+              <select
+                id="ruler-select"
+                aria-label="Vertical ruler"
+                className="lang-select"
+                value={editor.rulerColumn}
+                onChange={(event) => editor.setRulerColumn(event.target.value)}
+              >
+                <option value="80">80</option>
+                <option value="120">120</option>
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="autosave-select">
+                <span>Autosave interval</span>
+              </label>
+              <select
+                id="autosave-select"
+                aria-label="Autosave interval"
+                className="lang-select"
+                value={editor.autosaveInterval}
+                onChange={(event) => editor.setAutosaveInterval(event.target.value)}
+              >
+                <option value="0">off</option>
+                <option value="5000">5000</option>
+                <option value="10000">10000</option>
+              </select>
+            </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="vim-select">
+                <span>Vim mode</span>
+              </label>
+              <select
+                id="vim-select"
+                aria-label="Vim mode"
+                className="lang-select"
+                value={editor.vimEnabled ? 'enabled' : 'disabled'}
+                onChange={(event) => editor.setVimEnabled(event.target.value === 'enabled')}
+              >
+                <option value="disabled">disabled</option>
+                <option value="enabled">enabled</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== MAIN SPLIT ===== */}
+      <KeyboardShortcutsModal />
       <div className="main-split">
         {/* EDITOR PANE */}
         <div
@@ -892,6 +637,39 @@ export default function EditorPage({ user }) {
                 ×
               </button>
             </div>
+            <button
+              className="editor-tab-action-btn"
+              onClick={() => fileInputRef.current?.click()}
+              title="Import File"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '2px 8px',
+                margin: '0 8px',
+                fontSize: '0.68rem',
+                color: 'var(--text-1)',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px dashed var(--border)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--text-0)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                e.currentTarget.style.borderColor = 'var(--accent)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-1)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                e.currentTarget.style.borderColor = 'var(--border)';
+              }}
+              disabled={room.isReadOnly}
+            >
+              <FolderOpen size={11} />
+              <span>Import File</span>
+            </button>
             {room.roomId && (
               <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
                 <AudioChannel room={room} user={user} />
@@ -903,6 +681,7 @@ export default function EditorPage({ user }) {
           {/* Monaco Editor */}
           <div
             id="editor-container"
+            className={showMinimap ? '' : 'minimap-disabled'}
             style={{ flex: 1, minHeight: 0, opacity: room.isReadOnly ? 0.8 : 1 }}
           >
             {room.isReadOnly && (
@@ -936,17 +715,20 @@ export default function EditorPage({ user }) {
                 fontSize: editor.fontSize,
                 fontFamily: getEditorFontFamily(editor.fontFamily),
                 minimap: {
-                  enabled: showMinimap, // ✅ CHANGE 3: Use showMinimap state instead of hardcoded true
+                  enabled: showMinimap,
                   side: minimapSide,
                   showSlider: 'always',
                   renderCharacters: false,
                 },
+                detectIndentation: false,
                 padding: { top: 12 },
                 scrollBeyondLastLine: false,
                 lineNumbers: 'on',
                 renderLineHighlight: room.isReadOnly ? 'none' : 'line',
                 automaticLayout: true,
-                tabSize: 4,
+                tabSize: editor.tabSize,
+                rulers: [{ column: editor.rulerColumn }],
+                insertSpaces: true,
                 wordWrap: 'on',
                 smoothScrolling: true,
                 cursorBlinking: room.isReadOnly ? 'solid' : 'smooth',
@@ -964,8 +746,16 @@ export default function EditorPage({ user }) {
                 suggestOnTriggerCharacters: true,
                 quickSuggestions: true,
                 formatOnPaste: true,
+                multiCursorModifier: 'alt',
+                columnSelection: true,
               }}
             />
+            {showSearchReplace && (
+              <SearchReplacePanel
+                editorRef={editorRef}
+                onClose={() => setShowSearchReplace(false)}
+              />
+            )}
           </div>
 
           {/* Stdin Panel */}
@@ -1020,7 +810,9 @@ export default function EditorPage({ user }) {
         </div>
 
         {/* Resize Handle (desktop only) */}
-        {!isMobile && <div className="resize-handle" onMouseDown={handleResizeStart} />}
+        {!isMobile && !isOutputCollapsed && (
+          <div className="resize-handle" onMouseDown={handleResizeStart} />
+        )}
 
         {/* History Panel (desktop) */}
         {showHistory && user && !isMobile && (
@@ -1039,10 +831,35 @@ export default function EditorPage({ user }) {
               ? mobileTab === MOBILE_TABS.OUTPUT
                 ? { display: 'flex', width: '100%' }
                 : { display: 'none' }
-              : { width: outputWidth + 'px' }
+              : {
+                  width: isOutputCollapsed ? '0px' : outputWidth + 'px',
+                  minWidth: isOutputCollapsed ? '0' : '260px',
+                  overflow: 'hidden',
+                }
           }
         >
           <div className="output-tabs">
+            <button
+              type="button"
+              className={`console-minimize-btn ${consoleCollapsed ? 'collapsed' : ''}`}
+              onClick={() => {
+                toggleConsoleCollapsed();
+                // Let layout/animation start before forcing Monaco layout
+                setTimeout(() => {
+                  try {
+                    monacoRef.current?.layout?.();
+                    editorRef.current?.layout?.();
+                  } catch (e) {
+                    // no-op
+                  }
+                }, 0);
+              }}
+              aria-label={consoleCollapsed ? 'Restore Console' : 'Minimize Console'}
+              aria-pressed={!consoleCollapsed}
+              title={consoleCollapsed ? 'Restore Console' : 'Minimize Console'}
+            >
+              <span className="console-minimize-chevron">▾</span>
+            </button>
             {/* copy */}
             <div
               style={{
@@ -1141,9 +958,53 @@ export default function EditorPage({ user }) {
                 )}
               </button>
             )}
+            <button
+              className="output-collapse-btn"
+              onClick={() => setIsOutputCollapsed((prev) => !prev)}
+              title={isOutputCollapsed ? 'Restore Console' : 'Minimize Console'}
+              aria-label={isOutputCollapsed ? 'Restore Console' : 'Minimize Console'}
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <polyline points={isOutputCollapsed ? '15 18 9 12 15 6' : '6 9 12 15 18 9'} />
+              </svg>
+            </button>
           </div>
 
-          <div className="output-content">
+          <div
+            className={`output-content ${consoleCollapsed ? 'console-collapsed' : ''}`}
+            data-console-collapsed={consoleCollapsed ? 'true' : 'false'}
+          >
+            <div
+              className="console-restore-banner-wrap"
+              style={{ display: consoleCollapsed ? 'flex' : 'none' }}
+            >
+              <button
+                type="button"
+                className="console-restore-banner"
+                onClick={() => {
+                  toggleConsoleCollapsed();
+                  setTimeout(() => {
+                    try {
+                      monacoRef.current?.layout?.();
+                      editorRef.current?.layout?.();
+                    } catch (e) {
+                      // no-op
+                    }
+                  }, 0);
+                }}
+                aria-label="Restore Console"
+                title="Restore Console"
+              >
+                Restore Console
+              </button>
+            </div>
             <div
               className={`output-panel ${execution.activeOutputTab === OUTPUT_TABS.STDOUT ? 'active' : ''}`}
               id="output-stdout"
@@ -1224,6 +1085,18 @@ export default function EditorPage({ user }) {
             )}
           </div>
         </div>
+
+        {/* Restore Console strip — shown only when output pane is collapsed */}
+        {!isMobile && isOutputCollapsed && (
+          <button
+            className="restore-console-strip"
+            onClick={() => setIsOutputCollapsed(false)}
+            aria-label="Restore Console"
+            title="Restore Console"
+          >
+            <span>Console</span>
+          </button>
+        )}
       </div>
 
       {/* ===== STATUS BAR ===== */}
@@ -1231,8 +1104,11 @@ export default function EditorPage({ user }) {
         execStatus={execution.execStatus}
         langName={langConfig.name}
         cursorPos={editor.cursorPos}
+        tabSize={editor.tabSize}
         room={room}
         user={user}
+        vimEnabled={editor.vimEnabled}
+        vimMode={vimMode}
       />
 
       {/* Chat */}
@@ -1345,17 +1221,70 @@ export default function EditorPage({ user }) {
         }}
       />
 
+      {/* Complexity Overlay */}
+      <ComplexityOverlay
+        isOpen={showComplexityOverlay}
+        isLoading={ai.isComplexityLoading}
+        response={ai.complexityResponse}
+        onClose={() => {
+          setShowComplexityOverlay(false);
+          ai.clearComplexity();
+        }}
+      />
+
       {/* Video Call Overlay */}
       {showVideoCall && room.roomId && (
         <VideoCall
           roomId={room.roomId}
+          userId={user?.uid}
           userName={user?.displayName || user?.email?.split('@')[0] || 'Guest'}
           onClose={() => setShowVideoCall(false)}
         />
       )}
 
+      {/* Premium Full-Screen Code Execution Loading Overlay */}
+      <Loader isVisible={execution.isRunning} />
       {/* Real-time Democratic Vote Popup */}
       <VotePopup room={room} user={user} />
+
+      {/* Welcome Tour for first-time users */}
+      {!isMobile && (
+        <WelcomeTour
+          isActive={tour.isActive}
+          currentStep={tour.currentStep}
+          totalSteps={tour.totalSteps}
+          step={tour.step}
+          onNext={tour.nextStep}
+          onPrev={tour.prevStep}
+          onSkip={tour.skipTour}
+        />
+      )}
+
+      {/* Mobile Drawer */}
+      <MobileDrawer
+        isMobile={isMobile}
+        isOpen={drawerOpen}
+        onOpen={() => setDrawerOpen(true)}
+        onClose={() => setDrawerOpen(false)}
+        user={user}
+        editor={editor}
+        audioFeedback={audioFeedback}
+        showHistory={showHistory}
+        setShowHistory={setShowHistory}
+        onLoadCode={(code, language) => {
+          editor.loadCode(code, language);
+        }}
+        onSignIn={() => {
+          setAuthMode('login');
+          setShowAuth(true);
+          setDrawerOpen(false);
+        }}
+        onSignUp={() => {
+          setAuthMode('signup');
+          setShowAuth(true);
+          setDrawerOpen(false);
+        }}
+      />
     </div>
   );
 }
