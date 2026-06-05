@@ -453,12 +453,10 @@ export default function EditorPage({ user }) {
       if (executionRunRef.current) executionRunRef.current();
     });
 
-
     // Ctrl+H → Toggle Search & Replace panel
     editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH, () => {
       setShowSearchReplace((v) => !v);
     });
-
 
     const formatCurrentModel = async () => {
       const model = editorInstance.getModel();
@@ -1140,19 +1138,21 @@ export default function EditorPage({ user }) {
                 Open Settings
               </span>
               Open Settings
-            <input
-              type="file"
-              ref={fileInputRef}
-              style={{ display: 'none' }}
-              onChange={handleFileImport}
-              accept=".py,.js,.jsx,.ts,.tsx,.java,.cpp,.cc,.cxx,.h,.hpp,.c,.cs,.go,.rs,.rb,.php,.swift,.pl,.pm,.lua,.scala,.hs,.sql,.sh,.txt"
-            />
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                onChange={handleFileImport}
+                accept=".py,.js,.jsx,.ts,.tsx,.java,.cpp,.cc,.cxx,.h,.hpp,.c,.cs,.go,.rs,.rb,.php,.swift,.pl,.pm,.lua,.scala,.hs,.sql,.sh,.txt"
+              />
+            </button>
             <button
               className="toolbar-icon-btn"
               aria-label="Import File"
               onClick={() => fileInputRef.current?.click()}
               title="Import file"
               disabled={room.isReadOnly}
+              type="button"
             >
               <FolderOpen size={14} />
             </button>
@@ -1161,6 +1161,7 @@ export default function EditorPage({ user }) {
               aria-label="Download Code"
               onClick={editor.downloadCode}
               title="Download"
+              type="button"
             >
               <svg
                 width="14"
@@ -1181,6 +1182,7 @@ export default function EditorPage({ user }) {
               onClick={editor.saveToCloud}
               title="Save to cloud"
               disabled={room.isReadOnly}
+              type="button"
             >
               <svg
                 width="14"
@@ -2253,4 +2255,3 @@ export default function EditorPage({ user }) {
     </div>
   );
 }
-
