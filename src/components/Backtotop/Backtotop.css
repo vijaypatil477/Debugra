@@ -1,0 +1,36 @@
+.back-to-top {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 52px;
+  height: 52px;
+  border: none;
+  border-radius: 50%;
+  background: #4ec9b0;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  z-index: 9999;
+}
+.back-to-top:hover {
+  transform: translateY(-4px);
+  background: #1f2937;
+}
+
+.back-to-top:active {
+  transform: scale(0.95);
+}
+
+
+@media (max-width: 768px) {
+  .back-to-top {
+    width: 46px;
+    height: 46px;
+    bottom: 20px;
+    right: 20px;
+  }
+}
