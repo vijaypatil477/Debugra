@@ -14,6 +14,20 @@
   --btn-primary-text: #09090b;
 }
 
+[data-theme='light'] {
+  --brand: #0e705b;
+  --brand-dim: rgba(14, 112, 91, 0.12);
+  --brand-border: rgba(14, 112, 91, 0.2);
+  --surface: rgba(0, 0, 0, 0.025);
+  --surface-hover: rgba(0, 0, 0, 0.045);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.16);
+  --text-hi: #1f1f23;
+  --text-mid: #52525b;
+  --text-lo: #71717a;
+  --btn-primary-text: #ffffff;
+}
+
 /* ─── Kill every glow blob — no exceptions ───────────────────────── */
 .hero-glow,
 .cta-glow,

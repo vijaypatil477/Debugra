@@ -26,7 +26,7 @@ const ICE_SERVERS = [
   { urls: 'stun:stun1.l.google.com:19302' },
 ];
 
-const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
+const VideoCall = ({ roomId, userId, userName, onClose, audioOnly = false }) => {
   // Test-only flag: when URL contains ?testLocal=1 we render a static local meter
   // This avoids depending on getUserMedia / AudioContext in headless test environments.
   let isTestLocal = false;
@@ -67,7 +67,8 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
   const [localLevel, setLocalLevel] = useState(0);
 
   // Generate a persistent, session-unique ID for the local peer
-  const myPeerId = useRef(crypto.randomUUID().slice(0, 8)).current;
+  const myPeerId = useRef(userId || crypto.randomUUID().slice(0, 8)).current;
+  const mySessionId = useRef(crypto.randomUUID().slice(0, 8)).current;
 
   // ── Acquire local media ──────────────────────────
   const startLocalStream = useCallback(async () => {
@@ -188,9 +189,27 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
     async (peerId, peerData) => {
       if (peersRef.current.has(peerId)) return;
 
+      const peerSessionId = peerData.sessionId || peerId;
+      const connectionId =
+        mySessionId < peerSessionId
+          ? `${mySessionId}_${peerSessionId}`
+          : `${peerSessionId}_${mySessionId}`;
+
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+      // Synchronously initialize the stream state to avoid async race condition with pc.ontrack
+      setPeers((prev) => {
+        const next = new Map(prev);
+        if (!next.has(peerId)) {
+          next.set(peerId, { id: peerId, ...peerData, stream: null });
+        }
+        return next;
+      });
+
       const peerObj = {
         id: peerId,
+        sessionId: peerSessionId,
+        connectionId: connectionId,
         connection: pc,
         unsubConnection: null,
         unsubCandidates: null,
@@ -270,8 +289,6 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
       // Handle local ICE candidates and publish them to Firestore
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          const connectionId =
-            myPeerId < peerId ? `${myPeerId}_${peerId}` : `${peerId}_${myPeerId}`;
           const candidatesCol = collection(
             db,
             'rooms',
@@ -288,7 +305,6 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
         }
       };
 
-      const connectionId = myPeerId < peerId ? `${myPeerId}_${peerId}` : `${peerId}_${myPeerId}`;
       const connectionRef = doc(db, 'rooms', roomId, 'connections', connectionId);
 
       // Listen to incoming ICE candidates from the other peer
@@ -320,7 +336,7 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
       });
 
       // Peer signaling role: lexicographical lower ID initiates the offer
-      if (myPeerId < peerId) {
+      if (mySessionId < peerSessionId) {
         // Offer side (Initiator)
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -359,11 +375,7 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
         });
       }
 
-      setPeers((prev) => {
-        const next = new Map(prev);
-        next.set(peerId, { id: peerId, ...peerData, stream: null });
-        return next;
-      });
+      // Stream initialization moved to top of setupPeerConnection
     },
     [roomId, myPeerId]
   );
@@ -376,12 +388,20 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
     const myCallRef = doc(db, 'rooms', roomId, 'calls', myPeerId);
     setDoc(myCallRef, {
       id: myPeerId,
+      userId: userId || null,
+      sessionId: mySessionId,
       name: userName || 'Anonymous',
       joinedAt: serverTimestamp(),
       isVideoOff: false,
       isMuted: false,
       isScreenSharing: false,
     }).catch((e) => console.error('Error publishing presence:', e));
+
+    // Cleanup on tab close
+    const handleBeforeUnload = () => {
+      deleteDoc(myCallRef).catch(() => {});
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     // Listen to call participants
     const callsCol = collection(db, 'rooms', roomId, 'calls');
@@ -391,7 +411,8 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        if (data.id && data.id !== myPeerId) {
+        const isSelf = data.id === myPeerId || (userId && data.userId === userId);
+        if (data.id && !isSelf) {
           activeIds.add(data.id);
           updatedPeersData.set(data.id, data);
         }
@@ -421,7 +442,16 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
 
       // Initiate or update active connections
       for (const [peerId, peerData] of updatedPeersData) {
-        if (!peersRef.current.has(peerId)) {
+        const existing = peersRef.current.get(peerId);
+        if (!existing) {
+          await setupPeerConnection(peerId, peerData);
+        } else if (peerData.sessionId && existing.sessionId !== peerData.sessionId) {
+          // Peer reconnected/reloaded: teardown old connection and rebuild
+          existing.connection.close();
+          if (existing.unsubConnection) existing.unsubConnection();
+          if (existing.unsubCandidates) existing.unsubCandidates();
+          if (existing.raf) cancelAnimationFrame(existing.raf);
+          peersRef.current.delete(peerId);
           await setupPeerConnection(peerId, peerData);
         } else {
           // Update details (e.g., handles screenshare or mute state changes)
@@ -438,6 +468,7 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
     });
 
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       unsubCalls();
       deleteDoc(myCallRef).catch((e) => console.error('Error clearing presence document:', e));
     };
@@ -532,7 +563,7 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
       if (peerObj.unsubCandidates) peerObj.unsubCandidates();
 
       // Clean up connection documents in Firestore
-      const connectionId = myPeerId < peerId ? `${myPeerId}_${peerId}` : `${peerId}_${myPeerId}`;
+      const connectionId = peerObj.connectionId || (myPeerId < peerId ? `${myPeerId}_${peerId}` : `${peerId}_${myPeerId}`);
       const connectionRef = doc(db, 'rooms', roomId, 'connections', connectionId);
       deleteDoc(connectionRef).catch((e) =>
         console.warn('Failed to clean up WebRTC connection document:', e)
@@ -844,7 +875,9 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
                   playsInline
                   className={`vc-video ${peer.isScreenSharing ? 'vc-video--screen' : ''}`}
                   ref={(el) => {
-                    if (el && peer.stream) el.srcObject = peer.stream;
+                    if (el && peer.stream && el.srcObject !== peer.stream) {
+                      el.srcObject = peer.stream;
+                    }
                   }}
                 />
                 {peer.isVideoOff && <div className="vc-video-off">📷 Camera Off</div>}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useTheme } from '../context/ThemeContext';
 
 const initialForm = {
   name: '',
@@ -14,6 +15,7 @@ const initialForm = {
 export default function FeedbackPage() {
   const [form, setForm] = useState(initialForm);
   const [submitted, setSubmitted] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   const handleChange = (event) => {
     const { name, value, files } = event.target;

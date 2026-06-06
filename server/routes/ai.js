@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const NodeCache = require('node-cache');
 const crypto = require('crypto');
@@ -57,7 +57,31 @@ function validateAiInput(req, res, next) {
   next();
 }
 
-const aiCache = new NodeCache({ stdTTL: 3600, maxKeys: 500, checkperiod: 600 });
+const MAX_AI_CACHE_KEYS = 500;
+const aiCache = new NodeCache({ stdTTL: 3600, maxKeys: MAX_AI_CACHE_KEYS, checkperiod: 600 });
+const aiCacheInsertionOrder = new Map();
+
+aiCache.on('del', (key) => {
+  aiCacheInsertionOrder.delete(key);
+});
+aiCache.on('expired', (key) => {
+  aiCacheInsertionOrder.delete(key);
+});
+
+function pruneAiCacheForInsert(cacheKey) {
+  if (aiCache.has(cacheKey)) {
+    return;
+  }
+
+  while (aiCache.keys().length >= MAX_AI_CACHE_KEYS) {
+    const oldestKey = aiCacheInsertionOrder.keys().next().value;
+    if (!oldestKey) {
+      break;
+    }
+    aiCacheInsertionOrder.delete(oldestKey);
+    aiCache.del(oldestKey);
+  }
+}
 
 function getUserGroqApiKey(req) {
   const apiKey = String(req.get('x-groq-api-key') || '').trim();
@@ -186,3 +210,4 @@ router.post('/analyze-complexity', handleStreamingRequest(async (body, apiKey, o
 }));
 
 module.exports = router;
+

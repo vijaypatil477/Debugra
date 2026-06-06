@@ -10,7 +10,7 @@
   --border: #404040;
   --text-0: #d4d4d4;
   --text-1: #9d9d9d;
-  --text-2: #6a6a6a;
+  --text-2: #959595;
   --accent: #0078d4;
   --accent-hover: #1a8ceb;
   --green: #4ec9b0;
@@ -28,7 +28,7 @@
   --bg-hover: rgba(255, 255, 255, 0.04);
   --text-primary: #d4d4d4;
   --text-secondary: #9d9d9d;
-  --text-muted: #6a6a6a;
+  --text-muted: #959595;
   --success: #4ec9b0;
   --warning: #dcdcaa;
   --error: #f44747;
@@ -142,26 +142,57 @@
   background: rgba(0, 0, 0, 0.04);
 }
 
-[data-theme='light'] .bento-card {
+[data-theme='light'] .feature-card {
   background: #ffffff;
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.05),
     0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
-[data-theme='light'] .bento-card:hover {
+[data-theme='light'] .feature-card:hover {
   background: #fdfdfd;
+  border-color: rgba(0, 0, 0, 0.16);
 }
 
-[data-theme='light'] .bento-tag {
+[data-theme='light'] .feature-card-tag {
   background: rgba(14, 112, 91, 0.08) !important;
   color: #0e705b !important;
   border: 1px solid rgba(14, 112, 91, 0.15) !important;
 }
 
-[data-theme='light'] .bento-icon {
+[data-theme='light'] .feature-card-icon {
   background: rgba(14, 112, 91, 0.08) !important;
   color: #0e705b !important;
+}
+
+[data-theme='light'] .review-card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='light'] .faq-item {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='light'] .faq-item:hover,
+[data-theme='light'] .faq-item.is-open {
+  background: #fdfdfd;
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+[data-theme='light'] .features-carousel-nav {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  color: var(--text-hi);
+}
+
+[data-theme='light'] .features-carousel-nav:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: rgba(0, 0, 0, 0.16);
 }
 
 [data-theme='light'] .lang-chip {
@@ -1967,6 +1998,18 @@ body {
 
 /* Editor Preview */
 .editor-preview {
+  --bg-0: #1e1e1e;
+  --bg-1: #252526;
+  --bg-2: #2d2d2d;
+  --bg-3: #3c3c3c;
+  --bg-active: #37373d;
+  --border: #404040;
+  --text-0: #d4d4d4;
+  --text-1: #9d9d9d;
+  --text-2: #6a6a6a;
+  --accent: #0078d4;
+  --warning: #dcdcaa;
+
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -2088,13 +2131,14 @@ body {
 }
 
 .modal-card {
-  background: #1a1a2e;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 32px;
   width: 400px;
   max-width: 90vw;
   animation: slide-up 0.3s ease;
+  color: var(--text-0);
 }
 
 .modal-title {
@@ -2117,9 +2161,9 @@ body {
   border-radius: 10px;
   font-size: 0.85rem;
   font-weight: 500;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  color: var(--text-0);
   cursor: pointer;
   margin-bottom: 16px;
   display: flex;
@@ -2131,7 +2175,7 @@ body {
 }
 
 .google-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-active);
 }
 
 .modal-divider {
@@ -2146,7 +2190,7 @@ body {
 .modal-divider-line {
   flex: 1;
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--border);
 }
 
 .modal-input {
@@ -2154,9 +2198,9 @@ body {
   padding: 10px 14px;
   border-radius: 10px;
   font-size: 0.85rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
   outline: none;
   font-family: 'Inter', sans-serif;
   display: block;
@@ -2207,8 +2251,8 @@ input[type='password']::-ms-clear {
      and doesn't clip the submit button or other controls when interacting with the form */
   height: 100%;
   overflow-y: auto;
-  background: #0a0a0f;
-  color: #e2e8f0;
+  background: var(--bg-0);
+  color: var(--text-0);
   padding: 72px 24px;
   box-sizing: border-box;
 }
@@ -2232,10 +2276,30 @@ input[type='password']::-ms-clear {
 .feedback-back-link {
   display: inline-flex;
   margin-bottom: 28px;
-  color: #4ec9b0;
+  color: var(--success);
   font-size: 0.82rem;
   font-weight: 700;
   text-decoration: none;
+}
+
+.feedback-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  color: var(--text-0);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.feedback-theme-toggle:hover {
+  background: var(--bg-active);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .feedback-copy .section-eyebrow {
@@ -2245,7 +2309,7 @@ input[type='password']::-ms-clear {
 }
 
 .feedback-title {
-  color: #f8fafc;
+  color: var(--text-primary);
   font-size: clamp(2rem, 5vw, 3.5rem);
   line-height: 1.05;
   letter-spacing: -0.03em;
@@ -2253,7 +2317,7 @@ input[type='password']::-ms-clear {
 }
 
 .feedback-subtitle {
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 1rem;
   line-height: 1.7;
   max-width: 560px;
@@ -2262,18 +2326,18 @@ input[type='password']::-ms-clear {
 .feedback-success {
   margin-top: 24px;
   padding: 12px 14px;
-  border: 1px solid rgba(78, 201, 176, 0.3);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgba(78, 201, 176, 0.1);
-  color: #8ef0d8;
+  background: var(--brand-dim);
+  color: var(--success);
   font-size: 0.86rem;
 }
 
 .feedback-form {
   padding: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #111115;
+  background: var(--bg-card);
 }
 
 .feedback-field-grid {
@@ -2290,7 +2354,7 @@ input[type='password']::-ms-clear {
 .feedback-form span {
   display: block;
   margin-bottom: 7px;
-  color: #cbd5e1;
+  color: var(--text-secondary);
   font-size: 0.78rem;
   font-weight: 700;
 }
@@ -2301,9 +2365,9 @@ input[type='password']::-ms-clear {
   width: 100%;
   padding: 11px 12px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: #e2e8f0;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font: inherit;
   outline: none;
 }
@@ -2312,14 +2376,14 @@ input[type='password']::-ms-clear {
    Forces select options to have a dark background and light text 
    across all browsers (Chrome, Edge, etc.), making it 100% legible. */
 .feedback-form select option {
-  background: #111115;
-  color: #e2e8f0;
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .feedback-form input:focus,
 .feedback-form select:focus,
 .feedback-form textarea:focus {
-  border-color: #4ec9b0;
+  border-color: var(--success);
 }
 
 .feedback-form textarea {
@@ -2335,14 +2399,15 @@ input[type='password']::-ms-clear {
   padding: 0 18px;
   border: 0;
   border-radius: 6px;
-  background: #4ec9b0;
-  color: #07110f;
+  background: var(--success);
+  color: var(--bg-0);
   font-weight: 800;
   cursor: pointer;
+  transition: filter 0.2s ease;
 }
 
 .feedback-submit:hover {
-  background: #3ab89d;
+  filter: brightness(1.1);
 }
 
 @media (max-width: 800px) {
@@ -2540,7 +2605,7 @@ input[type='password']::-ms-clear {
   justify-content: space-between;
   padding: 0 10px;
   font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: #ffffff;
   flex-shrink: 0;
   user-select: none;
 }
