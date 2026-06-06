@@ -4,11 +4,13 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem('debugra_hasCompletedTour', 'true');
   });
+  await page.goto('/editor');
+  await page.waitForSelector('.monaco-editor', { timeout: 15000 });
+  await page.waitForFunction(() => window.__DEBUGRA_EDITOR__ !== undefined, { timeout: 15000 });
 });
 
 test('updates advanced editor settings instantly', async ({ page }) => {
-  await page.goto('/editor');
-
+  await page.getByRole('button', { name: /Open Settings/i }).waitFor({ state: 'visible', timeout: 10000 });
   await page.getByRole('button', { name: /Open Settings/i }).click();
 
   await expect(page.getByText('Tab size')).toBeVisible();
@@ -38,8 +40,7 @@ test('updates advanced editor settings instantly', async ({ page }) => {
 });
 
 test('inserts tabs using the selected indentation size', async ({ page }) => {
-  await page.goto('/editor');
-
+  await page.getByRole('button', { name: /Open Settings/i }).waitFor({ state: 'visible', timeout: 10000 });
   await page.getByRole('button', { name: /Open Settings/i }).click();
   await page.getByLabel('Tab size').selectOption('2');
 
@@ -57,8 +58,7 @@ test('inserts tabs using the selected indentation size', async ({ page }) => {
 });
 
 test('restores autosaved drafts after reload', async ({ page }) => {
-  await page.goto('/editor');
-
+  await page.getByRole('button', { name: /Open Settings/i }).waitFor({ state: 'visible', timeout: 10000 });
   await page.getByRole('button', { name: /Open Settings/i }).click();
   await page.getByLabel('Autosave interval').selectOption('5000');
 
@@ -75,6 +75,8 @@ test('restores autosaved drafts after reload', async ({ page }) => {
     .not.toBeNull();
 
   await page.reload();
+  await page.waitForSelector('.monaco-editor', { timeout: 15000 });
+  await page.waitForFunction(() => window.__DEBUGRA_EDITOR__ !== undefined, { timeout: 15000 });
 
   await expect
     .poll(async () => page.evaluate(() => window.__DEBUGRA_EDITOR__?.getValue()), { timeout: 8000 })
@@ -82,8 +84,7 @@ test('restores autosaved drafts after reload', async ({ page }) => {
 });
 
 test('hides the editor divider when minimap is disabled', async ({ page }) => {
-  await page.goto('/editor');
-
+  await page.getByRole('button', { name: /Open Settings/i }).waitFor({ state: 'visible', timeout: 10000 });
   await page.getByRole('button', { name: /Open Settings/i }).click();
   await page.getByLabel('Minimap', { exact: true }).selectOption('disabled');
 
@@ -104,8 +105,6 @@ test('hides the editor divider when minimap is disabled', async ({ page }) => {
 });
 
 test('enables multi-cursor and column selection options', async ({ page }) => {
-  await page.goto('/editor');
-
   const editorOptions = await page.evaluate(() => {
     const editor = window.__DEBUGRA_EDITOR__;
     if (!editor) return null;

@@ -117,56 +117,34 @@ export const LANGUAGES = {
 
 export const getLanguageById = (langKey) => LANGUAGES[langKey] || LANGUAGES.python;
 
-export function detectLanguageByFileName(fileName) {
-  if (!fileName) return null;
+export const detectLanguageByFileName = (fileName) => {
+  if (!fileName || !fileName.includes('.')) return null;
   const ext = fileName.split('.').pop().toLowerCase();
-  switch (ext) {
-    case 'py':
-      return 'python';
-    case 'js':
-    case 'jsx':
-    case 'mjs':
-    case 'cjs':
-      return 'javascript';
-    case 'ts':
-    case 'tsx':
-      return 'typescript';
-    case 'java':
-      return 'java';
-    case 'cpp':
-    case 'cc':
-    case 'cxx':
-    case 'h':
-    case 'hpp':
-      return 'cpp';
-    case 'c':
-      return 'c';
-    case 'cs':
-      return 'csharp';
-    case 'go':
-      return 'go';
-    case 'rs':
-      return 'rust';
-    case 'rb':
-      return 'ruby';
-    case 'php':
-      return 'php';
-    case 'swift':
-      return 'swift';
-    case 'pl':
-    case 'pm':
-      return 'perl';
-    case 'lua':
-      return 'lua';
-    case 'scala':
-      return 'scala';
-    case 'hs':
-      return 'haskell';
-    case 'sql':
-      return 'sql';
-    case 'sh':
-      return 'bash';
-    default:
-      return null;
-  }
-}
+  const extensionMap = {
+    'py': 'python',
+    'js': 'javascript',
+    'jsx': 'javascript',
+    'ts': 'typescript',
+    'tsx': 'typescript',
+    'java': 'java',
+    'cpp': 'cpp',
+    'cc': 'cpp',
+    'cxx': 'cpp',
+    'c': 'c',
+    'cs': 'csharp',
+    'go': 'go',
+    'rs': 'rust',
+    'rb': 'ruby',
+    'php': 'php',
+    'swift': 'swift',
+    'pl': 'perl',
+    'pm': 'perl',
+    'lua': 'lua',
+    'scala': 'scala',
+    'hs': 'haskell',
+    'sql': 'sql',
+    'sh': 'bash',
+    'bash': 'bash',
+  };
+  return extensionMap[ext] || null;
+};

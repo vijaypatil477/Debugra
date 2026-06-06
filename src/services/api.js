@@ -67,6 +67,41 @@ export const executeCode = async (sourceCode, languageId, stdin = '') => {
   return data;
 };
 
+// ─── AI Streaming Helper ────────────────────────────────────────────────────────
+export const aiStreamRequest = async (url, body, onChunk) => {
+  const apiKey = getSessionApiKey();
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) {
+    headers['X-Groq-Api-Key'] = apiKey;
+  }
+
+  const response = await fetch(`${API_URL}${url}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'AI request failed');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let done = false;
+
+  while (!done) {
+    const { value, done: readerDone } = await reader.read();
+    done = readerDone;
+    if (value) {
+      const chunk = decoder.decode(value, { stream: !done });
+      onChunk(chunk);
+    }
+  }
+};
+
 // ─── AI Features ──────────────────────────────────────────────────────────────
 export const aiExplainError = async (code, error, language, model = '') => {
   const { data } = await api.post('/api/ai/explain-error', { code, error, language, model });

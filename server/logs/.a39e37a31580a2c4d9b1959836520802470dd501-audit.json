@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\hp\\Desktop\\gsssoc\\dabugra\\Debugra\\Debugra\\server\\logs\\.a39e37a31580a2c4d9b1959836520802470dd501-audit.json",
+    "files": [
+        {
+            "date": 1780670481873,
+            "name": "C:\\Users\\hp\\Desktop\\gsssoc\\dabugra\\Debugra\\Debugra\\server\\logs\\application-2026-06-05.log",
+            "hash": "b4bddcb4674183e9fbc576e5a53225dc1eda92ea311fb8b2392d569c352fa905"
+        },
+        {
+            "date": 1780754259770,
+            "name": "C:\\Users\\hp\\Desktop\\gsssoc\\dabugra\\Debugra\\Debugra\\server\\logs\\application-2026-06-06.log",
+            "hash": "44b174eff358b5d6dbe528af80055aba10985d78ecf4f71e98ff994f109c63cc"
+        }
+    ],
+    "hashType": "sha256"
+}

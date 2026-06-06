@@ -5,7 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen } from 'lucide-react';
+import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, RotateCcw, FolderOpen } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 import {
@@ -417,12 +417,10 @@ export default function EditorPage({ user }) {
       if (executionRunRef.current) executionRunRef.current();
     });
 
-
     // Ctrl+H → Toggle Search & Replace panel
     editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH, () => {
       setShowSearchReplace((v) => !v);
     });
-
 
     const formatCurrentModel = async () => {
       const model = editorInstance.getModel();
@@ -1067,6 +1065,21 @@ export default function EditorPage({ user }) {
                 <polyline points="17 21 17 13 7 13 7 21" />
                 <polyline points="7 3 7 8 15 8" />
               </svg>
+            </button>
+            <button
+              className="toolbar-icon-btn"
+              aria-label="Reset Template"
+              onClick={() => {
+                if (room.isReadOnly) return;
+                const langName = LANGUAGES[editor.language]?.name || editor.language;
+                if (window.confirm(`Reset to default ${langName} template?`)) {
+                  editor.resetTemplate();
+                }
+              }}
+              title="Reset template"
+              disabled={room.isReadOnly}
+            >
+              <RotateCcw size={14} />
             </button>
             {user && (
               <button
