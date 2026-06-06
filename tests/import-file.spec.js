@@ -1,16 +1,19 @@
 import { test, expect } from '@playwright/test';
 
-test('imports a code file and sets the correct language and code content via the tab bar button', async ({
-  page,
-}) => {
+test.beforeEach(async ({ page }) => {
   // Bypass the welcome tour
   await page.addInitScript(() => {
     localStorage.setItem('debugra_hasCompletedTour', 'true');
   });
 
   await page.goto('/editor');
-  await page.waitForSelector('.monaco-editor');
+  await page.waitForSelector('.monaco-editor', { timeout: 15000 });
+  await page.waitForFunction(() => window.__DEBUGRA_EDITOR__ !== undefined, { timeout: 15000 });
+});
 
+test('imports a code file and sets the correct language and code content via the tab bar button', async ({
+  page,
+}) => {
   // Trigger file chooser using the tab bar import button
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page
@@ -43,14 +46,6 @@ test('imports a code file and sets the correct language and code content via the
 test('imports an unknown file type and sets content as text without changing language via the tab bar button', async ({
   page,
 }) => {
-  // Bypass the welcome tour
-  await page.addInitScript(() => {
-    localStorage.setItem('debugra_hasCompletedTour', 'true');
-  });
-
-  await page.goto('/editor');
-  await page.waitForSelector('.monaco-editor');
-
   // Set editor language to Javascript first
   await page.selectOption('select.lang-select', 'javascript');
   await page.waitForTimeout(200);

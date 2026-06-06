@@ -213,6 +213,10 @@ export function useEditor({ user, onNeedAuth }) {
     if (newLang && LANGUAGES[newLang]) setLanguage(newLang);
   }, []);
 
+  const resetTemplate = useCallback(() => {
+    setCode(LANGUAGES[language].template);
+  }, [language]);
+
   return {
     code,
     setCode,
@@ -246,6 +250,7 @@ export function useEditor({ user, onNeedAuth }) {
     downloadCode,
     saveToCloud,
     loadCode,
+    resetTemplate,
 
     vimEnabled,
     setVimEnabled,
