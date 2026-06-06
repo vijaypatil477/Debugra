@@ -11,6 +11,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
 
@@ -90,6 +92,8 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   const [activeUsers, setActiveUsers] = useState([]);
   const [showOnlineDropdown, setShowOnlineDropdown] = useState(false);
   const [showRequestsDropdown, setShowRequestsDropdown] = useState(false);
+  const navigate = useNavigate();
+
 
   // ─── Derived permissions ────────────────────────────────────────────────────
   const myRole = roomId
@@ -104,7 +108,15 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   useEffect(() => {
     if (!roomId) return;
     const unsub = onSnapshot(doc(db, 'rooms', roomId), (snap) => {
-      if (!snap.exists()) return;
+        if (!snap.exists()) {
+          toast.error('The room was ended by the host.');
+          localStorage.removeItem('debugra_roomId');
+          setRoomId(null);
+          setRoomData(null);
+          setActiveUsers([]);
+          navigate('/');
+          return;
+        }
       const data = snap.data();
       setRoomData(data);
       if (data.code !== undefined && data._lastEditor !== user?.uid) setCode(data.code);

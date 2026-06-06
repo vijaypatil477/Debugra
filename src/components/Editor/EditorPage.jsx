@@ -1,11 +1,11 @@
-﻿import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { createMonacoVimController } from '../../utils/monacoVim';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, RotateCcw } from 'lucide-react';
+import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, RotateCcw, FolderOpen } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 import {

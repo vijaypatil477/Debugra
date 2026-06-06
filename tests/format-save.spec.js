@@ -1,8 +1,15 @@
 import { test, expect } from '@playwright/test';
 
-test('format on save', async ({ page, browserName }) => {
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('debugra_hasCompletedTour', 'true');
+  });
+});
+
+test('format on save', async ({ page }) => {
   await page.goto('/editor');
-  await page.waitForSelector('.monaco-editor');
+  await page.waitForSelector('.monaco-editor', { timeout: 15000 });
+  await page.waitForFunction(() => window.__DEBUGRA_EDITOR__ !== undefined, { timeout: 15000 });
 
   // Ensure language is JavaScript so Prettier uses the JS parser
   await page.selectOption('select.lang-select', 'javascript');
