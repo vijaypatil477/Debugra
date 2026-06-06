@@ -35,12 +35,14 @@ export default function FeedbackPage() {
     <div className="feedback-page">
       <div className="feedback-shell">
         <div className="feedback-copy">
-        <div style={{ display: 'block', width: '100%', marginBottom: '1rem' }}> 
-          <Link to="/" className="feedback-back-link">
-            ← Back to home
-          </Link>
-          </div> 
-          <p className="section-eyebrow" style={{ fontSize: '1.1rem', letterSpacing: '0.15em' }}>FEEDBACK</p>
+          <div style={{ display: 'block', width: '100%', marginBottom: '1rem' }}>
+            <Link to="/" className="feedback-back-link">
+              ← Back to home
+            </Link>
+          </div>
+          <p className="section-eyebrow" style={{ fontSize: '1.1rem', letterSpacing: '0.15em' }}>
+            FEEDBACK
+          </p>
           <h1 className="feedback-title">Tell us what Debugra should do better.</h1>
           <p className="feedback-subtitle">
             Share suggestions, report bugs, describe your experience, or send anything the team

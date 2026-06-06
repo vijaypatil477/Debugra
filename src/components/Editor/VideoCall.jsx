@@ -534,7 +534,9 @@ const VideoCall = ({ roomId, userName, onClose, audioOnly = false }) => {
       // Clean up connection documents in Firestore
       const connectionId = myPeerId < peerId ? `${myPeerId}_${peerId}` : `${peerId}_${myPeerId}`;
       const connectionRef = doc(db, 'rooms', roomId, 'connections', connectionId);
-      deleteDoc(connectionRef).catch((e) => console.warn('Failed to clean up WebRTC connection document:', e));
+      deleteDoc(connectionRef).catch((e) =>
+        console.warn('Failed to clean up WebRTC connection document:', e)
+      );
     });
     peersRef.current.clear();
     setPeers(new Map());

@@ -70,88 +70,119 @@ function getApiKeyFingerprint(apiKey) {
     : 'server-key';
 }
 
-// Helper middleware to handle cached AI requests
-const handleCachedRequest = (actionFn) => async (req, res, next) => {
+// Helper middleware to handle streaming AI requests with event-stream and cache
+const handleStreamingRequest = (serviceFn, isJson = true) => async (req, res, next) => {
   try {
     const apiKey = getUserGroqApiKey(req);
-    // Build a stable hash from the request body instead of embedding raw JSON
     const bodyHash = crypto.createHash('sha256').update(JSON.stringify(req.body)).digest('hex');
     const cacheKey = `${req.path}_${getApiKeyFingerprint(apiKey)}_${bodyHash}`;
     
     // Check if we have a cached response
     const cachedResponse = aiCache.get(cacheKey);
     if (cachedResponse) {
-      return res.json(cachedResponse);
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('x-no-compression', 'true');
+      res.setHeader('X-Accel-Buffering', 'no');
+      res.flushHeaders();
+      
+      const textToWrite = typeof cachedResponse === 'string' 
+        ? cachedResponse 
+        : JSON.stringify(cachedResponse.content || cachedResponse);
+      res.write(textToWrite);
+      if (typeof res.flush === 'function') {
+        res.flush();
+      }
+      res.end();
+      return;
     }
     
-    // Process request if not cached
-    const result = await actionFn(req.body, apiKey);
+    // Set up headers for streaming
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('x-no-compression', 'true');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    let accumulated = '';
     
-    // Cache the successful result — stats tracking for eviction awareness
-    const stats = aiCache.getStats();
-    if (stats.evictions > 0) {
-      console.log(`[Cache] Evictions: ${stats.evictions}, Keys: ${Object.keys(aiCache.keys()).length}`);
-    }
-    aiCache.set(cacheKey, result);
-    
-    res.json(result);
+    // Call service function with onChunk callback
+    await serviceFn(req.body, apiKey, (chunk) => {
+      accumulated += chunk;
+      res.write(chunk);
+      if (typeof res.flush === 'function') {
+        res.flush();
+      }
+    });
+
+    // Cache the accumulated raw text response
+    aiCache.set(cacheKey, accumulated);
+
+    res.end();
   } catch (err) {
-    next(err);
+    if (!res.headersSent) {
+      next(err);
+    } else {
+      console.error('Error during streaming:', err);
+      res.end();
+    }
   }
 };
 
 // Error explanation
-router.post('/explain-error', validateAiInput, handleCachedRequest(async (body, apiKey) => {
+router.post('/explain-error', validateAiInput, handleStreamingRequest(async (body, apiKey, onChunk) => {
   const { code, error, language, model } = body;
-  return await explainError(code, error, language, apiKey, model);
+  await explainError(code, error, language, apiKey, model, onChunk);
 }));
 
 // Code fix
-router.post('/fix-code', validateAiInput, handleCachedRequest(async (body, apiKey) => {
+router.post('/fix-code', validateAiInput, handleStreamingRequest(async (body, apiKey, onChunk) => {
   const { code, error, language, model } = body;
-  return await fixCodeAI(code, error, language, apiKey, model);
-}));
+  await fixCodeAI(code, error, language, apiKey, model, onChunk);
+}, false));
 
 // Logic explanation
-router.post('/explain-logic', validateAiInput, handleCachedRequest(async (body, apiKey) => {
+router.post('/explain-logic', validateAiInput, handleStreamingRequest(async (body, apiKey, onChunk) => {
   const { code, language, model } = body;
-  return await explainLogicAI(code, language, apiKey, model);
+  await explainLogicAI(code, language, apiKey, model, onChunk);
 }));
 
 // Test case generation
-router.post('/generate-tests', validateAiInput, handleCachedRequest(async (body, apiKey) => {
+router.post('/generate-tests', validateAiInput, handleStreamingRequest(async (body, apiKey, onChunk) => {
   const { code, language, model } = body;
-  return await generateTestsAI(code, language, apiKey, model);
+  await generateTestsAI(code, language, apiKey, model, onChunk);
 }));
 
 // Security and refactoring audit
-router.post('/audit-code', validateAiInput, handleCachedRequest(async (body, apiKey) => {
+router.post('/audit-code', validateAiInput, handleStreamingRequest(async (body, apiKey, onChunk) => {
   const { code, language, model } = body;
-  return await auditCodeAI(code, language, apiKey, model);
+  await auditCodeAI(code, language, apiKey, model, onChunk);
 }));
 
 // Execution visualization
-router.post('/visualize', validateAiInput, handleCachedRequest(async (body, apiKey) => {
+router.post('/visualize', validateAiInput, handleStreamingRequest(async (body, apiKey, onChunk) => {
   const { code, language, input, model } = body;
-  return await visualizeAI(code, language, input, apiKey, model);
+  await visualizeAI(code, language, input, apiKey, model, onChunk);
 }));
 
 // AI Code Explainer — explain selected snippet
-router.post('/explain-snippet', validateAiInput, handleCachedRequest(async (body, apiKey) => {
+router.post('/explain-snippet', validateAiInput, handleStreamingRequest(async (body, apiKey, onChunk) => {
   const { code, language, model } = body;
-  return await explainCodeSnippetAI(code, language, apiKey, model);
+  await explainCodeSnippetAI(code, language, apiKey, model, onChunk);
 }));
 
 // AI Code Explainer — follow-up Q&A
-router.post('/ask-followup', validateAiInput, handleCachedRequest(async (body, apiKey) => {
+router.post('/ask-followup', validateAiInput, handleStreamingRequest(async (body, apiKey, onChunk) => {
   const { code, language, question, previousExplanation, model } = body;
-  return await askFollowUpAI(code, language, question, previousExplanation, apiKey, model);
+  await askFollowUpAI(code, language, question, previousExplanation, apiKey, model, onChunk);
 }));
 
 // Big-O Complexity Analysis
-router.post('/analyze-complexity', handleCachedRequest(async (body, apiKey) => {
+router.post('/analyze-complexity', handleStreamingRequest(async (body, apiKey, onChunk) => {
   const { code, language } = body;
-  return await analyzeComplexityAI(code, language, apiKey);
+  await analyzeComplexityAI(code, language, apiKey, onChunk);
 }));
 
 module.exports = router;

@@ -116,3 +116,35 @@ export const LANGUAGES = {
 };
 
 export const getLanguageById = (langKey) => LANGUAGES[langKey] || LANGUAGES.python;
+
+export const detectLanguageByFileName = (fileName) => {
+  if (!fileName || !fileName.includes('.')) return null;
+  const ext = fileName.split('.').pop().toLowerCase();
+  const extensionMap = {
+    'py': 'python',
+    'js': 'javascript',
+    'jsx': 'javascript',
+    'ts': 'typescript',
+    'tsx': 'typescript',
+    'java': 'java',
+    'cpp': 'cpp',
+    'cc': 'cpp',
+    'cxx': 'cpp',
+    'c': 'c',
+    'cs': 'csharp',
+    'go': 'go',
+    'rs': 'rust',
+    'rb': 'ruby',
+    'php': 'php',
+    'swift': 'swift',
+    'pl': 'perl',
+    'pm': 'perl',
+    'lua': 'lua',
+    'scala': 'scala',
+    'hs': 'haskell',
+    'sql': 'sql',
+    'sh': 'bash',
+    'bash': 'bash',
+  };
+  return extensionMap[ext] || null;
+};

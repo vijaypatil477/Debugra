@@ -109,19 +109,25 @@ export function useWebRTC(roomId, user) {
       });
 
       // Periodic sweep for stale signals left by disconnected peers
-      sweepIntervalRef.current = setInterval(async () => {
-        const sweepCutoff = Timestamp.fromMillis(Date.now() - STALE_SIGNAL_MINUTES * 60 * 1000);
-        const staleSignals = query(signalsRef, where('createdAt', '<', sweepCutoff));
-        const snapshot = await getDocs(staleSignals);
-        snapshot.docs.forEach((d) => deleteDoc(d.ref));
-      }, 2 * 60 * 1000);
+      sweepIntervalRef.current = setInterval(
+        async () => {
+          const sweepCutoff = Timestamp.fromMillis(Date.now() - STALE_SIGNAL_MINUTES * 60 * 1000);
+          const staleSignals = query(signalsRef, where('createdAt', '<', sweepCutoff));
+          const snapshot = await getDocs(staleSignals);
+          snapshot.docs.forEach((d) => deleteDoc(d.ref));
+        },
+        2 * 60 * 1000
+      );
       // Store sweep handle for cleanup
-      sweepTimeoutRef.current = setTimeout(() => {
-        if (sweepIntervalRef.current) {
-          clearInterval(sweepIntervalRef.current);
-          sweepIntervalRef.current = null;
-        }
-      }, 30 * 60 * 1000);
+      sweepTimeoutRef.current = setTimeout(
+        () => {
+          if (sweepIntervalRef.current) {
+            clearInterval(sweepIntervalRef.current);
+            sweepIntervalRef.current = null;
+          }
+        },
+        30 * 60 * 1000
+      );
     } catch (err) {
       console.error(err);
       toast.error('Could not access microphone.');
