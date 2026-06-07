@@ -5,7 +5,8 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen } from 'lucide-react';
+import { Settings, Eye, EyeOff, Menu, FolderOpen } from 'lucide-react';
+
 import { useTheme } from '../../context/ThemeContext';
 
 import {
@@ -55,9 +56,7 @@ function getApiKeyStatus() {
   if (isSecureApiKeyStored()) return 'locked';
   return 'empty';
 }
-const REVIEWS = [
-  {
-    name: 'Alex',
+
     rating: 5,
     review: 'Excellent debugging platform. The AI explanations are incredibly helpful.',
   },
@@ -103,7 +102,8 @@ export default function EditorPage({ user }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
-  const [blurIntensity, setBlurIntensity] = useState(10);
+  const [blurIntensity] = useState(10);
+
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const [showSearchReplace, setShowSearchReplace] = useState(false);
   const [consoleCollapsed, setConsoleCollapsed] = useState(false);
@@ -417,12 +417,10 @@ export default function EditorPage({ user }) {
       if (executionRunRef.current) executionRunRef.current();
     });
 
-
     // Ctrl+H → Toggle Search & Replace panel
     editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH, () => {
       setShowSearchReplace((v) => !v);
     });
-
 
     const formatCurrentModel = async () => {
       const model = editorInstance.getModel();
@@ -1927,4 +1925,3 @@ export default function EditorPage({ user }) {
     </div>
   );
 }
-

@@ -26,6 +26,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
+
   const [resetEmail, setResetEmail] = useState('');
 
   const saveUser = async (user) => {

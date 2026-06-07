@@ -15,9 +15,9 @@ export default function MobileDrawer({
   user,
   editor,
   audioFeedback,
-  showHistory,
-  setShowHistory,
+
   onLoadCode,
+
   onSignIn,
   onSignUp,
 }) {

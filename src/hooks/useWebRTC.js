@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
+
 import Peer from 'simple-peer';
 import {
   collection,
@@ -262,6 +263,3 @@ export function useWebRTC(roomId, user) {
 
   return { inCall, joinCall, leaveCall, isMuted, toggleMute, peers };
 }
-
-
-
