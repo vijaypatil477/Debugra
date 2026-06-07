@@ -15,6 +15,7 @@ import {
   useEditor,
   useIsMobile,
   useAudioFeedback,
+  useKeymaps,
   useWelcomeTour,
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
@@ -41,6 +42,7 @@ import EditorStatusBar from './EditorStatusBar';
 import MobileBottomNav from './MobileBottomNav';
 import VideoCall from './VideoCall';
 import VotePopup from './VotePopup';
+import KeymapsSelector from './KeymapsSelector';
 import WelcomeTour from './WelcomeTour';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import MobileDrawer from './MobileDrawer';
@@ -105,6 +107,7 @@ export default function EditorPage({ user }) {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10);
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+  const [showKeymaps, setShowKeymaps] = useState(false);
   const [showSearchReplace, setShowSearchReplace] = useState(false);
   const [consoleCollapsed, setConsoleCollapsed] = useState(false);
   const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
@@ -201,6 +204,9 @@ export default function EditorPage({ user }) {
   const tabSizeRef = useRef(editor.tabSize);
   const vimControllerRef = useRef(null);
   const [vimMode, setVimMode] = useState('NORMAL');
+
+  // ─── Keymaps Setup ────────────────────────────────────────────────────────
+  const keymaps = useKeymaps();
 
   // ─── Room/Collaboration Logic ──────────────────────────────────────────────
   const room = useRoom({
@@ -407,6 +413,22 @@ export default function EditorPage({ user }) {
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
+  };
+
+  // ─── Register Keymaps Actions ──────────────────────────────────────────────
+  useEffect(() => {
+    keymaps.registerAction(keymaps.EDITOR_ACTIONS.RUN_CODE, () => {
+      if (executionRunRef.current) executionRunRef.current();
+    });
+  }, [keymaps]);
+
+  // ─── Global Keyboard Listener ─────────────────────────────────────────────
+  useEffect(() => {
+    window.addEventListener('keydown', keymaps.handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener('keydown', keymaps.handleGlobalKeyDown);
+    };
+  }, [keymaps.handleGlobalKeyDown]);
 
     // Prevent our custom Ctrl+S and Tab handlers from being blocked by Vim command-mode.
     // These are handled via the capture-phase DOM keydown listener above, and Vim mode toggling
@@ -626,7 +648,7 @@ export default function EditorPage({ user }) {
                   transition: 'all 0.2s',
                 }}
               >
-                📹 {showVideoCall ? 'Leave Call' : 'Join Call'}
+                {showVideoCall ? 'Leave Call' : 'Join Call'}
               </button>
               <button
                 className="topbar-link ms-2"
@@ -643,7 +665,7 @@ export default function EditorPage({ user }) {
                   transition: 'all 0.18s',
                 }}
               >
-                🔊 {showVoiceCall ? 'Leave Voice' : 'Join Voice'}
+                {showVoiceCall ? 'Leave Voice' : 'Join Voice'}
               </button>
             </>
           )}
@@ -1104,6 +1126,123 @@ export default function EditorPage({ user }) {
               >
                 <Settings size={14} />
               </button>
+              {showSettings && (
+                <div className="audio-settings-popover custom-layout-popover" role="dialog" aria-label="Settings">
+                  <div className="audio-settings-head">
+                    <span>Settings</span>
+                    <button
+                      className="history-action-btn"
+                      aria-label="Close Settings"
+                      onClick={() => setShowSettings(false)}
+                    >
+                      <i className="bi bi-x" />
+                    </button>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-type" style={{ fontSize: '14px' }} />
+                      <span>Editor font</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.fontFamily}
+                      onChange={(e) => editor.setFontFamily(e.target.value)}
+                      aria-label="Editor font"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {EDITOR_FONTS.map((font) => (
+                        <option key={font.id} value={font.id}>
+                          {font.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-palette" style={{ fontSize: '14px' }} />
+                      <span>Theme</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.theme}
+                      onChange={(e) => editor.setTheme(e.target.value)}
+                      aria-label="Editor theme"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {EDITOR_THEMES.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* ===== WALLPAPER BLUR SETTING ROW ===== */}
+                  <div className="audio-settings-row" style={{ marginTop: '12px' }}>
+                    <div className="audio-settings-label">
+                      <i className="bi bi-sliders" style={{ fontSize: '14px' }} />
+                      <span>Wallpaper Blur</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        step="1"
+                        value={blurIntensity}
+                        onChange={(e) => setBlurIntensity(Number(e.target.value))}
+                        style={{ flex: 1, accentColor: '#00bcd4' }} 
+                      />
+                      <span style={{ fontSize: '12px', minWidth: '30px', textAlign: 'right' }}>
+                        {blurIntensity}px
+                      </span>
+                    </div>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      {audioFeedback.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                      <span>Audio feedback</span>
+                    </div>
+                    <button
+                      className={`audio-toggle ${audioFeedback.muted ? '' : 'active'}`}
+                      aria-pressed={!audioFeedback.muted}
+                      onClick={() => audioFeedback.setMuted(!audioFeedback.muted)}
+                    >
+                      {audioFeedback.muted ? 'Muted' : 'On'}
+                    </button>
+                  </div>
+                  <label className="audio-settings-slider">
+                    <span>Volume</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={audioFeedback.volume}
+                      onChange={(e) => audioFeedback.setVolume(e.target.value)}
+                    />
+                    <span>{Math.round(audioFeedback.volume * 100)}%</span>
+                  </label>
+                  <button
+                    className="audio-test-btn"
+                    onClick={audioFeedback.testSound}
+                    disabled={audioFeedback.muted}
+                  >
+                    Test chime
+                  </button>
+                  <div className="audio-settings-row" style={{ marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
+                    <div className="audio-settings-label">
+                      <i className="bi bi-keyboard" style={{ fontSize: '14px' }} />
+                      <span>Keyboard Shortcuts</span>
+                    </div>
+                    <button
+                      className="lang-select"
+                      onClick={() => setShowKeymaps(true)}
+                      style={{ cursor: 'pointer', backgroundColor: 'rgba(66, 184, 131, 0.1)', border: '1px solid rgba(66, 184, 131, 0.3)', color: '#42b883', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }}
+                    >
+                      Configure
+                    </button>
+                  </div>
+                </div>
             </div>
           </div>
           <span className="kbd-hint d-none d-lg-inline">Ctrl+Enter</span>
@@ -1842,6 +1981,55 @@ export default function EditorPage({ user }) {
           onClose={() => setShowApiKey(false)}
           onStatusChange={() => setApiKeyStatus(getApiKeyStatus())}
         />
+      )}
+
+      {showAccount && user && (
+        <AccountSettings
+          onClose={() => setShowAccount(false)}
+          user={user}
+        />
+      )}
+      
+      {/* Keymaps Modal */}
+      {showKeymaps && (
+        <div className="modal-overlay" onClick={() => setShowKeymaps(false)}>
+          <div
+            className="modal-box"
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: '90%',
+              maxWidth: '900px',
+              maxHeight: '70dvh',
+              overflowY: 'auto',
+              padding: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div className="modal-header-row" style={{ padding: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <div>
+                <h2 className="modal-title-left">Keyboard Shortcuts</h2>
+                <p className="modal-muted">Select an IDE profile or customize keybindings</p>
+              </div>
+              <button
+                className="modal-close-btn"
+                onClick={() => setShowKeymaps(false)}
+                aria-label="Close keymaps settings"
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <KeymapsSelector
+                keymaps={keymaps}
+                onSelectProfile={(profileId) => {
+                  toast.success(`Switched to ${keymaps.getProfiles().find(p => p.id === profileId)?.name} keybindings`);
+                }}
+                selectedProfile={keymaps.currentProfile}
+              />
+            </div>
+          </div>
+        </div>
       )}
       {showAccount && user && <AccountSettings onClose={() => setShowAccount(false)} user={user} />}
 
