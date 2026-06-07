@@ -1,11 +1,11 @@
-import { useRef, useState, useEffect } from 'react';
+﻿import { useRef, useState, useEffect } from 'react';
 import { createMonacoVimController } from '../../utils/monacoVim';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu } from 'lucide-react';
+import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 import {
@@ -20,7 +20,7 @@ import {
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
-import { LANGUAGES } from '../../utils/languageConfig';
+import { LANGUAGES, detectLanguageByFileName } from '../../utils/languageConfig';
 import {
   LANG_FILE_NAMES,
   MOBILE_TABS,
@@ -48,6 +48,7 @@ import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import MobileDrawer from './MobileDrawer';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import SearchReplacePanel from './SearchReplacePanel';
 import Loader from '../Loader';
 import ComplexityOverlay from './ComplexityOverlay';
 
@@ -80,6 +81,7 @@ export default function EditorPage({ user }) {
   const navigate = useNavigate();
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
+  const fileInputRef = useRef(null);
   const providerRegisteredRef = useRef(false);
 
   // ─── UI State ──────────────────────────────────────────────────────────────
@@ -106,6 +108,7 @@ export default function EditorPage({ user }) {
   const [blurIntensity, setBlurIntensity] = useState(10);
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const [showKeymaps, setShowKeymaps] = useState(false);
+  const [showSearchReplace, setShowSearchReplace] = useState(false);
   const [consoleCollapsed, setConsoleCollapsed] = useState(false);
   const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -135,6 +138,40 @@ export default function EditorPage({ user }) {
     } catch (err) {
       toast.error('Failed to copy output');
     }
+  };
+
+  const handleFileImport = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File is too large (max 5MB)');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target.result;
+      const detectedLang = detectLanguageByFileName(file.name);
+
+      editor.loadCode(content, detectedLang);
+
+      if (detectedLang) {
+        toast.success(`Imported ${file.name} (detected ${LANGUAGES[detectedLang].name})`);
+      } else {
+        toast.success(`Imported ${file.name} as text`);
+      }
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    };
+
+    reader.onerror = () => {
+      toast.error('Failed to read file');
+    };
+
+    reader.readAsText(file);
   };
 
   const editor = useEditor({
@@ -401,6 +438,13 @@ export default function EditorPage({ user }) {
     editorInstance.addCommand(2048 | 3, () => {
       if (executionRunRef.current) executionRunRef.current();
     });
+
+
+    // Ctrl+H → Toggle Search & Replace panel
+    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH, () => {
+      setShowSearchReplace((v) => !v);
+    });
+
 
     const formatCurrentModel = async () => {
       const model = editorInstance.getModel();
@@ -796,7 +840,7 @@ export default function EditorPage({ user }) {
               </button>
               <button
                 className="topbar-link"
-                style={{ background: '#8b5cf6', color: 'white', border: 'none' }}
+                style={{ background: '#6d28d9', color: 'white', border: 'none' }}
                 onClick={() => {
                   setAuthMode('signup');
                   setShowAuth(true);
@@ -814,6 +858,7 @@ export default function EditorPage({ user }) {
         <div className="toolbar-left d-flex align-items-center gap-2">
           <select
             className="lang-select"
+            aria-label="Programming language"
             value={editor.language}
             onChange={(e) => editor.changeLanguage(e.target.value)}
             disabled={room.isReadOnly}
@@ -990,6 +1035,22 @@ export default function EditorPage({ user }) {
             Fix
           </button>
           <div className="d-flex align-items-center gap-1">
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              onChange={handleFileImport}
+              accept=".py,.js,.jsx,.ts,.tsx,.java,.cpp,.cc,.cxx,.h,.hpp,.c,.cs,.go,.rs,.rb,.php,.swift,.pl,.pm,.lua,.scala,.hs,.sql,.sh,.txt"
+            />
+            <button
+              className="toolbar-icon-btn"
+              aria-label="Import File"
+              onClick={() => fileInputRef.current?.click()}
+              title="Import file"
+              disabled={room.isReadOnly}
+            >
+              <FolderOpen size={14} />
+            </button>
             <button
               className="toolbar-icon-btn"
               aria-label="Download Code"
@@ -1354,6 +1415,39 @@ export default function EditorPage({ user }) {
                 ×
               </button>
             </div>
+            <button
+              className="editor-tab-action-btn"
+              onClick={() => fileInputRef.current?.click()}
+              title="Import File"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '2px 8px',
+                margin: '0 8px',
+                fontSize: '0.68rem',
+                color: 'var(--text-1)',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px dashed var(--border)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--text-0)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                e.currentTarget.style.borderColor = 'var(--accent)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-1)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                e.currentTarget.style.borderColor = 'var(--border)';
+              }}
+              disabled={room.isReadOnly}
+            >
+              <FolderOpen size={11} />
+              <span>Import File</span>
+            </button>
             {room.roomId && (
               <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
                 <AudioChannel room={room} user={user} />
@@ -1434,6 +1528,12 @@ export default function EditorPage({ user }) {
                 columnSelection: true,
               }}
             />
+            {showSearchReplace && (
+              <SearchReplacePanel
+                editorRef={editorRef}
+                onClose={() => setShowSearchReplace(false)}
+              />
+            )}
           </div>
 
           {/* Stdin Panel */}
@@ -1963,13 +2063,11 @@ export default function EditorPage({ user }) {
       {showVideoCall && room.roomId && (
         <VideoCall
           roomId={room.roomId}
+          userId={user?.uid}
           userName={user?.displayName || user?.email?.split('@')[0] || 'Guest'}
           onClose={() => setShowVideoCall(false)}
         />
       )}
-
-      {/* Real-time Democratic Vote Popup */}
-      <VotePopup room={room} user={user} />
 
       {/* Premium Full-Screen Code Execution Loading Overlay */}
       <Loader isVisible={execution.isRunning} />
@@ -2017,3 +2115,4 @@ export default function EditorPage({ user }) {
     </div>
   );
 }
+

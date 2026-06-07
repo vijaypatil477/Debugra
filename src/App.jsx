@@ -48,7 +48,7 @@ export default function App() {
               },
             }}
           />
-          
+
           {/* The main tag expands to fill all available empty space */}
           <main className="flex-grow">
             <Routes>
@@ -58,16 +58,20 @@ export default function App() {
               {/* Test route to render VideoCall directly for e2e tests */}
               <Route
                 path="/voice-test"
-                element={<VideoCall roomId={'__playwright_test'} userName={'Playwright'} audioOnly />}
+                element={
+                  <VideoCall roomId={'__playwright_test'} userName={'Playwright'} audioOnly />
+                }
               />
               {/* Local-only test route that does not use Firestore/room presence */}
-              <Route path="/voice-test-local" element={<VideoCall userName={'Playwright'} audioOnly />} />
+              <Route
+                path="/voice-test-local"
+                element={<VideoCall userName={'Playwright'} audioOnly />}
+              />
             </Routes>
           </main>
 
           {/* Footer is safely placed outside <Routes> so it renders globally */}
           <Footer />
-          
         </div>
       </BrowserRouter>
     </ThemeProvider>
