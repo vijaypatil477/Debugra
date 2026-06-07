@@ -446,6 +446,10 @@ export default function LandingPage() {
           <a href="#languages" className="landing-nav-link">
             Languages
           </a>
+
+          <button className="landing-nav-link" onClick={() => navigate('/lobby')}>
+            Public Lobby
+
           <a href="#faq" className="landing-nav-link">
             FAQ
           </a>
@@ -454,6 +458,7 @@ export default function LandingPage() {
             className="landing-nav-link nav-link-button"
           >
             Feedback
+
           </button>
           <button onClick={() => setShowLogin(true)} className="landing-btn-outline">
             Log In
@@ -604,6 +609,15 @@ export default function LandingPage() {
           </button>
           <button
             onClick={() => {
+              navigate('/lobby');
+              setMobileMenu(false);
+            }}
+            className="mobile-dropdown-link"
+          >
+            Public Lobby
+          </button>
+          <button
+            onClick={() => {
               setShowLogin(true);
               setMobileMenu(false);
             }}
@@ -660,6 +674,9 @@ export default function LandingPage() {
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
               Open Editor — it&apos;s free
+            </button>
+            <button onClick={() => navigate('/lobby')} className="landing-btn-ghost landing-btn-lg">
+              Browse Public Rooms
             </button>
             <button onClick={() => setShowLogin(true)} className="landing-btn-ghost landing-btn-lg">
               Sign in to save code

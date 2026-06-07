@@ -155,8 +155,15 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       await setDoc(doc(db, 'rooms', id), {
         name: `Room ${id}`,
         createdBy: user.uid,
+
+        isPrivate: Boolean(passwordHash),
+        isPublic: !Boolean(passwordHash),
+        passwordSalt,
+        passwordHash,
+
         isPrivate: passwordProtected,
         passwordProtected,
+
         code,
         language,
         activeUsers: [{ uid: user.uid, displayName }],
