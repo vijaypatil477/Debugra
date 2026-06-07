@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import {
   updateProfile,
   updateEmail,
@@ -8,7 +8,7 @@ import {
   EmailAuthProvider,
   signOut,
 } from 'firebase/auth';
-import { doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import toast from 'react-hot-toast';
 
@@ -204,3 +204,5 @@ export default function AccountSettings({ onClose, user }) {
     </div>
   );
 }
+
+

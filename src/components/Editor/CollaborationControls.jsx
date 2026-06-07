@@ -7,14 +7,7 @@ import ParticipantsPanel from './ParticipantsPanel';
  * Handles: participants list panel, role management.
  */
 export default function CollaborationControls({ room, user }) {
-  const {
-    roomData,
-    activeUsers,
-    isHost,
-    isEditor,
-    isReadOnly,
-    leaveRoom,
-  } = room;
+  const { roomData, activeUsers, isHost, isEditor, isReadOnly, leaveRoom } = room;
 
   const [showParticipants, setShowParticipants] = useState(false);
   const myRole = roomData?.roles?.[user?.uid] || 'viewer';
@@ -56,7 +49,9 @@ export default function CollaborationControls({ room, user }) {
       {/* Current Role label */}
       <span style={{ color: 'var(--text-2)', marginLeft: '4px' }}>
         Role:{' '}
-        <strong style={{ color: isHost ? 'var(--yellow)' : (isEditor ? 'var(--green)' : 'var(--text-1)') }}>
+        <strong
+          style={{ color: isHost ? 'var(--yellow)' : isEditor ? 'var(--green)' : 'var(--text-1)' }}
+        >
           {myRole.charAt(0).toUpperCase() + myRole.slice(1)}
         </strong>
       </span>

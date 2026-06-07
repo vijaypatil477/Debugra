@@ -26,7 +26,18 @@ const ICE_SERVERS = [
   { urls: 'stun:stun1.l.google.com:19302' },
 ];
 
-const VideoCall = ({ roomId, userName, onClose }) => {
+const VideoCall = ({ roomId, userId, userName, onClose, audioOnly = false }) => {
+  // Test-only flag: when URL contains ?testLocal=1 we render a static local meter
+  // This avoids depending on getUserMedia / AudioContext in headless test environments.
+  let isTestLocal = false;
+  try {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      isTestLocal = params.get('testLocal') === '1';
+    }
+  } catch (e) {
+    isTestLocal = false;
+  }
   const [peers, setPeers] = useState(new Map());
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -49,23 +60,34 @@ const VideoCall = ({ roomId, userName, onClose }) => {
   const peersRef = useRef(new Map());
   const localStreamRef = useRef(null);
   const screenStreamRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const localAnalyserRef = useRef(null);
+  const localDataRef = useRef(null);
+  const localRafRef = useRef(null);
+  const [localLevel, setLocalLevel] = useState(0);
 
   // Generate a persistent, session-unique ID for the local peer
-  const myPeerId = useRef(crypto.randomUUID().slice(0, 8)).current;
+  const myPeerId = useRef(userId || crypto.randomUUID().slice(0, 8)).current;
+  const mySessionId = useRef(crypto.randomUUID().slice(0, 8)).current;
 
   // ── Acquire local media ──────────────────────────
   const startLocalStream = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 },
-          facingMode: 'user',
-        },
-        audio: { echoCancellation: true, noiseSuppression: true },
-      });
+      const constraints = audioOnly
+        ? { audio: { echoCancellation: true, noiseSuppression: true }, video: false }
+        : {
+            video: {
+              width: { ideal: 1280, max: 1920 },
+              height: { ideal: 720, max: 1080 },
+              facingMode: 'user',
+            },
+            audio: { echoCancellation: true, noiseSuppression: true },
+          };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       localStreamRef.current = stream;
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      if (!audioOnly && localVideoRef.current) localVideoRef.current.srcObject = stream;
+      // Setup local analyser will be done by caller when stream is available
       setConnectionStatus('ready');
       return stream;
     } catch (err) {
@@ -78,10 +100,12 @@ const VideoCall = ({ roomId, userName, onClose }) => {
       setConnectionStatus('error');
       return null;
     }
-  }, []);
+  }, [audioOnly]);
 
   useEffect(() => {
-    startLocalStream();
+    startLocalStream().then((stream) => {
+      if (stream && stream.getAudioTracks().length) setupLocalAnalyser(stream);
+    });
     const currentPeers = peersRef.current;
     return () => {
       // Cleanup tracks on unmount
@@ -91,9 +115,60 @@ const VideoCall = ({ roomId, userName, onClose }) => {
         peerObj.connection.close();
         if (peerObj.unsubConnection) peerObj.unsubConnection();
         if (peerObj.unsubCandidates) peerObj.unsubCandidates();
+        if (peerObj.raf) cancelAnimationFrame(peerObj.raf);
+        try {
+          peerObj.analyserSource?.disconnect();
+          peerObj.analyser?.disconnect();
+        } catch (e) {
+          console.warn('Error disconnecting peer analyser', e);
+        }
       });
+      // stop local analyser
+      if (localRafRef.current) cancelAnimationFrame(localRafRef.current);
+      try {
+        localAnalyserRef.current?.disconnect();
+        audioCtxRef.current?.close();
+      } catch (e) {
+        console.warn('Error closing local analyser/audio context', e);
+      }
     };
   }, [startLocalStream]);
+
+  const ensureAudioContext = () => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtxRef.current;
+  };
+
+  const setupLocalAnalyser = useCallback((stream) => {
+    try {
+      const audioCtx = ensureAudioContext();
+      const src = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      src.connect(analyser);
+      localAnalyserRef.current = analyser;
+      localDataRef.current = data;
+
+      const tick = () => {
+        analyser.getByteTimeDomainData(data);
+        // compute normalized RMS
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          const v = data[i] - 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / data.length) / 128;
+        setLocalLevel(Math.min(1, rms));
+        localRafRef.current = requestAnimationFrame(tick);
+      };
+      localRafRef.current = requestAnimationFrame(tick);
+    } catch (e) {
+      console.error('Local analyser setup failed', e);
+    }
+  }, []);
 
   // Update Firestore presence details
   const updatePresence = useCallback(
@@ -114,14 +189,47 @@ const VideoCall = ({ roomId, userName, onClose }) => {
     async (peerId, peerData) => {
       if (peersRef.current.has(peerId)) return;
 
+      const peerSessionId = peerData.sessionId || peerId;
+      const connectionId =
+        mySessionId < peerSessionId
+          ? `${mySessionId}_${peerSessionId}`
+          : `${peerSessionId}_${mySessionId}`;
+
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+      // Synchronously initialize the stream state to avoid async race condition with pc.ontrack
+      setPeers((prev) => {
+        const next = new Map(prev);
+        if (!next.has(peerId)) {
+          next.set(peerId, { id: peerId, ...peerData, stream: null });
+        }
+        return next;
+      });
+
       const peerObj = {
         id: peerId,
+        sessionId: peerSessionId,
+        connectionId: connectionId,
         connection: pc,
         unsubConnection: null,
         unsubCandidates: null,
       };
       peersRef.current.set(peerId, peerObj);
+
+      let remoteDescriptionSet = false;
+      const remoteCandidatesQueue = [];
+
+      const flushRemoteCandidates = async () => {
+        remoteDescriptionSet = true;
+        while (remoteCandidatesQueue.length > 0) {
+          const candidate = remoteCandidatesQueue.shift();
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch (e) {
+            console.error('Error adding queued remote ice candidate:', e);
+          }
+        }
+      };
 
       // Add local tracks to this connection
       const streamToShare = screenStreamRef.current || localStreamRef.current;
@@ -141,12 +249,46 @@ const VideoCall = ({ roomId, userName, onClose }) => {
           next.set(peerId, p);
           return next;
         });
+
+        // Setup per-peer analyser for mic activity
+        try {
+          if (remoteStream && remoteStream.getAudioTracks().length) {
+            const audioCtx = ensureAudioContext();
+            const src = audioCtx.createMediaStreamSource(remoteStream);
+            const analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            const data = new Uint8Array(analyser.frequencyBinCount);
+            src.connect(analyser);
+
+            const tickPeer = () => {
+              analyser.getByteTimeDomainData(data);
+              let sum = 0;
+              for (let i = 0; i < data.length; i++) {
+                const v = data[i] - 128;
+                sum += v * v;
+              }
+              const rms = Math.sqrt(sum / data.length) / 128;
+              setPeers((prev) => {
+                const next = new Map(prev);
+                const existing = next.get(peerId) || { id: peerId };
+                existing.volume = Math.min(1, rms);
+                next.set(peerId, existing);
+                return next;
+              });
+              peerObj.raf = requestAnimationFrame(tickPeer);
+            };
+            peerObj.analyser = analyser;
+            peerObj.analyserSource = src;
+            peerObj.raf = requestAnimationFrame(tickPeer);
+          }
+        } catch (e) {
+          console.error('Peer analyser setup failed', e);
+        }
       };
 
       // Handle local ICE candidates and publish them to Firestore
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          const connectionId = myPeerId < peerId ? `${myPeerId}_${peerId}` : `${peerId}_${myPeerId}`;
           const candidatesCol = collection(
             db,
             'rooms',
@@ -163,7 +305,6 @@ const VideoCall = ({ roomId, userName, onClose }) => {
         }
       };
 
-      const connectionId = myPeerId < peerId ? `${myPeerId}_${peerId}` : `${peerId}_${myPeerId}`;
       const connectionRef = doc(db, 'rooms', roomId, 'connections', connectionId);
 
       // Listen to incoming ICE candidates from the other peer
@@ -180,10 +321,14 @@ const VideoCall = ({ roomId, userName, onClose }) => {
           if (change.type === 'added') {
             const data = change.doc.data();
             if (data.sender !== myPeerId) {
-              try {
-                await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-              } catch (e) {
-                console.error('Error adding remote ice candidate:', e);
+              if (remoteDescriptionSet || pc.remoteDescription) {
+                try {
+                  await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+                } catch (e) {
+                  console.error('Error adding remote ice candidate:', e);
+                }
+              } else {
+                remoteCandidatesQueue.push(data.candidate);
               }
             }
           }
@@ -191,7 +336,7 @@ const VideoCall = ({ roomId, userName, onClose }) => {
       });
 
       // Peer signaling role: lexicographical lower ID initiates the offer
-      if (myPeerId < peerId) {
+      if (mySessionId < peerSessionId) {
         // Offer side (Initiator)
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -208,6 +353,7 @@ const VideoCall = ({ roomId, userName, onClose }) => {
             const data = snap.data();
             if (data.answer && !pc.currentRemoteDescription) {
               await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+              await flushRemoteCandidates();
             }
           }
         });
@@ -223,16 +369,13 @@ const VideoCall = ({ roomId, userName, onClose }) => {
               await updateDoc(connectionRef, {
                 answer: { type: answer.type, sdp: answer.sdp },
               });
+              await flushRemoteCandidates();
             }
           }
         });
       }
 
-      setPeers((prev) => {
-        const next = new Map(prev);
-        next.set(peerId, { id: peerId, ...peerData, stream: null });
-        return next;
-      });
+      // Stream initialization moved to top of setupPeerConnection
     },
     [roomId, myPeerId]
   );
@@ -245,12 +388,20 @@ const VideoCall = ({ roomId, userName, onClose }) => {
     const myCallRef = doc(db, 'rooms', roomId, 'calls', myPeerId);
     setDoc(myCallRef, {
       id: myPeerId,
+      userId: userId || null,
+      sessionId: mySessionId,
       name: userName || 'Anonymous',
       joinedAt: serverTimestamp(),
       isVideoOff: false,
       isMuted: false,
       isScreenSharing: false,
     }).catch((e) => console.error('Error publishing presence:', e));
+
+    // Cleanup on tab close
+    const handleBeforeUnload = () => {
+      deleteDoc(myCallRef).catch(() => {});
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     // Listen to call participants
     const callsCol = collection(db, 'rooms', roomId, 'calls');
@@ -260,7 +411,8 @@ const VideoCall = ({ roomId, userName, onClose }) => {
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        if (data.id && data.id !== myPeerId) {
+        const isSelf = data.id === myPeerId || (userId && data.userId === userId);
+        if (data.id && !isSelf) {
           activeIds.add(data.id);
           updatedPeersData.set(data.id, data);
         }
@@ -272,6 +424,13 @@ const VideoCall = ({ roomId, userName, onClose }) => {
           peerObj.connection.close();
           if (peerObj.unsubConnection) peerObj.unsubConnection();
           if (peerObj.unsubCandidates) peerObj.unsubCandidates();
+          if (peerObj.raf) cancelAnimationFrame(peerObj.raf);
+          try {
+            peerObj.analyserSource?.disconnect();
+            peerObj.analyser?.disconnect();
+          } catch (e) {
+            console.warn('Error disconnecting peer analyser', e);
+          }
           peersRef.current.delete(peerId);
           setPeers((prev) => {
             const next = new Map(prev);
@@ -283,7 +442,16 @@ const VideoCall = ({ roomId, userName, onClose }) => {
 
       // Initiate or update active connections
       for (const [peerId, peerData] of updatedPeersData) {
-        if (!peersRef.current.has(peerId)) {
+        const existing = peersRef.current.get(peerId);
+        if (!existing) {
+          await setupPeerConnection(peerId, peerData);
+        } else if (peerData.sessionId && existing.sessionId !== peerData.sessionId) {
+          // Peer reconnected/reloaded: teardown old connection and rebuild
+          existing.connection.close();
+          if (existing.unsubConnection) existing.unsubConnection();
+          if (existing.unsubCandidates) existing.unsubCandidates();
+          if (existing.raf) cancelAnimationFrame(existing.raf);
+          peersRef.current.delete(peerId);
           await setupPeerConnection(peerId, peerData);
         } else {
           // Update details (e.g., handles screenshare or mute state changes)
@@ -300,6 +468,7 @@ const VideoCall = ({ roomId, userName, onClose }) => {
     });
 
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       unsubCalls();
       deleteDoc(myCallRef).catch((e) => console.error('Error clearing presence document:', e));
     };
@@ -388,10 +557,17 @@ const VideoCall = ({ roomId, userName, onClose }) => {
     localStreamRef.current = null;
     screenStreamRef.current = null;
 
-    peersRef.current.forEach((peerObj) => {
+    peersRef.current.forEach((peerObj, peerId) => {
       peerObj.connection.close();
       if (peerObj.unsubConnection) peerObj.unsubConnection();
       if (peerObj.unsubCandidates) peerObj.unsubCandidates();
+
+      // Clean up connection documents in Firestore
+      const connectionId = peerObj.connectionId || (myPeerId < peerId ? `${myPeerId}_${peerId}` : `${peerId}_${myPeerId}`);
+      const connectionRef = doc(db, 'rooms', roomId, 'connections', connectionId);
+      deleteDoc(connectionRef).catch((e) =>
+        console.warn('Failed to clean up WebRTC connection document:', e)
+      );
     });
     peersRef.current.clear();
     setPeers(new Map());
@@ -402,10 +578,7 @@ const VideoCall = ({ roomId, userName, onClose }) => {
   // ── Whiteboard Syncing & Event Handlers ───────────
   useEffect(() => {
     if (!roomId) return;
-    const q = query(
-      collection(db, 'rooms', roomId, 'drawings'),
-      orderBy('createdAt', 'asc')
-    );
+    const q = query(collection(db, 'rooms', roomId, 'drawings'), orderBy('createdAt', 'asc'));
     return onSnapshot(q, (snap) => {
       const remoteStrokes = snap.docs.map((doc) => ({
         id: doc.id,
@@ -642,10 +815,18 @@ const VideoCall = ({ roomId, userName, onClose }) => {
                 </div>
 
                 <div className="vc-tool-actions">
-                  <button className="vc-action-btn vc-action-btn--clear" onClick={clearCanvas} title="Clear board for everyone">
+                  <button
+                    className="vc-action-btn vc-action-btn--clear"
+                    onClick={clearCanvas}
+                    title="Clear board for everyone"
+                  >
                     🗑️ Clear
                   </button>
-                  <button className="vc-action-btn vc-action-btn--export" onClick={exportImage} title="Export as PNG">
+                  <button
+                    className="vc-action-btn vc-action-btn--export"
+                    onClick={exportImage}
+                    title="Export as PNG"
+                  >
                     📥 Export Image
                   </button>
                 </div>
@@ -694,7 +875,9 @@ const VideoCall = ({ roomId, userName, onClose }) => {
                   playsInline
                   className={`vc-video ${peer.isScreenSharing ? 'vc-video--screen' : ''}`}
                   ref={(el) => {
-                    if (el && peer.stream) el.srcObject = peer.stream;
+                    if (el && peer.stream && el.srcObject !== peer.stream) {
+                      el.srcObject = peer.stream;
+                    }
                   }}
                 />
                 {peer.isVideoOff && <div className="vc-video-off">📷 Camera Off</div>}

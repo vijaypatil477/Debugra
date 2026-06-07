@@ -19,6 +19,11 @@ export default function EditorStatusBar({
   lastSavedAt = null,
   isOffline = false,
   hasPendingChanges = false,
+  tabSize,
+  room,
+  user,
+  vimEnabled,
+  vimMode,
 }) {
   const { roomId, activeUsers, showOnlineDropdown, setShowOnlineDropdown } = room;
   const lastSavedText = lastSavedAt
@@ -130,7 +135,9 @@ export default function EditorStatusBar({
         <span>
           Ln {cursorPos.line}, Col {cursorPos.col}
         </span>
-        <span>Spaces: 4</span>
+        <span>Spaces: {tabSize}</span>
+        {/* Vim */}
+        {vimEnabled && <span title="Vim mode">Vim: {vimMode || 'NORMAL'}</span>}
       </div>
 
       <div className="statusbar-right">
@@ -251,7 +258,9 @@ export default function EditorStatusBar({
                     />
                     {u.displayName} {u.uid === user?.uid ? '(You)' : ''}
                     {u.activeFile && (
-                      <span style={{ color: 'var(--text-2)', fontSize: '0.65rem', marginLeft: 'auto' }}>
+                      <span
+                        style={{ color: 'var(--text-2)', fontSize: '0.65rem', marginLeft: 'auto' }}
+                      >
                         [{LANG_FILE_NAMES[u.activeFile] || u.activeFile}]
                       </span>
                     )}

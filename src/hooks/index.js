@@ -8,3 +8,4 @@ export { useEditor } from './useEditor';
 export { useIsMobile } from './useIsMobile';
 export { useAudioFeedback } from './useAudioFeedback';
 export { useDebounce, useDebouncedCallback } from './useDebounce';
+export { useWelcomeTour } from './useWelcomeTour';
