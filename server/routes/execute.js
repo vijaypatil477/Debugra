@@ -1,9 +1,9 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const NodeCache = require('node-cache');
 const crypto = require('crypto');
 const { rateLimit } = require('express-rate-limit');
-const { executeCode } = require('../services/judge0Service');
+const { executeCode, SUPPORTED_LANGUAGE_IDS } = require('../services/judge0Service');
 
 const MAX_SOURCE_CODE_LENGTH = 100000;
 const MAX_STDIN_LENGTH = 10000;
@@ -17,6 +17,14 @@ const executeCache = new NodeCache({
   checkperiod: 60,
 });
 const executeCacheInsertionOrder = new Map();
+
+// Remove expired/deleted entries from the insertion order tracker to prevent memory leaks
+executeCache.on('del', (key) => {
+  executeCacheInsertionOrder.delete(key);
+});
+executeCache.on('expired', (key) => {
+  executeCacheInsertionOrder.delete(key);
+});
 
 function buildCacheKey(languageId, stdin, sourceCode) {
   const payload = JSON.stringify({
@@ -73,6 +81,13 @@ router.post('/', executeLimiter, async (req, res, next) => {
       return res.status(400).json({ error: 'source_code and stdin must be strings' });
     }
 
+    const parsedId = Number(language_id);
+    if (!Number.isInteger(parsedId) || !SUPPORTED_LANGUAGE_IDS.has(parsedId)) {
+      return res.status(400).json({
+        error: `Unsupported language_id: ${language_id}. Supported IDs: ${[...SUPPORTED_LANGUAGE_IDS].join(', ')}`,
+      });
+    }
+
     if (Buffer.byteLength(source_code, 'utf-8') > MAX_SOURCE_CODE_LENGTH) {
       return res.status(413).json({
         error: `source_code exceeds maximum length of ${MAX_SOURCE_CODE_LENGTH} bytes`,
@@ -87,7 +102,7 @@ router.post('/', executeLimiter, async (req, res, next) => {
       });
     }
 
-    const cacheKey = buildCacheKey(language_id, normalizedStdin, source_code);
+    const cacheKey = buildCacheKey(parsedId, normalizedStdin, source_code);
     const cachedResult = executeCache.get(cacheKey);
 
     if (cachedResult) {
@@ -95,7 +110,7 @@ router.post('/', executeLimiter, async (req, res, next) => {
       return res.json(cachedResult);
     }
 
-    const result = await executeCode(source_code, language_id, normalizedStdin);
+    const result = await executeCode(source_code, parsedId, normalizedStdin);
 
     // Only cache successful requests
     if (result && result.status) {
@@ -110,3 +125,5 @@ router.post('/', executeLimiter, async (req, res, next) => {
 });
 
 module.exports = router;
+
+
