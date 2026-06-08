@@ -4,13 +4,13 @@ const MESSAGES = [
   'Connecting to Judge0...',
   'Compiling code...',
   'Executing binary...',
-  'Fetching output...'
+  'Fetching output...',
 ];
 
 /**
  * Premium developer-focused split-panel glassmorphic loading overlay.
  * Renders full-screen over the editor & terminal, blocking all user clicks.
- * 
+ *
  * @param {boolean} isVisible - Controls the visibility of the overlay
  */
 export default function Loader({ isVisible }) {
@@ -32,8 +32,8 @@ export default function Loader({ isVisible }) {
   if (!isVisible) return null;
 
   return (
-    <div 
-      className="premium-loader-overlay" 
+    <div
+      className="premium-loader-overlay"
       id="premium-execution-loader"
       onClick={(e) => {
         // Prevent click events from propagating to Monaco or Terminal

@@ -143,7 +143,6 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     }
   }, [roomId, user, roomData, language]);
 
-
   // ─── Create room ────────────────────────────────────────────────────────────
   const createRoom = useCallback(
     async (roomPassword = '') => {
@@ -247,7 +246,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
             roomId: newRoomId,
             userName: displayName,
           }),
-          }).catch(console.error);
+        }).catch(console.error);
 
         return true;
       } catch (err) {
@@ -493,11 +492,13 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     if (!roomId || !roomData?.activeVote) return;
     const vote = roomData.activeVote;
     const activeCount = roomData.activeUsers?.length || 1;
-    
+
     if (vote.status === 'voting' && vote.initiatorUid === user?.uid) {
       // If the remaining approvals exceed the new 50% threshold
       if (vote.approvals?.length > activeCount / 2) {
-        updateDoc(doc(db, 'rooms', roomId), { 'activeVote.status': 'approved' }).catch(console.error);
+        updateDoc(doc(db, 'rooms', roomId), { 'activeVote.status': 'approved' }).catch(
+          console.error
+        );
       }
     }
   }, [roomId, roomData?.activeVote, roomData?.activeUsers, user?.uid]);
