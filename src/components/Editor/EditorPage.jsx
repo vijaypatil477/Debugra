@@ -57,20 +57,11 @@ function getApiKeyStatus() {
   return 'empty';
 }
 
-    rating: 5,
-    review: 'Excellent debugging platform. The AI explanations are incredibly helpful.',
-  },
-  {
-    name: 'Sarah',
-    rating: 5,
-    review: 'The execution visualizer helped me understand recursion much faster.',
-  },
-  {
-    name: 'John',
-    rating: 4,
-    review: 'Clean interface and smooth collaboration features.',
-  },
-];
+/**
+ * Legacy reviews data removed to satisfy ESLint (no-unused-vars).
+ * Keeping this placeholder comment prevents unused-var lint failures.
+ */
+
 export default function EditorPage({ user }) {
   const isTestRoom =
     typeof window !== 'undefined' &&
@@ -180,8 +171,8 @@ export default function EditorPage({ user }) {
   });
   const showMinimap = editor.minimapEnabled;
 
-  const vimEnabled = editor.vimEnabled;
-  const setVimEnabled = editor.setVimEnabled;
+  // Vim toggles handled via editor.setVimEnabled; keep editor.vimEnabled/setVimEnabled
+  // accessed inline to avoid unused-var lint errors.
 
   const { theme: globalTheme, toggleTheme: toggleGlobalTheme } = useTheme();
 
