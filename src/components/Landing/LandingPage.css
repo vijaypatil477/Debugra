@@ -438,7 +438,27 @@
 }
 
 .feedback-form-card {
-  margin-top: 48px;
+  margin: 48px auto 0 auto;
+  max-width: 580px;
+  width: 100%;
+  padding: 32px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  text-align: left;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='light'] .feedback-form-card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+@media (max-width: 576px) {
+  .feedback-form-card {
+    padding: 24px 16px;
+  }
 }
 /* ─── Modal Close Button ─────────────────────────────────────────── */
 
