@@ -247,6 +247,16 @@ export default function EditorPage({ user }) {
     model: selectedModel,
   });
 
+  const aiFixRef = useRef(ai.fix);
+  const aiExplainRef = useRef(ai.explain);
+  const aiGenerateTestsRef = useRef(ai.generateTests);
+
+  useEffect(() => {
+    aiFixRef.current = ai.fix;
+    aiExplainRef.current = ai.explain;
+    aiGenerateTestsRef.current = ai.generateTests;
+  }, [ai.fix, ai.explain, ai.generateTests]);
+
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
     monacoRef.current = monaco;
@@ -417,12 +427,16 @@ export default function EditorPage({ user }) {
       if (executionRunRef.current) executionRunRef.current();
     });
 
-
-    // Ctrl+H → Toggle Search & Replace panel
-    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH, () => {
-      setShowSearchReplace((v) => !v);
+    // AI Shortcuts
+    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F, () => {
+      if (aiFixRef.current) aiFixRef.current();
     });
-
+    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_E, () => {
+      if (aiExplainRef.current) aiExplainRef.current();
+    });
+    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_T, () => {
+      if (aiGenerateTestsRef.current) aiGenerateTestsRef.current();
+    });
 
     const formatCurrentModel = async () => {
       const model = editorInstance.getModel();
