@@ -33,179 +33,71 @@
   --warning: #dcdcaa;
   --error: #f44747;
   --info: #0078d4;
+
+  --glass-bg: rgba(30, 30, 30, 0.75);
+  --glass-pane-bg: rgba(30, 30, 30, 0.45);
+  --tab-bg: rgba(20, 20, 20, 0.3);
 }
 
-/* ============ LIGHT THEME OVERRIDES ============ */
-[data-theme='light'] {
-  --bg-0: #f3f3f3;
-  --bg-1: #e8e8e8;
+/* Light theme override (default dark remains baseline) */
+body.light-theme {
+  --bg-0: #ffffff;
+  --bg-1: #f3f4f6;
   --bg-2: #ffffff;
-  --bg-3: #dddddd;
-  --bg-active: #e4e6f1;
-  --border: #d2d2d2;
-  --text-0: #2c2c2c;
-  --text-1: #5f5f5f;
-  --text-2: #8a8a8a;
-  --accent: #0078d4;
-  --accent-hover: #005a9e;
-  --green: #0e705b;
-  --red: #cd3131;
-  --yellow: #7f6000;
-  --orange: #a65b00;
-  --status-bar: #007acc;
+  --bg-3: #e5e7eb;
+  --bg-active: #e8f0fe;
+  --border: #d0d7de;
+  --text-0: #111111;
+  --text-1: #444444;
+  --text-2: #6b7280;
+  --accent: #0969da;
+  --accent-hover: #0b63c7;
+  --green: #1a7f37;
+  --red: #d73a49;
+  --yellow: #b08900;
+  --orange: #9a3412;
+  --status-bar: #0969da;
 
-  /* extended for Debugra */
-  --bg-primary: #f3f3f3;
-  --bg-secondary: #e8e8e8;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
   --bg-tertiary: #ffffff;
   --bg-card: #ffffff;
-  --bg-header: #e8e8e8;
-  --bg-hover: rgba(0, 0, 0, 0.05);
-  --text-primary: #2c2c2c;
-  --text-secondary: #5f5f5f;
-  --text-muted: #8a8a8a;
-  --success: #0e705b;
-  --warning: #7f6000;
-  --error: #cd3131;
-  --info: #0078d4;
+  --bg-header: #f3f4f6;
+  --bg-hover: rgba(9, 105, 218, 0.08);
+  --text-primary: #111111;
+  --text-secondary: #444444;
+  --text-muted: #6b7280;
+  --success: #1a7f37;
+  --warning: #b08900;
+  --error: #d73a49;
+  --info: #0969da;
 
-  /* Landing Page Brand overrides */
-  --brand: #0e705b;
-  --brand-dim: rgba(14, 112, 91, 0.12);
-  --brand-border: rgba(14, 112, 91, 0.2);
-  --surface: rgba(0, 0, 0, 0.025);
-  --surface-hover: rgba(0, 0, 0, 0.045);
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-hover: rgba(0, 0, 0, 0.16);
-  --text-hi: #1f1f23;
-  --text-mid: #52525b;
-  --text-lo: #71717a;
-  --btn-primary-text: #ffffff;
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-pane-bg: rgba(255, 255, 255, 0.45);
+  --tab-bg: rgba(255, 255, 255, 0.35);
 }
 
-[data-theme='light'] body {
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+/* Smooth theme transitions */
+body,
+body * {
+  transition:
+
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease;
+}
+
+/* Ensure topbar/toolbar icon theme toggle stays visible in light mode */
+body.light-theme .toolbar-icon-btn {
+  color: var(--text-2);
+  border-color: var(--border);
+  background: transparent;
+}
+body.light-theme .toolbar-icon-btn:hover {
   color: var(--text-0);
+  background: var(--bg-2);
 }
 
-[data-theme='light'] .landing-root {
-  background-color: #f9fafb;
-  color: #1f1f23;
-}
-
-[data-theme='light'] .landing-nav {
-  background: rgba(249, 250, 251, 0.8);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-[data-theme='light'] .landing-nav-link {
-  color: var(--text-mid);
-}
-
-[data-theme='light'] .landing-nav-link:hover {
-  color: var(--text-hi);
-}
-
-[data-theme='light'] .landing-logo {
-  color: var(--text-hi);
-}
-
-[data-theme='light'] .landing-version-badge {
-  color: #71717a;
-}
-
-[data-theme='light'] .landing-footer-logo-text {
-  color: #1f1f23;
-}
-
-[data-theme='light'] .mobile-dropdown {
-  background: rgba(249, 250, 251, 0.96);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-[data-theme='light'] .mobile-dropdown-link {
-  color: #52525b;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-}
-
-[data-theme='light'] .mobile-dropdown-link:hover {
-  color: #09090b;
-}
-
-[data-theme='light'] .landing-btn-outline {
-  color: #1f1f23;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-}
-
-[data-theme='light'] .landing-btn-outline:hover {
-  border-color: rgba(0, 0, 0, 0.35);
-  background: rgba(0, 0, 0, 0.04);
-}
-
-[data-theme='light'] .feature-card {
-  background: #ffffff;
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.05),
-    0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-[data-theme='light'] .feature-card:hover {
-  background: #fdfdfd;
-  border-color: rgba(0, 0, 0, 0.16);
-}
-
-[data-theme='light'] .feature-card-tag {
-  background: rgba(14, 112, 91, 0.08) !important;
-  color: #0e705b !important;
-  border: 1px solid rgba(14, 112, 91, 0.15) !important;
-}
-
-[data-theme='light'] .feature-card-icon {
-  background: rgba(14, 112, 91, 0.08) !important;
-  color: #0e705b !important;
-}
-
-[data-theme='light'] .review-card {
-  background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
-
-[data-theme='light'] .faq-item {
-  background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-[data-theme='light'] .faq-item:hover,
-[data-theme='light'] .faq-item.is-open {
-  background: #fdfdfd;
-  border-color: rgba(0, 0, 0, 0.16);
-}
-
-[data-theme='light'] .features-carousel-nav {
-  background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.08);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
-  color: var(--text-hi);
-}
-
-[data-theme='light'] .features-carousel-nav:hover:not(:disabled) {
-  background: #f9fafb;
-  border-color: rgba(0, 0, 0, 0.16);
-}
-
-[data-theme='light'] .lang-chip {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  color: #52525b;
-}
-
-[data-theme='light'] .lang-chip:hover {
-  background: rgba(14, 112, 91, 0.08);
-  border-color: rgba(14, 112, 91, 0.2);
-  color: #0e705b;
-}
 
 /* Console Output Copy Button Styles */
 .console-container {
@@ -258,9 +150,14 @@ body,
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background: linear-gradient(135deg, #0f0c20 0%, #15102a 50%, #06040a 100%);
+  background: var(--bg-primary);
+  background-image: linear-gradient(135deg, #0f0c20 0%, #15102a 50%, #06040a 100%);
   color: var(--text-0);
   -webkit-font-smoothing: antialiased;
+}
+body.light-theme {
+  background: var(--bg-primary);
+  background-image: none;
 }
 
 /* ============ SCROLLBAR ============ */
@@ -1530,9 +1427,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #252526;
-  color: #e2e8f0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-secondary);
+  color: var(--text-0);
+  border: 1px solid var(--border);
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   transition: all 0.2s;
@@ -1552,8 +1449,8 @@ body {
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  background: #1e1e1e;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   z-index: 30;
   overflow: hidden;
@@ -2895,7 +2792,7 @@ input[type='password']::-ms-clear {
   align-items: center;
   justify-content: space-around;
   height: 56px;
-  background: #1a1a1a;
+  background: var(--bg-secondary);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
   padding: 0 8px;
@@ -2950,7 +2847,7 @@ input[type='password']::-ms-clear {
   height: 48px;
   border-radius: 50%;
   background: #2ea043;
-  border: 3px solid #1a1a1a;
+  border: 3px solid var(--bg-secondary);
   color: white;
   display: flex;
   align-items: center;
@@ -5520,13 +5417,18 @@ details[open] .debug-stderr-summary::before {
   .complexity-tip-item:hover {
     background: rgba(16, 185, 129, 0.09);
   }
-
-  .tip-bullet {
-    color: #34d399;
-    flex-shrink: 0;
-    font-size: 0.65rem;
-    margin-top: 2px;
-  }
+  .debug-overlay-header { padding: 14px 16px 12px; }
+  .debug-overlay-body   { padding: 12px 16px; }
+  .debug-overlay-footer { padding: 10px 16px; }
+}
+/* ===== GLASSMORPHISM BACKDROP EFFECT ===== */
+.glass-panel {
+  /* Semi-transparent overlay color tint */
+  background-color: var(--glass-bg, rgba(30, 30, 30, 0.75)) !important; 
+  
+  /* Link browser engine filtering directly to your dynamic custom property hook */
+  backdrop-filter: blur(var(--blur-intensity, 10px)) !important;
+  -webkit-backdrop-filter: blur(var(--blur-intensity, 10px)) !important; /* Safari compatibility */
 
   /* ── Usage Bar ────────────────────────────────────────────── */
   .complexity-usage-bar {
@@ -5549,17 +5451,14 @@ details[open] .debug-stderr-summary::before {
     color: #4b5563;
   }
 
-  /* ── Footer ───────────────────────────────────────────────── */
-  .complexity-overlay-footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    padding: 13px 22px;
-    border-top: 1px solid rgba(99, 102, 241, 0.12);
-    background: rgba(0, 0, 0, 0.2);
-    flex-shrink: 0;
-  }
+/* 1. Target the left-side editor panel and right-side output panel wrappers */
+.editor-pane.glass-panel,
+.output-pane.glass-panel {
+  background-color: var(--glass-pane-bg, rgba(30, 30, 30, 0.45)) !important; /* Semi-transparent base tint */
+  backdrop-filter: blur(var(--blur-intensity)) !important;
+  -webkit-backdrop-filter: blur(var(--blur-intensity)) !important; /* Safari support */
+  transition: backdrop-filter 0.1s ease-out;
+}
 
   .complexity-footer-close-btn {
     padding: 7px 20px;
@@ -5596,41 +5495,8 @@ details[open] .debug-stderr-summary::before {
       padding: 14px 16px 12px;
     }
 
-    .complexity-overlay-body {
-      padding: 14px 16px;
-    }
-
-    .complexity-overlay-footer {
-      padding: 10px 16px;
-    }
-
-    .complexity-chips-row {
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .complexity-chip {
-      min-width: 0;
-    }
-
-    .complexity-breakdown-head,
-    .complexity-breakdown-row {
-      grid-template-columns: 1fr 100px;
-    }
-
-    .breakdown-note {
-      display: none;
-    }
-    .d-none.d-md-block {
-      display: none !important;
-    }
-  }
-
-  .breakdown-note {
-    display: none;
-  }
-
-  .d-none.d-md-block {
-    display: none !important;
-  }
+/* 3. Soften the top tab headers for the glassy look */
+.editor-tab-bar, .output-tabs {
+  background-color: var(--tab-bg, rgba(20, 20, 20, 0.3)) !important;
+  border-bottom: 1px solid var(--border) !important;
 }
