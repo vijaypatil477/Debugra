@@ -1,9 +1,11 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { LANGUAGES } from '../utils/languageConfig';
+import { useDebounce } from './useDebounce';
 import {
+  AUTO_SAVE_DEBOUNCE_MS,
   LANG_FILE_NAMES,
   INPUT_PATTERNS,
   DEFAULT_LANGUAGE,
@@ -83,6 +85,18 @@ export function useEditor({ user, onNeedAuth }) {
   );
 
   const [needsInput, setNeedsInput] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('idle');
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [isOffline, setIsOffline] = useState(() => !navigator.onLine);
+  const [pendingChanges, setPendingChanges] = useState([]);
+  const hasUserChangesRef = useRef(false);
+  const isFlushingRef = useRef(false);
+  const debouncedAutoSave = useDebounce(
+    useMemo(() => ({ code, language }), [code, language]),
+    AUTO_SAVE_DEBOUNCE_MS
+  );
+
+  const hasPendingChanges = pendingChanges.length > 0;
   const autosaveSnapshotRef = useRef({ code, language, stdinValue });
 
   useEffect(() => {
@@ -146,7 +160,18 @@ export function useEditor({ user, onNeedAuth }) {
     if (needsInput && !stdinOpen) setStdinOpen(true);
   }, [needsInput, stdinOpen]);
 
+  const updateCode = useCallback((newCode) => {
+    hasUserChangesRef.current = true;
+    setCode(newCode);
+  }, []);
+
+  const updateLanguage = useCallback((newLang) => {
+    hasUserChangesRef.current = true;
+    setLanguage(newLang);
+  }, []);
+
   const changeLanguage = useCallback((newLang) => {
+    hasUserChangesRef.current = true;
     setLanguage(newLang);
     setCode(LANGUAGES[newLang].template);
   }, []);
@@ -184,6 +209,42 @@ export function useEditor({ user, onNeedAuth }) {
     toast.success(`Downloaded ${filename}`);
   }, [code, language]);
 
+  const buildAutoSavePayload = useCallback(
+    (snapshot) => ({
+      code: snapshot.code,
+      language: snapshot.language,
+      name: LANG_FILE_NAMES[snapshot.language] || 'code.txt',
+      updatedAt: serverTimestamp(),
+    }),
+    []
+  );
+
+  const writeAutoSave = useCallback(
+    async (snapshot) => {
+      if (!user) return false;
+
+      setSaveStatus('saving');
+
+      try {
+        await setDoc(
+          doc(db, 'users', user.uid, 'editorAutosave', 'current'),
+          buildAutoSavePayload(snapshot)
+        );
+        setLastSavedAt(new Date());
+        setSaveStatus('saved');
+        return true;
+      } catch {
+        setSaveStatus('error');
+        return false;
+      }
+    },
+    [buildAutoSavePayload, user]
+  );
+
+  const queuePendingChange = useCallback((snapshot) => {
+    setPendingChanges((changes) => [...changes, snapshot]);
+  }, []);
+
   const saveToCloud = useCallback(async () => {
     if (!user) {
       onNeedAuth?.();
@@ -195,6 +256,8 @@ export function useEditor({ user, onNeedAuth }) {
     const fileName = window.prompt('Enter a name for this file:', defaultName);
     if (!fileName) return; // User cancelled
 
+    setSaveStatus('saving');
+
     try {
       await addDoc(collection(db, 'users', user.uid, 'savedCode'), {
         code,
@@ -202,23 +265,98 @@ export function useEditor({ user, onNeedAuth }) {
         name: fileName,
         createdAt: serverTimestamp(),
       });
+      setLastSavedAt(new Date());
+      setSaveStatus('saved');
       toast.success('Code saved to cloud! ✦');
     } catch {
+      setSaveStatus('error');
       toast.error('Save failed');
     }
   }, [user, code, language, onNeedAuth]);
 
   const loadCode = useCallback((newCode, newLang) => {
+    hasUserChangesRef.current = true;
     setCode(newCode);
     if (newLang && LANGUAGES[newLang]) setLanguage(newLang);
   }, []);
 
+  const flushPendingChanges = useCallback(async () => {
+    if (!user || isFlushingRef.current) return;
+
+    isFlushingRef.current = true;
+
+    try {
+      const changesToFlush = pendingChanges;
+
+      for (const change of changesToFlush) {
+        if (!navigator.onLine) break;
+
+        const saved = await writeAutoSave(change);
+        if (!saved) break;
+
+        setPendingChanges((changes) => changes.slice(1));
+      }
+    } finally {
+      isFlushingRef.current = false;
+    }
+  }, [pendingChanges, user, writeAutoSave]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false);
+      flushPendingChanges();
+    };
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [flushPendingChanges]);
+
+  useEffect(() => {
+    if (!hasUserChangesRef.current) return;
+
+    if (!user) {
+      setSaveStatus('idle');
+      return;
+    }
+
+    if (!navigator.onLine) {
+      setIsOffline(true);
+      setSaveStatus('idle');
+      queuePendingChange(debouncedAutoSave);
+      return;
+    }
+
+    writeAutoSave(debouncedAutoSave);
+  }, [debouncedAutoSave, queuePendingChange, user, writeAutoSave]);
+
+  useEffect(() => {
+    if (!user || isOffline || !hasPendingChanges) return;
+    flushPendingChanges();
+  }, [flushPendingChanges, hasPendingChanges, isOffline, user]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        saveToCloud();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [saveToCloud]);
+
   return {
     code,
-    setCode,
+    setCode: updateCode,
     language,
-
-    setLanguage,
+    setLanguage: updateLanguage,
     fontSize,
     setFontSize,
     fontFamily,
@@ -240,6 +378,10 @@ export function useEditor({ user, onNeedAuth }) {
     stdinOpen,
     setStdinOpen,
     needsInput,
+    saveStatus,
+    lastSavedAt,
+    isOffline,
+    hasPendingChanges,
     changeLanguage,
     increaseFontSize,
     decreaseFontSize,

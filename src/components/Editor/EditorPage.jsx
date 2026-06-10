@@ -1763,6 +1763,10 @@ export default function EditorPage({ user }) {
         tabSize={editor.tabSize}
         room={room}
         user={user}
+        saveStatus={editor.saveStatus}
+        lastSavedAt={editor.lastSavedAt}
+        isOffline={editor.isOffline}
+        hasPendingChanges={editor.hasPendingChanges}
         vimEnabled={editor.vimEnabled}
         vimMode={vimMode}
       />
