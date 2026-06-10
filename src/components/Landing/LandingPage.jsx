@@ -10,6 +10,7 @@ import {
 import { auth, googleProvider } from '../../services/firebase';
 import toast from 'react-hot-toast';
 import './LandingPage.css';
+import { Link } from "react-router-dom";
 import { useTheme } from '../../context/ThemeContext';
 
 // ─── Inline SVG Icons ─────────────────────────────────────────────────────────
@@ -446,6 +447,9 @@ export default function LandingPage() {
           <a href="#languages" className="landing-nav-link">
             Languages
           </a>
+          <Link to="/contributors" className="landing-nav-link">
+            Contributors
+          </Link>
           <a href="#faq" className="landing-nav-link">
             FAQ
           </a>
@@ -590,6 +594,9 @@ export default function LandingPage() {
           >
             Languages
           </a>
+          <Link to="/contributors" className="landing-nav-link">
+            Contributors
+          </Link>
           <a href="#faq" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>
             FAQ
           </a>
