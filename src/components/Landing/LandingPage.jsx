@@ -940,70 +940,63 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* <div className="reviews-grid">
-    {REVIEWS.map((review, index) => (
-      <div key={index} className="review-card">
-        <div className="review-stars">
-          {'★'.repeat(review.rating)}
+      {/* ===== REVIEWS & FEEDBACK ===== */}
+      <section id="reviews" className="landing-section container text-center">
+        <div className="section-header">
+          <p className="section-eyebrow">Community</p>
+          <h2 className="section-title">Feedback & Reviews</h2>
+          <p className="section-subtitle">
+            Hear what developers think about Debugra and share your own experience.
+          </p>
         </div>
 
-        <p className="review-text">
-          "{review.review}"
-        </p>
+        <div className="reviews-carousel">
+          <div className="reviews-track">
+            {[...REVIEWS, ...REVIEWS].map((review, index) => (
+              <div key={index} className="review-card">
+                <div className="review-stars">{'★'.repeat(review.rating)}</div>
 
-        <span className="review-author">
-          — {review.name}
-        </span>
-      </div>
-    ))}
-  </div> */}
-      <div className="reviews-carousel">
-        <div className="reviews-track">
-          {[...REVIEWS, ...REVIEWS].map((review, index) => (
-            <div key={index} className="review-card">
-              <div className="review-stars">{'★'.repeat(review.rating)}</div>
+                <p className="review-text">&quot;{review.review}&quot;</p>
 
-              <p className="review-text">&quot;{review.review}&quot;</p>
-
-              <span className="review-author">— {review.name}</span>
-            </div>
-          ))}
+                <span className="review-author">— {review.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="feedback-form-card">
-        <h3 style={{ marginBottom: '16px' }}>Share Your Feedback</h3>
+        <div className="feedback-form-card">
+          <h3 style={{ marginBottom: '16px' }}>Share Your Feedback</h3>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            toast.success('Thank you for your feedback!');
-          }}
-        >
-          <input type="text" placeholder="Your Name" className="modal-input" required />
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              toast.success('Thank you for your feedback!');
+            }}
+          >
+            <input type="text" placeholder="Your Name" className="modal-input" required />
 
-          <select className="modal-input" required>
-            <option value="">Select Rating</option>
-            <option value="5">★★★★★ (5)</option>
-            <option value="4">★★★★☆ (4)</option>
-            <option value="3">★★★☆☆ (3)</option>
-            <option value="2">★★☆☆☆ (2)</option>
-            <option value="1">★☆☆☆☆ (1)</option>
-          </select>
+            <select className="modal-input" required>
+              <option value="">Select Rating</option>
+              <option value="5">★★★★★ (5)</option>
+              <option value="4">★★★★☆ (4)</option>
+              <option value="3">★★★☆☆ (3)</option>
+              <option value="2">★★☆☆☆ (2)</option>
+              <option value="1">★☆☆☆☆ (1)</option>
+            </select>
 
-          <textarea
-            placeholder="Tell us about your experience..."
-            className="modal-input"
-            rows="4"
-            required
-          />
+            <textarea
+              placeholder="Tell us about your experience..."
+              className="modal-input"
+              rows="4"
+              required
+            />
 
-          <button type="submit" className="landing-btn-primary" style={{ width: 'fit-content' }}>
-            Submit Feedback
-          </button>
-        </form>
-      </div>
-      {/* </section> */}
+            <button type="submit" className="landing-btn-primary" style={{ width: 'fit-content' }}>
+              Submit Feedback
+            </button>
+          </form>
+        </div>
+      </section>
       {/* ===== CTA ===== */}
       <section className="landing-cta-section">
         <div className="cta-glow" />
