@@ -40,7 +40,9 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
   const prevCountRef = useRef(0);
 
   const isOpenRef = useRef(isOpen);
-  useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+  }, [isOpen]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -503,5 +505,3 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
     </>
   );
 }
-
-

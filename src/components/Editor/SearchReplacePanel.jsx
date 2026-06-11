@@ -34,10 +34,7 @@ export default function SearchReplacePanel({ editorRef, onClose }) {
           overviewRulerLane: 4,
         },
       }));
-      decorationIdsRef.current = editor.deltaDecorations(
-        decorationIdsRef.current,
-        newDecorations
-      );
+      decorationIdsRef.current = editor.deltaDecorations(decorationIdsRef.current, newDecorations);
     },
     [editorRef]
   );
