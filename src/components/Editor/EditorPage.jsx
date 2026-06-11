@@ -250,6 +250,17 @@ export default function EditorPage({ user }) {
     room,
   });
 
+  const aiFixRef = useRef(ai.fix);
+  const aiExplainRef = useRef(ai.explain);
+  const aiGenerateTestsRef = useRef(ai.generateTests);
+
+  useEffect(() => {
+    aiFixRef.current = ai.fix;
+    aiExplainRef.current = ai.explain;
+    aiGenerateTestsRef.current = ai.generateTests;
+  }, [ai.fix, ai.explain, ai.generateTests]);
+
+  // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
     monacoRef.current = monaco;
     if (!providerRegisteredRef.current) {
@@ -292,6 +303,64 @@ export default function EditorPage({ user }) {
       if (executionRunRef.current) executionRunRef.current();
     });
 
+    // AI Shortcuts
+    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F, () => {
+      if (aiFixRef.current) aiFixRef.current();
+    });
+    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_E, () => {
+      if (aiExplainRef.current) aiExplainRef.current();
+    });
+    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_T, () => {
+      if (aiGenerateTestsRef.current) aiGenerateTestsRef.current();
+    });
+
+    const formatCurrentModel = async () => {
+      const model = editorInstance.getModel();
+      if (!model) return;
+
+      try {
+        const prettierModule = await import('prettier/standalone');
+        const prettier = prettierModule?.default ?? prettierModule;
+        const parserBabelModule = await import('prettier/plugins/babel');
+        const parserBabel = parserBabelModule?.default ?? parserBabelModule;
+        const parserEstreeModule = await import('prettier/plugins/estree');
+        const parserEstree = parserEstreeModule?.default ?? parserEstreeModule;
+        const parserTSModule = await import('prettier/plugins/typescript');
+        const parserTS = parserTSModule?.default ?? parserTSModule;
+
+        const langKey = editor.language || 'javascript';
+        const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
+        const plugins =
+          langKey === 'typescript' ? [parserTS, parserEstree] : [parserBabel, parserEstree];
+
+        const original = model.getValue();
+        const formatted = await prettier.format(original, {
+          parser: parserName,
+          plugins,
+          semi: true,
+          singleQuote: true,
+          tabWidth: editor.tabSize || 2,
+        });
+
+        if (formatted !== original) {
+          editorInstance.pushUndoStop();
+          editorInstance.executeEdits('format', [
+            {
+              range: model.getFullModelRange(),
+              text: formatted,
+              forceMoveMarkers: true,
+            },
+          ]);
+          editorInstance.pushUndoStop();
+          toast.success('Formatted');
+        }
+      } catch (err) {
+        console.error('Prettier format error:', err);
+        // Fallback to Monaco's built-in formatter if Prettier fails
+        editorInstance.getAction('editor.action.formatDocument').run();
+      }
+    };
+
     editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       const code = editorInstance.getValue();
       // Simple heuristic to add semicolons for the test case if Monaco's formatter fails
@@ -305,12 +374,7 @@ export default function EditorPage({ user }) {
         editorInstance.setValue(formatted);
       }
 
-      editorInstance
-        .getAction('editor.action.formatDocument')
-        .run()
-        .then(() => {
-          toast.success('Formatted');
-        });
+      formatCurrentModel();
     });
 
     editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, () => {
@@ -1087,7 +1151,24 @@ export default function EditorPage({ user }) {
                 response={ai.aiResponse}
                 language={editor.language}
                 onApplyFix={(code) => {
-                  editor.setCode(code);
+                  if (editorRef.current) {
+                    const model = editorRef.current.getModel();
+                    if (model) {
+                      editorRef.current.pushUndoStop();
+                      editorRef.current.executeEdits('ai-fix', [
+                        {
+                          range: model.getFullModelRange(),
+                          text: code,
+                          forceMoveMarkers: true,
+                        },
+                      ]);
+                      editorRef.current.pushUndoStop();
+                    } else {
+                      editor.setCode(code);
+                    }
+                  } else {
+                    editor.setCode(code);
+                  }
                   toast.success('Solution applied!');
                 }}
               />
@@ -1131,6 +1212,10 @@ export default function EditorPage({ user }) {
         tabSize={editor.tabSize}
         room={room}
         user={user}
+        saveStatus={editor.saveStatus}
+        lastSavedAt={editor.lastSavedAt}
+        isOffline={editor.isOffline}
+        hasPendingChanges={editor.hasPendingChanges}
         vimEnabled={editor.vimEnabled}
         vimMode={vimMode}
       />

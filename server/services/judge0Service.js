@@ -39,9 +39,18 @@ async function executeCode(sourceCode, languageId, stdin = '') {
   }
 
   try {
+    let finalSourceCode = sourceCode;
+    
+    // SQLite: Format output beautifully and separate multiple result sets
+    if (compiler === 'sqlite-3.46.1') {
+      if (!finalSourceCode.includes('.mode')) {
+        finalSourceCode = '.mode box\n' + finalSourceCode;
+      }
+    }
+
     const body = {
       compiler: compiler,
-      code: sourceCode,
+      code: finalSourceCode,
       stdin: stdin || '',
       save: false,
     };
