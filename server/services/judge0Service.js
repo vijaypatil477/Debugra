@@ -1,4 +1,4 @@
-const axios = require('axios');
+﻿const axios = require('axios');
 
 const WANDBOX_API = 'https://wandbox.org/api/compile.json';
 
@@ -30,6 +30,8 @@ const COMPILER_OPTIONS = {
   'gcc-13.2.0-c': '-std=c11',
 };
 
+const MAX_OUTPUT_LENGTH = 100000;
+
 async function executeCode(sourceCode, languageId, stdin = '') {
   const compiler = WANDBOX_COMPILERS[languageId];
   if (!compiler) {
@@ -37,9 +39,18 @@ async function executeCode(sourceCode, languageId, stdin = '') {
   }
 
   try {
+    let finalSourceCode = sourceCode;
+    
+    // SQLite: Format output beautifully and separate multiple result sets
+    if (compiler === 'sqlite-3.46.1') {
+      if (!finalSourceCode.includes('.mode')) {
+        finalSourceCode = '.mode box\n' + finalSourceCode;
+      }
+    }
+
     const body = {
       compiler: compiler,
-      code: sourceCode,
+      code: finalSourceCode,
       stdin: stdin || '',
       save: false,
     };
@@ -50,9 +61,9 @@ async function executeCode(sourceCode, languageId, stdin = '') {
 
     const { data } = await axios.post(WANDBOX_API, body, { timeout: 30000 });
 
-    const stdout = data.program_output || '';
-    const compileError = data.compiler_error || '';
-    const runtimeError = data.program_error || '';
+    const stdout = (data.program_output || '').slice(0, MAX_OUTPUT_LENGTH);
+    const compileError = (data.compiler_error || '').slice(0, MAX_OUTPUT_LENGTH);
+    const runtimeError = (data.program_error || '').slice(0, MAX_OUTPUT_LENGTH);
     const exitCode = parseInt(data.status ?? '0');
 
     // Compile error takes priority, then runtime error, then exit code
@@ -85,4 +96,7 @@ async function executeCode(sourceCode, languageId, stdin = '') {
   }
 }
 
-module.exports = { executeCode };
+const SUPPORTED_LANGUAGE_IDS = new Set(Object.keys(WANDBOX_COMPILERS).map(Number));
+
+module.exports = { executeCode, SUPPORTED_LANGUAGE_IDS };
+

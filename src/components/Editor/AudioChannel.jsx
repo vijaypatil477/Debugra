@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { Mic, MicOff, PhoneCall, PhoneOff } from 'lucide-react';
 
@@ -11,7 +11,7 @@ const AudioPeer = ({ stream }) => {
     }
   }, [stream]);
 
-  return <audio ref={audioRef} autoPlay playsInline />;
+  return <audio ref={audioRef} autoPlay />;
 };
 
 export default function AudioChannel({ room, user }) {

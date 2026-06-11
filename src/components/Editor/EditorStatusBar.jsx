@@ -9,8 +9,37 @@ import { LANG_FILE_NAMES } from '../../config/constants';
  * - Online users count (clickable dropdown)
  * - Wandbox + Debugra labels
  */
-export default function EditorStatusBar({ execStatus, langName, cursorPos, room, user }) {
+export default function EditorStatusBar({
+  execStatus,
+  langName,
+  cursorPos,
+  room,
+  user,
+  saveStatus = 'idle',
+  lastSavedAt = null,
+  isOffline = false,
+  hasPendingChanges = false,
+  tabSize,
+  vimEnabled,
+  vimMode,
+}) {
   const { roomId, activeUsers, showOnlineDropdown, setShowOnlineDropdown } = room;
+  const lastSavedText = lastSavedAt
+    ? `Last saved at ${new Intl.DateTimeFormat([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(lastSavedAt)}`
+    : null;
+  const saveStatusText =
+    isOffline && hasPendingChanges
+      ? 'Offline - changes pending'
+      : saveStatus === 'saving'
+        ? 'Saving...'
+        : saveStatus === 'saved'
+          ? 'Saved'
+          : saveStatus === 'error'
+            ? 'Error saving'
+            : null;
 
   return (
     <div className="statusbar">
@@ -104,10 +133,48 @@ export default function EditorStatusBar({ execStatus, langName, cursorPos, room,
         <span>
           Ln {cursorPos.line}, Col {cursorPos.col}
         </span>
-        <span>Spaces: 4</span>
+        <span>Spaces: {tabSize}</span>
+        {/* Vim */}
+        {vimEnabled && <span title="Vim mode">Vim: {vimMode || 'NORMAL'}</span>}
       </div>
 
       <div className="statusbar-right">
+        {saveStatusText && (
+          <span
+            title={lastSavedText || saveStatusText}
+            style={{
+              color:
+                isOffline && hasPendingChanges
+                  ? '#dcdcaa'
+                  : saveStatus === 'error'
+                    ? '#f44747'
+                    : 'rgba(255,255,255,0.75)',
+            }}
+          >
+            {saveStatus === 'saving' && (
+              <span
+                className="spinner"
+                style={{ width: '9px', height: '9px', borderWidth: '1.5px' }}
+              />
+            )}
+            {saveStatus === 'saved' && !isOffline && (
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#3fb950"
+                strokeWidth="2"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
+            {saveStatusText}
+          </span>
+        )}
+        {lastSavedText && saveStatus !== 'saving' && (
+          <span style={{ color: 'rgba(255,255,255,0.55)' }}>{lastSavedText}</span>
+        )}
         {/* Online users (only in a room) */}
         {roomId && (
           <div style={{ position: 'relative' }}>

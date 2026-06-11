@@ -7,28 +7,65 @@ import {
   serverTimestamp,
   getDoc,
   runTransaction,
+  deleteDoc,
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import toast from 'react-hot-toast';
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
 
-async function hashRoomPassword(password, salt) {
-  const encoded = new TextEncoder().encode(`${salt}:${password}`);
-  const digest = await crypto.subtle.digest('SHA-256', encoded);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+async function verifyRoomPassword(roomId, password) {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  const res = await fetch(`${apiUrl}/api/rooms/verify-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roomId, password }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.error || 'Password verification failed.');
+  }
+
+  sessionStorage.setItem(
+    `${ROOM_AUTH_PREFIX}${roomId}`,
+    JSON.stringify({
+      accessToken: data.accessToken,
+      expiresAt: data.expiresAt,
+    })
+  );
+
+  return true;
 }
 
-function createRoomSalt() {
-  return crypto.randomUUID().replace(/-/g, '');
-}
+async function hasValidRoomAccess(roomId) {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const stored = sessionStorage.getItem(`${ROOM_AUTH_PREFIX}${roomId}`);
 
-function rememberRoomAccess(roomId) {
-  sessionStorage.setItem(`${ROOM_AUTH_PREFIX}${roomId}`, 'true');
-}
+  if (!stored) return false;
 
-function hasRememberedRoomAccess(roomId) {
-  return sessionStorage.getItem(`${ROOM_AUTH_PREFIX}${roomId}`) === 'true';
+  try {
+    const { accessToken, expiresAt } = JSON.parse(stored);
+    if (Date.now() >= expiresAt) {
+      sessionStorage.removeItem(`${ROOM_AUTH_PREFIX}${roomId}`);
+      return false;
+    }
+
+    const res = await fetch(`${apiUrl}/api/rooms/validate-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId, accessToken }),
+    });
+
+    if (res.ok) return true;
+  } catch {
+    // corrupted storage or network issue; fall through to remove token
+  }
+
+  sessionStorage.removeItem(`${ROOM_AUTH_PREFIX}${roomId}`);
+  return false;
 }
 
 /**
@@ -55,11 +92,12 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   const [showRequestsDropdown, setShowRequestsDropdown] = useState(false);
 
   // ─── Derived permissions ────────────────────────────────────────────────────
-  const myRole =
-    roomData?.roles?.[user?.uid] || (roomData?.createdBy === user?.uid ? 'host' : 'viewer');
-  const isHost = myRole === 'host';
-  const isEditor = myRole === 'editor' || isHost;
-  const isReadOnly = !isEditor;
+  const myRole = roomId
+    ? roomData?.roles?.[user?.uid] || (roomData?.createdBy === user?.uid ? 'host' : 'viewer')
+    : 'host';
+  const isHost = !roomId || myRole === 'host';
+  const isEditor = !roomId || myRole === 'editor' || isHost;
+  const isReadOnly = roomId ? !isEditor : false;
   const currentEditorName = isEditor ? user?.displayName || 'Editor' : 'Viewer';
 
   // ─── Live sync from Firestore ───────────────────────────────────────────────
@@ -75,7 +113,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       setActiveUsers(data.activeUsers || []);
     });
     return unsub;
-  }, [roomId, user]);
+  }, [roomId, user, setCode, setLanguage, setStdinValue]);
 
   // ─── Push local changes (debounced, editor-gated) ──────────────────────────
   useEffect(() => {
@@ -91,7 +129,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       }).catch(() => {});
     }, 300);
     return () => clearTimeout(timer);
-  }, [code, language, stdinValue, roomId, user, isEditor]);
+  }, [code, language, stdinValue, roomId, user, isEditor, roomData]);
 
   // ─── Sync active file (language) for presence ───────────────────────────────
   useEffect(() => {
@@ -104,28 +142,6 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
     }
   }, [roomId, user, roomData, language]);
-
-  // ─── Sync active file (language) for presence ───────────────────────────────
-  useEffect(() => {
-    if (!roomId || !user || !roomData) return;
-    const currentUsers = roomData.activeUsers || [];
-    const myIndex = currentUsers.findIndex((u) => u.uid === user.uid);
-    if (myIndex !== -1 && currentUsers[myIndex].activeFile !== language) {
-      const newUsers = [...currentUsers];
-      newUsers[myIndex] = { ...newUsers[myIndex], activeFile: language };
-      updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
-    }
-  }, [roomId, user, roomData, language]);
-
-  // ─── Auto-join from local storage ───────────────────────────────────────────
-  useEffect(() => {
-    const savedRoomId = localStorage.getItem('debugra_roomId');
-    if (user && savedRoomId && !roomId) {
-      joinRoom(savedRoomId).catch(() => {
-        localStorage.removeItem('debugra_roomId');
-      });
-    }
-  }, [user, roomId]); // Join logic uses the function below
 
   // ─── Create room ────────────────────────────────────────────────────────────
   const createRoom = useCallback(
@@ -134,27 +150,23 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       const id = crypto.randomUUID().slice(0, 8);
       const displayName = user.displayName || user.email?.split('@')[0] || 'Guest';
       const trimmedPassword = roomPassword.trim();
-      const passwordSalt = trimmedPassword ? createRoomSalt() : null;
-      const passwordHash = trimmedPassword
-        ? await hashRoomPassword(trimmedPassword, passwordSalt)
-        : null;
+      const passwordProtected = Boolean(trimmedPassword);
 
       await setDoc(doc(db, 'rooms', id), {
         name: `Room ${id}`,
         createdBy: user.uid,
-        isPrivate: Boolean(passwordHash),
-        passwordSalt,
-        passwordHash,
+        isPrivate: passwordProtected,
+        passwordProtected,
         code,
         language,
         activeUsers: [{ uid: user.uid, displayName }],
+        participantIds: [user.uid],
         roles: { [user.uid]: 'host' },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
       setRoomId(id);
       localStorage.setItem('debugra_roomId', id);
-      rememberRoomAccess(id);
       toast.success(`Room created! ID: ${id}`);
       navigator.clipboard.writeText(id);
 
@@ -166,7 +178,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
           event: 'room_created',
           roomId: id,
           userName: displayName,
-          passwordProtected: Boolean(passwordHash),
+          passwordProtected,
         }),
       }).catch(console.error);
 
@@ -191,20 +203,19 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         const currentUsers = data.activeUsers || [];
         const isCreator = data.createdBy === user.uid;
         const isAllowed = data.allowedEditors?.includes(user.uid);
-        const needsPassword =
-          data.passwordHash && !isCreator && !isAllowed && !hasRememberedRoomAccess(newRoomId);
+        const requiresPassword =
+          Boolean(data.passwordProtected || data.isPrivate) && !isCreator && !isAllowed;
 
-        if (needsPassword) {
-          const suppliedPassword = roomPassword.trim();
-          if (!suppliedPassword) {
-            toast.error('Room passcode required');
-            return false;
-          }
+        if (requiresPassword) {
+          const alreadyAuthorized = await hasValidRoomAccess(newRoomId);
+          if (!alreadyAuthorized) {
+            const suppliedPassword = roomPassword.trim();
+            if (!suppliedPassword) {
+              toast.error('Room passcode required');
+              return false;
+            }
 
-          const suppliedHash = await hashRoomPassword(suppliedPassword, data.passwordSalt);
-          if (suppliedHash !== data.passwordHash) {
-            toast.error('Invalid room passcode');
-            return false;
+            await verifyRoomPassword(newRoomId, suppliedPassword);
           }
         }
 
@@ -212,9 +223,11 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         const newRoles = { ...(data.roles || {}) };
         if (!newRoles[user.uid]) newRoles[user.uid] = 'viewer';
 
+        const currentParticipantIds = data.participantIds || [];
         if (!currentUsers.some((u) => u.uid === user.uid)) {
           await updateDoc(roomRef, {
             activeUsers: [...currentUsers, { uid: user.uid, displayName }],
+            participantIds: [...new Set([...currentParticipantIds, user.uid])],
             roles: newRoles,
           });
         } else if (!data.roles || !data.roles[user.uid]) {
@@ -222,7 +235,6 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         }
         setRoomId(newRoomId);
         localStorage.setItem('debugra_roomId', newRoomId);
-        rememberRoomAccess(newRoomId);
         toast.success(`Joined room: ${newRoomId}`);
 
         // Trigger Webhook via Backend API
@@ -237,13 +249,38 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         }).catch(console.error);
 
         return true;
-      } catch {
-        toast.error('Failed to join room');
+      } catch (err) {
+        toast.error(err?.message || 'Failed to join room');
         return false;
       }
     },
     [user]
   );
+
+  // ─── Auto-join from local storage ───────────────────────────────────────────
+  useEffect(() => {
+    const savedRoomId = localStorage.getItem('debugra_roomId');
+    if (user && savedRoomId && !roomId) {
+      joinRoom(savedRoomId).catch(() => {
+        localStorage.removeItem('debugra_roomId');
+      });
+    }
+  }, [user, roomId, joinRoom]);
+
+  // ─── Presence cleanup on browser tab/window close ──────────────────────────
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (roomId && user && roomData) {
+        const currentUsers = roomData.activeUsers || [];
+        const newUsers = currentUsers.filter((u) => u.uid !== user.uid);
+        updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [roomId, user, roomData]);
 
   // (Legacy access control methods removed for simpler role system)
   const requestAccess = useCallback(() => {}, []);
@@ -372,7 +409,17 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
 
   const clearVote = useCallback(async () => {
     if (!roomId) return;
-    await updateDoc(doc(db, 'rooms', roomId), { activeVote: null });
+    try {
+      const roomRef = doc(db, 'rooms', roomId);
+      const roomDoc = await getDoc(roomRef);
+      if (roomDoc.exists() && roomDoc.data().activeVote?.voteId) {
+        const voteId = roomDoc.data().activeVote.voteId;
+        await deleteDoc(doc(db, 'rooms', roomId, 'votes', voteId));
+      }
+      await updateDoc(roomRef, { activeVote: null });
+    } catch (e) {
+      console.error('Failed to clear vote: ', e);
+    }
   }, [roomId]);
 
   const syncExecutionResult = useCallback(
@@ -439,6 +486,22 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     },
     [roomId, user]
   );
+
+  // Fix for Distributed Deadlock: Proactively resolve vote consensus if active users drop
+  useEffect(() => {
+    if (!roomId || !roomData?.activeVote) return;
+    const vote = roomData.activeVote;
+    const activeCount = roomData.activeUsers?.length || 1;
+
+    if (vote.status === 'voting' && vote.initiatorUid === user?.uid) {
+      // If the remaining approvals exceed the new 50% threshold
+      if (vote.approvals?.length > activeCount / 2) {
+        updateDoc(doc(db, 'rooms', roomId), { 'activeVote.status': 'approved' }).catch(
+          console.error
+        );
+      }
+    }
+  }, [roomId, roomData?.activeVote, roomData?.activeUsers, user?.uid]);
 
   return {
     roomId,
