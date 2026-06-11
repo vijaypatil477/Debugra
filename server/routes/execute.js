@@ -2,7 +2,6 @@
 const router = express.Router();
 const NodeCache = require('node-cache');
 const crypto = require('crypto');
-const { rateLimit } = require('express-rate-limit');
 const { executeCode, SUPPORTED_LANGUAGE_IDS } = require('../services/judge0Service');
 
 const MAX_SOURCE_CODE_LENGTH = 100000;
@@ -56,26 +55,14 @@ function cacheExecutionResult(cacheKey, result) {
   executeCacheInsertionOrder.set(cacheKey, Date.now());
 }
 
-// Stricter rate limiter specific to /api/execute
-const executeLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 30,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  handler: (req, res) => {
-    res.status(429).json({
-      error: 'Too many execution requests, please try again later.',
-    });
-  },
-});
-
-router.post('/', executeLimiter, async (req, res, next) => {
+router.post('/', async (req, res, next) => {
   try {
     const { source_code, language_id, stdin } = req.body;
 
-    if (!source_code || !language_id) {
+    if (!source_code || language_id === undefined || language_id === null) {
       return res.status(400).json({ error: 'source_code and language_id are required' });
     }
+
 
     if (typeof source_code !== 'string' || (stdin !== undefined && typeof stdin !== 'string')) {
       return res.status(400).json({ error: 'source_code and stdin must be strings' });
@@ -125,5 +112,4 @@ router.post('/', executeLimiter, async (req, res, next) => {
 });
 
 module.exports = router;
-
 
