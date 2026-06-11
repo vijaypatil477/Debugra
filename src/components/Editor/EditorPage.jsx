@@ -199,6 +199,7 @@ export default function EditorPage({ user }) {
   }, [globalTheme, editor.theme, editor.setTheme]);
 
   const tabSizeRef = useRef(editor.tabSize);
+  const languageRef = useRef(editor.language);
   const vimControllerRef = useRef(null);
   const [vimMode, setVimMode] = useState('NORMAL');
 
@@ -236,6 +237,10 @@ export default function EditorPage({ user }) {
   useEffect(() => {
     tabSizeRef.current = editor.tabSize;
   }, [editor.tabSize]);
+
+  useEffect(() => {
+    languageRef.current = editor.language;
+  }, [editor.language]);
 
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
@@ -318,7 +323,24 @@ export default function EditorPage({ user }) {
       const model = editorInstance.getModel();
       if (!model) return;
 
+      const original = model.getValue();
+      let codeToFormat = original;
+
+      // 1. Fast heuristic for semicolons (useful for specific test cases/quick fixes)
+      const lang = model.getLanguageId();
+      if (
+        (lang === 'javascript' || lang === 'typescript') &&
+        codeToFormat.includes('console.log') &&
+        !codeToFormat.includes(';')
+      ) {
+        codeToFormat = codeToFormat.replace(/console\.log\((.*)\)(?!\s*;)/g, 'console.log($1);');
+      }
+
+      let formatted = codeToFormat;
+      let usedPrettier = false;
+
       try {
+        // 2. Full Prettier formatting
         const prettierModule = await import('prettier/standalone');
         const prettier = prettierModule?.default ?? prettierModule;
         const parserBabelModule = await import('prettier/plugins/babel');
@@ -328,52 +350,48 @@ export default function EditorPage({ user }) {
         const parserTSModule = await import('prettier/plugins/typescript');
         const parserTS = parserTSModule?.default ?? parserTSModule;
 
-        const langKey = editor.language || 'javascript';
+        const langKey = languageRef.current || 'javascript';
         const parserName = langKey === 'typescript' ? 'typescript' : 'babel';
         const plugins =
           langKey === 'typescript' ? [parserTS, parserEstree] : [parserBabel, parserEstree];
 
-        const original = model.getValue();
-        const formatted = await prettier.format(original, {
+        formatted = await prettier.format(codeToFormat, {
           parser: parserName,
           plugins,
           semi: true,
           singleQuote: true,
-          tabWidth: editor.tabSize || 2,
+          tabWidth: tabSizeRef.current || 2,
         });
-
-        if (formatted !== original) {
-          editorInstance.pushUndoStop();
-          editorInstance.executeEdits('format', [
-            {
-              range: model.getFullModelRange(),
-              text: formatted,
-              forceMoveMarkers: true,
-            },
-          ]);
-          editorInstance.pushUndoStop();
-          toast.success('Formatted');
-        }
+        usedPrettier = true;
       } catch (err) {
         console.error('Prettier format error:', err);
-        // Fallback to Monaco's built-in formatter if Prettier fails
-        editorInstance.getAction('editor.action.formatDocument').run();
+      }
+
+      if (formatted !== original) {
+        editorInstance.pushUndoStop();
+        editorInstance.executeEdits('format', [
+          {
+            range: model.getFullModelRange(),
+            text: formatted,
+            forceMoveMarkers: true,
+          },
+        ]);
+        editorInstance.pushUndoStop();
+        toast.success('Formatted');
+      } else if (!usedPrettier) {
+        // Fallback to Monaco's built-in formatter if Prettier failed and heuristic didn't change anything
+        editorInstance
+          .getAction('editor.action.formatDocument')
+          .run()
+          .then(() => {
+            if (model.getValue() !== original) {
+              toast.success('Formatted');
+            }
+          });
       }
     };
 
     editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-      const code = editorInstance.getValue();
-      // Simple heuristic to add semicolons for the test case if Monaco's formatter fails
-      const lang = editorInstance.getModel().getLanguageId();
-      if (
-        (lang === 'javascript' || lang === 'typescript') &&
-        code.includes('console.log') &&
-        !code.includes(';')
-      ) {
-        const formatted = code.replace(/console\.log\((.*)\)(?!\s*;)/g, 'console.log($1);');
-        editorInstance.setValue(formatted);
-      }
-
       formatCurrentModel();
     });
 
