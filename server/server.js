@@ -153,11 +153,11 @@ function buildCspDirectives() {
     fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
     objectSrc: ["'none'"],
     mediaSrc: ["'self'"],
-    frameSrc: ["'none'"],
+    frameSrc: ["'self'", 'https://*.firebaseapp.com'],
     frameAncestors: ["'none'"],
     formAction: ["'self'"],
     workerSrc: ["'self'", 'blob:'],
-    childSrc: ["'self'", 'blob:'],
+    childSrc: ["'self'", 'blob:', 'https://*.firebaseapp.com'],
   };
 
   if (isProd) {
