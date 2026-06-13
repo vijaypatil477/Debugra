@@ -262,6 +262,3 @@ export function useWebRTC(roomId, user) {
 
   return { inCall, joinCall, leaveCall, isMuted, toggleMute, peers };
 }
-
-
-

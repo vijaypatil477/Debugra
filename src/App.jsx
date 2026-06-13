@@ -38,7 +38,6 @@ export default function App() {
             of the screen even if the page content is short.
         */}
         <div className="flex flex-col min-h-screen bg-transparent">
-
           <OfflineBanner />
 
           <Toaster

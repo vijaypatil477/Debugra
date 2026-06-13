@@ -1,4 +1,4 @@
-﻿const axios = require('axios');
+const axios = require('axios');
 
 const WANDBOX_API = 'https://wandbox.org/api/compile.json';
 
@@ -61,15 +61,10 @@ async function executeCode(sourceCode, languageId, stdin = '') {
 
     const { data } = await axios.post(WANDBOX_API, body, { timeout: 30000 });
 
-    const stdout = data.program_output || '';
-    const compileError = data.compiler_error || '';
-    const runtimeError = data.program_error || '';
-    const exitCode = data.status != null ? parseInt(data.status, 10) : -1;
-
     const stdout = (data.program_output || '').slice(0, MAX_OUTPUT_LENGTH);
     const compileError = (data.compiler_error || '').slice(0, MAX_OUTPUT_LENGTH);
     const runtimeError = (data.program_error || '').slice(0, MAX_OUTPUT_LENGTH);
-    const exitCode = parseInt(data.status ?? '0');
+    const exitCode = data.status != null ? parseInt(data.status, 10) : -1;
 
     // Compile error takes priority, then runtime error, then exit code
     const hasCompileError = compileError.trim().length > 0;

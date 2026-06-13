@@ -81,6 +81,7 @@ export default function EditorPage({ user }) {
   const monacoRef = useRef(null);
   const fileInputRef = useRef(null);
   const providerRegisteredRef = useRef(false);
+  const remoteCursorDecorationsRef = useRef([]);
 
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
@@ -213,6 +214,7 @@ export default function EditorPage({ user }) {
     setCode: editor.setCode,
     setLanguage: editor.setLanguage,
     setStdinValue: editor.setStdinValue,
+    cursorPos: editor.cursorPos,
   });
 
   const execution = useExecution({
@@ -430,15 +432,24 @@ export default function EditorPage({ user }) {
     });
 
     // AI Shortcuts
-    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F, () => {
-      if (aiFixRef.current) aiFixRef.current();
-    });
-    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_E, () => {
-      if (aiExplainRef.current) aiExplainRef.current();
-    });
-    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_T, () => {
-      if (aiGenerateTestsRef.current) aiGenerateTestsRef.current();
-    });
+    editorInstance.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F,
+      () => {
+        if (aiFixRef.current) aiFixRef.current();
+      }
+    );
+    editorInstance.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_E,
+      () => {
+        if (aiExplainRef.current) aiExplainRef.current();
+      }
+    );
+    editorInstance.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_T,
+      () => {
+        if (aiGenerateTestsRef.current) aiGenerateTestsRef.current();
+      }
+    );
 
     const formatCurrentModel = async () => {
       const model = editorInstance.getModel();
@@ -550,6 +561,110 @@ export default function EditorPage({ user }) {
     return () => clearTimeout(timer);
   }, [isOutputCollapsed]);
 
+  // ─── Render Remote Cursors ────────────────────────────────────────────────
+  const escapeForCssContent = (str) => {
+    if (!str) return '';
+    return str
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'") 
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\A ')
+      .replace(/\r/g, '')
+      .slice(0, 30);
+  };
+
+  useEffect(() => {
+    const editorInstance = editorRef.current;
+    const monaco = monacoRef.current;
+    if (!editorInstance || !monaco || !room.remoteCursors) return;
+
+    const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+    const getUserColor = (uid) => {
+      let hash = 0;
+      for (let i = 0; i < uid.length; i++) {
+        hash = uid.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const index = Math.abs(hash) % colors.length;
+      return colors[index];
+    };
+
+    const newDecorations = [];
+    Object.values(room.remoteCursors).forEach((c) => {
+      if (!c.line || !c.col) return;
+      const userColor = getUserColor(c.uid);
+      const className = `remote-cursor-${c.uid}`;
+
+      let styleEl = document.getElementById(`style-${c.uid}`);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = `style-${c.uid}`;
+        document.head.appendChild(styleEl);
+      }
+      const escapedDisplayName = escapeForCssContent(c.displayName);
+      styleEl.innerHTML = `
+        .${className} {
+          border-left: 2px solid ${userColor} !important;
+          margin-left: -1px;
+          position: relative;
+        }
+        .${className}::after {
+          content: '${escapedDisplayName}';
+          position: absolute;
+          bottom: 100%;
+          left: 0;
+          background: ${userColor};
+          color: #ffffff;
+          font-size: 10px;
+          padding: 1px 4px;
+          border-radius: 3px;
+          white-space: nowrap;
+          opacity: 0;
+          transition: opacity 0.2s ease-in-out;
+          pointer-events: none;
+          z-index: 10;
+        }
+        .${className}:hover::after {
+          opacity: 1;
+        }
+      `;
+
+      newDecorations.push({
+        range: new monaco.Range(c.line, c.col, c.line, c.col),
+        options: {
+          className: className,
+          hoverMessage: { value: `**${c.displayName}** is here` },
+        },
+      });
+    });
+
+    remoteCursorDecorationsRef.current = editorInstance.deltaDecorations(
+      remoteCursorDecorationsRef.current,
+      newDecorations
+    );
+
+    return () => {
+      const activeUids = new Set(Object.keys(room.remoteCursors || {}));
+      const styleElements = document.querySelectorAll('[id^="style-"]');
+      styleElements.forEach((el) => {
+        const uid = el.id.substring(6);
+        if (!activeUids.has(uid)) {
+          el.remove();
+        }
+      });
+    };
+  }, [room.remoteCursors]);
+
+  // Cleanup all cursor style elements on unmount
+  useEffect(() => {
+    return () => {
+      const styleElements = document.querySelectorAll('[id^="style-"]');
+      styleElements.forEach((el) => el.remove());
+      if (editorRef.current) {
+        editorRef.current.deltaDecorations(remoteCursorDecorationsRef.current, []);
+      }
+    };
+  }, []);
+
   // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
     e.preventDefault();
@@ -627,8 +742,7 @@ export default function EditorPage({ user }) {
                 >
                   🔗{' '}
                   <span>
-                    Room:{' '}
-                    {/* Full ID on ≥601px, short on mobile */}
+                    Room: {/* Full ID on ≥601px, short on mobile */}
                     <span className="room-id-chip__full">#{room.roomId}</span>
                     <span className="room-id-chip__short">#{room.roomId?.slice(0, 6)}</span>
                   </span>
@@ -2002,4 +2116,3 @@ export default function EditorPage({ user }) {
     </div>
   );
 }
-

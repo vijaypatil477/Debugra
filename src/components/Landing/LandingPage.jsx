@@ -10,7 +10,7 @@ import {
 import { auth, googleProvider } from '../../services/firebase';
 import toast from 'react-hot-toast';
 import './LandingPage.css';
-import { Link } from "react-router-dom";
+import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 
 // ─── Inline SVG Icons ─────────────────────────────────────────────────────────
