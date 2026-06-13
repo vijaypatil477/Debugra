@@ -25,7 +25,7 @@ const Footer = () => {
             </svg>
             <span className="font-mono font-bold text-lg tracking-wider text-white">Debugra</span>
           </div>
-          <p className="text-[#858585] text-xs leading-relaxed">
+          <p className="text-[#a1a1aa] text-xs leading-relaxed">
             A modern, browser-based developer experience designed to streamline debugging and
             accelerate your workflow.
           </p>
@@ -38,7 +38,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#features"
-                className="text-[#858585] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
               >
                 Features
               </a>
@@ -46,7 +46,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#docs"
-                className="text-[#858585] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
               >
                 Documentation
               </a>
@@ -54,7 +54,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#playground"
-                className="text-[#858585] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
               >
                 Playground
               </a>
@@ -62,7 +62,7 @@ const Footer = () => {
             <li>
               <Link
                 to="/feedback"
-                className="text-[#858585] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
               >
                 Feedback
               </Link>
@@ -77,7 +77,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#changelog"
-                className="text-[#858585] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
               >
                 Changelog
               </a>
@@ -85,7 +85,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#contributing"
-                className="text-[#858585] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
               >
                 Contributing
               </a>
@@ -93,7 +93,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#license"
-                className="text-[#858585] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
               >
                 MIT License
               </a>
@@ -101,7 +101,7 @@ const Footer = () => {
             <li>
               <Link
                 to="/feedback"
-                className="text-[#858585] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
               >
                 Contact Team
               </Link>
@@ -112,7 +112,7 @@ const Footer = () => {
         {/* Social / Connect */}
         <div className="space-y-3">
           <h4 className="text-white font-semibold uppercase tracking-wider text-xs">Connect</h4>
-          <div className="flex space-x-4 text-[#858585]">
+          <div className="flex space-x-4 text-[#a1a1aa]">
             {/* GitHub SVG */}
             <a
               href="https://github.com"
@@ -182,7 +182,7 @@ const Footer = () => {
 
       {/* Bottom Bar: Copyright & OSS Acknowledgment */}
       <div className="bg-[#181818] border-t border-[#2d2d2d] py-4 px-4">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#858585]">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#a1a1aa]">
           <div>
             &copy; {currentYear} <span className="text-[#c586c0]">Debugra</span>. All rights
             reserved.
