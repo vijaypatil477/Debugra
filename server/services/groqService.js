@@ -112,10 +112,6 @@ async function chatCompletion(systemPrompt, userPrompt, apiKey = '', model = DEF
   return { content: aiMessage, usage: tokenUsage };
 }
 
-
-async function chatCompletionText(systemPrompt, userPrompt, apiKey = '', model = MODEL) {
-  const response = await getGroqClient(apiKey).chat.completions.create({
-
 async function chatCompletionText(systemPrompt, userPrompt, apiKey = '', model = DEFAULT_MODEL) {
   const response = await getGroqClient(apiKey).chat.completions.create({
     model: MODELS[model] ? model : DEFAULT_MODEL,
@@ -351,7 +347,7 @@ Provide only the text that should be inserted at the cursor position. If no comp
 }
 
 // 8. AI Code Explainer — explains a selected code snippet in plain language
-async function explainCodeSnippetAI(code, language, apiKey = '') {
+
 // 7. AI Code Explainer — explains a selected code snippet in plain language
 async function explainCodeSnippetAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
   return chatCompletion(
