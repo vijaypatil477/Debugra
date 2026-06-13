@@ -1,10 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { compression } from 'vite-plugin-compression2';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [
     react(),
+    tailwindcss(),
     // Generate gzip and brotli compressed assets at build time
     compression({ algorithm: 'gzip', exclude: [/\.(br)$/, /\.(gz)$/] }),
     compression({ algorithm: 'brotliCompress', ext: '.br', exclude: [/\.(br)$/, /\.(gz)$/] }),
@@ -45,11 +47,19 @@ export default defineConfig({
     ],
   },
   server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+    },
+  },
+  preview: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
     },
   },
 });

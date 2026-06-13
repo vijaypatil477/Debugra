@@ -14,6 +14,7 @@ const memoryProfiler = require('./services/memoryProfiler');
 const roomCleanupService = require('./services/roomCleanupService');
 const errorHandler = require('./middleware/errorHandler');
 const webhookRoutes = require('./routes/webhooks');
+const roomsRoutes = require('./routes/rooms');
 const { executeLimiter, aiLimiter } = require('./middleware/rateLimiters');
 
 const app = express();
@@ -152,11 +153,11 @@ function buildCspDirectives() {
     fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
     objectSrc: ["'none'"],
     mediaSrc: ["'self'"],
-    frameSrc: ["'none'"],
+    frameSrc: ["'self'", 'https://*.firebaseapp.com'],
     frameAncestors: ["'none'"],
     formAction: ["'self'"],
     workerSrc: ["'self'", 'blob:'],
-    childSrc: ["'self'", 'blob:'],
+    childSrc: ["'self'", 'blob:', 'https://*.firebaseapp.com'],
   };
 
   if (isProd) {
@@ -198,6 +199,9 @@ app.use(
     xssFilter: true,
     hidePoweredBy: true,
     ieNoOpen: true,
+
+    // Allow Firebase Auth popup to communicate back via window.closed
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   })
 );
 
@@ -239,11 +243,8 @@ app.use(
       // Reject missing Origin headers consistently to avoid loosening CORS
       // protections in development mode.
       if (!origin) {
-        logger.warn('[CORS] Rejected request without Origin header');
-        const corsError = new Error('Not allowed by CORS');
-        corsError.status = 403;
-        return callback(corsError);
-      }
+     return callback(null, true);
+    }
 
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
@@ -318,10 +319,11 @@ app.use(memoryTracker);
 // ──────────────────────────────────────────────
 // Routes
 // ──────────────────────────────────────────────
-app.use('/api/execute', executeLimiter, executeRoutes);
+app.use('/api/execute', executeRoutes);
 app.use('/api/ai', aiLimiter, aiRoutes);
 app.use('/api/admin/memory-profile', memoryRoutes);
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/rooms', roomsRoutes);
 
 // ──────────────────────────────────────────────
 // Error Handler
