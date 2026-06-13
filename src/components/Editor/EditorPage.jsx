@@ -1,4 +1,4 @@
-﻿import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { createMonacoVimController } from '../../utils/monacoVim';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
@@ -71,9 +71,12 @@ export default function EditorPage({ user }) {
   const monacoRef = useRef(null);
   const fileInputRef = useRef(null);
   const providerRegisteredRef = useRef(false);
+  const remoteCursorDecorationsRef = useRef([]);
 
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
+  // Separate flash-state for the Room ID chip's copy interaction
+  const [linkCopied, setLinkCopied] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
@@ -202,6 +205,7 @@ export default function EditorPage({ user }) {
     setCode: editor.setCode,
     setLanguage: editor.setLanguage,
     setStdinValue: editor.setStdinValue,
+    cursorPos: editor.cursorPos,
   });
 
   const execution = useExecution({
@@ -237,6 +241,16 @@ export default function EditorPage({ user }) {
     editorRef,
     model: selectedModel,
   });
+
+  const aiFixRef = useRef(ai.fix);
+  const aiExplainRef = useRef(ai.explain);
+  const aiGenerateTestsRef = useRef(ai.generateTests);
+
+  useEffect(() => {
+    aiFixRef.current = ai.fix;
+    aiExplainRef.current = ai.explain;
+    aiGenerateTestsRef.current = ai.generateTests;
+  }, [ai.fix, ai.explain, ai.generateTests]);
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
@@ -408,10 +422,25 @@ export default function EditorPage({ user }) {
       if (executionRunRef.current) executionRunRef.current();
     });
 
-    // Ctrl+H → Toggle Search & Replace panel
-    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH, () => {
-      setShowSearchReplace((v) => !v);
-    });
+    // AI Shortcuts
+    editorInstance.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F,
+      () => {
+        if (aiFixRef.current) aiFixRef.current();
+      }
+    );
+    editorInstance.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_E,
+      () => {
+        if (aiExplainRef.current) aiExplainRef.current();
+      }
+    );
+    editorInstance.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_T,
+      () => {
+        if (aiGenerateTestsRef.current) aiGenerateTestsRef.current();
+      }
+    );
 
     const formatCurrentModel = async () => {
       const model = editorInstance.getModel();
@@ -523,6 +552,110 @@ export default function EditorPage({ user }) {
     return () => clearTimeout(timer);
   }, [isOutputCollapsed]);
 
+  // ─── Render Remote Cursors ────────────────────────────────────────────────
+  const escapeForCssContent = (str) => {
+    if (!str) return '';
+    return str
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'") 
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\A ')
+      .replace(/\r/g, '')
+      .slice(0, 30);
+  };
+
+  useEffect(() => {
+    const editorInstance = editorRef.current;
+    const monaco = monacoRef.current;
+    if (!editorInstance || !monaco || !room.remoteCursors) return;
+
+    const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+    const getUserColor = (uid) => {
+      let hash = 0;
+      for (let i = 0; i < uid.length; i++) {
+        hash = uid.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const index = Math.abs(hash) % colors.length;
+      return colors[index];
+    };
+
+    const newDecorations = [];
+    Object.values(room.remoteCursors).forEach((c) => {
+      if (!c.line || !c.col) return;
+      const userColor = getUserColor(c.uid);
+      const className = `remote-cursor-${c.uid}`;
+
+      let styleEl = document.getElementById(`style-${c.uid}`);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = `style-${c.uid}`;
+        document.head.appendChild(styleEl);
+      }
+      const escapedDisplayName = escapeForCssContent(c.displayName);
+      styleEl.innerHTML = `
+        .${className} {
+          border-left: 2px solid ${userColor} !important;
+          margin-left: -1px;
+          position: relative;
+        }
+        .${className}::after {
+          content: '${escapedDisplayName}';
+          position: absolute;
+          bottom: 100%;
+          left: 0;
+          background: ${userColor};
+          color: #ffffff;
+          font-size: 10px;
+          padding: 1px 4px;
+          border-radius: 3px;
+          white-space: nowrap;
+          opacity: 0;
+          transition: opacity 0.2s ease-in-out;
+          pointer-events: none;
+          z-index: 10;
+        }
+        .${className}:hover::after {
+          opacity: 1;
+        }
+      `;
+
+      newDecorations.push({
+        range: new monaco.Range(c.line, c.col, c.line, c.col),
+        options: {
+          className: className,
+          hoverMessage: { value: `**${c.displayName}** is here` },
+        },
+      });
+    });
+
+    remoteCursorDecorationsRef.current = editorInstance.deltaDecorations(
+      remoteCursorDecorationsRef.current,
+      newDecorations
+    );
+
+    return () => {
+      const activeUids = new Set(Object.keys(room.remoteCursors || {}));
+      const styleElements = document.querySelectorAll('[id^="style-"]');
+      styleElements.forEach((el) => {
+        const uid = el.id.substring(6);
+        if (!activeUids.has(uid)) {
+          el.remove();
+        }
+      });
+    };
+  }, [room.remoteCursors]);
+
+  // Cleanup all cursor style elements on unmount
+  useEffect(() => {
+    return () => {
+      const styleElements = document.querySelectorAll('[id^="style-"]');
+      styleElements.forEach((el) => el.remove());
+      if (editorRef.current) {
+        editorRef.current.deltaDecorations(remoteCursorDecorationsRef.current, []);
+      }
+    };
+  }, []);
+
   // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
     e.preventDefault();
@@ -583,23 +716,60 @@ export default function EditorPage({ user }) {
           <span className="topbar-title d-none d-md-block">Code Editor</span>
           {(room.roomId || isTestRoom) && (
             <>
-              <div className="topbar-sep mx-2 d-none d-sm-block" />
-              <span className="topbar-title text-success d-none d-sm-inline">
-                ✦ Room: {room.roomId}
-                <span className="d-none d-lg-inline"> ({room.activeUsers.length} online)</span>
-              </span>
+              {/* ── Room Session Badge Group ── */}
+              <div className="room-badge-group d-none d-sm-flex">
+                {/* Room ID Chip — click to copy shareable link */}
+                <button
+                  className={`room-id-chip${linkCopied ? ' copied' : ''}`}
+                  title="Click to copy shareable room link"
+                  aria-label="Copy room link"
+                  onClick={() => {
+                    const link = `${window.location.origin}/editor?room=${room.roomId}`;
+                    navigator.clipboard.writeText(link);
+                    toast.success('Room link copied!');
+                    setLinkCopied(true);
+                    setTimeout(() => setLinkCopied(false), 1500);
+                  }}
+                >
+                  🔗{' '}
+                  <span>
+                    Room: {/* Full ID on ≥601px, short on mobile */}
+                    <span className="room-id-chip__full">#{room.roomId}</span>
+                    <span className="room-id-chip__short">#{room.roomId?.slice(0, 6)}</span>
+                  </span>
+                  {/* Copy icon — opacity-0 by default, slides in on hover */}
+                  <svg
+                    className="room-id-chip__icon"
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                </button>
+
+                {/* Live Users Bubble */}
+                <div
+                  className="room-live-bubble"
+                  title={`${room.activeUsers.length} active collaborator${
+                    room.activeUsers.length !== 1 ? 's' : ''
+                  }`}
+                >
+                  <span className="room-live-dot" aria-hidden="true" />
+                  {room.activeUsers.length} active
+                </div>
+              </div>
+
+              {/* Video / Voice call buttons — unchanged */}
               <button
-                className="topbar-link ms-2"
-                onClick={() => {
-                  navigator.clipboard.writeText(room.roomId);
-                  toast.success('Copied!');
-                }}
-              >
-                <span className="d-none d-sm-inline">Copy ID</span>
-                <span className="d-inline d-sm-none">ID</span>
-              </button>
-              <button
-                className="topbar-link ms-2"
+                className="topbar-link"
                 onClick={() => setShowVideoCall(!showVideoCall)}
                 style={{
                   background: showVideoCall
@@ -618,7 +788,7 @@ export default function EditorPage({ user }) {
                 📹 {showVideoCall ? 'Leave Call' : 'Join Call'}
               </button>
               <button
-                className="topbar-link ms-2"
+                className="topbar-link"
                 onClick={() => setShowVoiceCall((s) => !s)}
                 style={{
                   background: showVoiceCall ? 'rgba(34,197,94,0.12)' : 'rgba(99,102,241,0.06)',
@@ -1691,7 +1861,24 @@ export default function EditorPage({ user }) {
                 response={ai.aiResponse}
                 language={editor.language}
                 onApplyFix={(code) => {
-                  editor.setCode(code);
+                  if (editorRef.current) {
+                    const model = editorRef.current.getModel();
+                    if (model) {
+                      editorRef.current.pushUndoStop();
+                      editorRef.current.executeEdits('ai-fix', [
+                        {
+                          range: model.getFullModelRange(),
+                          text: code,
+                          forceMoveMarkers: true,
+                        },
+                      ]);
+                      editorRef.current.pushUndoStop();
+                    } else {
+                      editor.setCode(code);
+                    }
+                  } else {
+                    editor.setCode(code);
+                  }
                   toast.success('Solution applied!');
                 }}
               />
@@ -1735,6 +1922,10 @@ export default function EditorPage({ user }) {
         tabSize={editor.tabSize}
         room={room}
         user={user}
+        saveStatus={editor.saveStatus}
+        lastSavedAt={editor.lastSavedAt}
+        isOffline={editor.isOffline}
+        hasPendingChanges={editor.hasPendingChanges}
         vimEnabled={editor.vimEnabled}
         vimMode={vimMode}
       />
