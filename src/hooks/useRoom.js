@@ -14,13 +14,13 @@ import toast from 'react-hot-toast';
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
 
-async function verifyRoomPassword(roomId, password) {
+async function verifyRoomPassword(roomId, password, uid) {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const res = await fetch(`${apiUrl}/api/rooms/verify-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roomId, password }),
+    body: JSON.stringify({ roomId, password, uid }),
   });
 
   const data = await res.json();
@@ -215,7 +215,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
               return false;
             }
 
-            await verifyRoomPassword(newRoomId, suppliedPassword);
+            await verifyRoomPassword(newRoomId, suppliedPassword, user.uid);
           }
         }
 
@@ -225,11 +225,14 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
 
         const currentParticipantIds = data.participantIds || [];
         if (!currentUsers.some((u) => u.uid === user.uid)) {
-          await updateDoc(roomRef, {
+          const updateData = {
             activeUsers: [...currentUsers, { uid: user.uid, displayName }],
-            participantIds: [...new Set([...currentParticipantIds, user.uid])],
             roles: newRoles,
-          });
+          };
+          if (!data.passwordProtected && !data.isPrivate) {
+            updateData.participantIds = [...new Set([...currentParticipantIds, user.uid])];
+          }
+          await updateDoc(roomRef, updateData);
         } else if (!data.roles || !data.roles[user.uid]) {
           await updateDoc(roomRef, { roles: newRoles });
         }
