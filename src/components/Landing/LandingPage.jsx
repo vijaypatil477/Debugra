@@ -6,6 +6,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth, googleProvider } from '../../services/firebase';
 import toast from 'react-hot-toast';
@@ -440,6 +441,19 @@ export default function LandingPage() {
     }
     setLoading(false);
   };
+  const handleForgotPassword = async () => {
+  if (!email) {
+    toast.error('Please enter your email');
+    return;
+  }
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+    toast.success('Password reset email sent');
+  } catch (err) {
+    toast.error(err.message);
+  }
+};
 
   return (
     <div className="landing-root">
@@ -1140,6 +1154,40 @@ export default function LandingPage() {
                 className="modal-input"
                 required
               />
+              <div className='password-wrapper'>
+              <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                aria-label="Password"
+                placeholder="Password"
+                type={showPassword ? 'text' : 'password'}
+                className="modal-input"
+                required
+                minLength={6}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+               {showPassword ? (
+      <EyeOff size={18} strokeWidth={2} />
+    ) : (
+      <Eye size={18} strokeWidth={2} />
+    )}
+  </button>
+</div>
+{!isSignUp && (
+  <div className="forgot-password-wrapper">
+    <button
+      type="button"
+      className="forgot-password-btn"
+      onClick={handleForgotPassword}
+    >
+      Forgot Password?
+    </button>
+  </div>
+)}
               <div className="password-wrapper">
                 <input
                   value={password}
