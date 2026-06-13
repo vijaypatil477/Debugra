@@ -488,17 +488,28 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   );
 
   // Fix for Distributed Deadlock: Proactively resolve vote consensus if active users drop
+  // Uses a transaction to atomically re-check vote state before writing, preventing
+  // races with castVote which also uses runTransaction.
   useEffect(() => {
     if (!roomId || !roomData?.activeVote) return;
     const vote = roomData.activeVote;
     const activeCount = roomData.activeUsers?.length || 1;
 
     if (vote.status === 'voting' && vote.initiatorUid === user?.uid) {
-      // If the remaining approvals exceed the new 50% threshold
       if (vote.approvals?.length > activeCount / 2) {
-        updateDoc(doc(db, 'rooms', roomId), { 'activeVote.status': 'approved' }).catch(
-          console.error
-        );
+        const roomRef = doc(db, 'rooms', roomId);
+        runTransaction(db, async (transaction) => {
+          const snap = await transaction.get(roomRef);
+          if (!snap.exists()) return;
+          const current = snap.data().activeVote;
+          if (current && current.status === 'voting' && current.initiatorUid === user?.uid) {
+            const freshActiveCount = (snap.data().activeUsers || []).length;
+            if ((current.approvals || []).length > freshActiveCount / 2) {
+              current.status = 'approved';
+              transaction.update(roomRef, { activeVote: current });
+            }
+          }
+        }).catch(console.error);
       }
     }
   }, [roomId, roomData?.activeVote, roomData?.activeUsers, user?.uid]);
