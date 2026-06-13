@@ -347,7 +347,7 @@ Provide only the text that should be inserted at the cursor position. If no comp
     }
   }
 
-  return { completion: completion.trim(), usage: response.usage };
+  return { completion: completion.trimEnd(), usage: response.usage };
 }
 
 // 8. AI Code Explainer — explains a selected code snippet in plain language
