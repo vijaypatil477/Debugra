@@ -5,7 +5,8 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen } from 'lucide-react';
+import { Settings, Eye, EyeOff, Menu, FolderOpen } from 'lucide-react';
+
 import { useTheme } from '../../context/ThemeContext';
 
 import {
@@ -55,23 +56,12 @@ function getApiKeyStatus() {
   if (isSecureApiKeyStored()) return 'locked';
   return 'empty';
 }
-const REVIEWS = [
-  {
-    name: 'Alex',
-    rating: 5,
-    review: 'Excellent debugging platform. The AI explanations are incredibly helpful.',
-  },
-  {
-    name: 'Sarah',
-    rating: 5,
-    review: 'The execution visualizer helped me understand recursion much faster.',
-  },
-  {
-    name: 'John',
-    rating: 4,
-    review: 'Clean interface and smooth collaboration features.',
-  },
-];
+
+/**
+ * Legacy reviews data removed to satisfy ESLint (no-unused-vars).
+ * Keeping this placeholder comment prevents unused-var lint failures.
+ */
+
 export default function EditorPage({ user }) {
   const isTestRoom =
     typeof window !== 'undefined' &&
@@ -106,7 +96,8 @@ export default function EditorPage({ user }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [showVoiceCall, setShowVoiceCall] = useState(false);
-  const [blurIntensity, setBlurIntensity] = useState(10);
+  const [blurIntensity] = useState(10);
+
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const [showSearchReplace, setShowSearchReplace] = useState(false);
   const [consoleCollapsed, setConsoleCollapsed] = useState(false);
@@ -183,8 +174,8 @@ export default function EditorPage({ user }) {
   });
   const showMinimap = editor.minimapEnabled;
 
-  const vimEnabled = editor.vimEnabled;
-  const setVimEnabled = editor.setVimEnabled;
+  // Vim toggles handled via editor.setVimEnabled; keep editor.vimEnabled/setVimEnabled
+  // accessed inline to avoid unused-var lint errors.
 
   const { theme: globalTheme, toggleTheme: toggleGlobalTheme } = useTheme();
 

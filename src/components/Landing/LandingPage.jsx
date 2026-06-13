@@ -333,7 +333,7 @@ export default function LandingPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
+
   const [mobileMenu, setMobileMenu] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
   const [canScrollFeaturesLeft, setCanScrollFeaturesLeft] = useState(false);
@@ -424,7 +424,7 @@ export default function LandingPage() {
       toast.error('Passwords do not match');
       return;
     }
-    setLoading(true);
+
     try {
       if (isSignUp) {
         const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -438,7 +438,6 @@ export default function LandingPage() {
     } catch (err) {
       toast.error(err.message);
     }
-    setLoading(false);
   };
 
   return (

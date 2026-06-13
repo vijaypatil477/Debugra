@@ -29,15 +29,7 @@ const ICE_SERVERS = [
 const VideoCall = ({ roomId, userId, userName, onClose, audioOnly = false }) => {
   // Test-only flag: when URL contains ?testLocal=1 we render a static local meter
   // This avoids depending on getUserMedia / AudioContext in headless test environments.
-  let isTestLocal = false;
-  try {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      isTestLocal = params.get('testLocal') === '1';
-    }
-  } catch (e) {
-    isTestLocal = false;
-  }
+
   const [peers, setPeers] = useState(new Map());
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -64,7 +56,12 @@ const VideoCall = ({ roomId, userId, userName, onClose, audioOnly = false }) => 
   const localAnalyserRef = useRef(null);
   const localDataRef = useRef(null);
   const localRafRef = useRef(null);
-  const [localLevel, setLocalLevel] = useState(0);
+  const _localLevelRef = useRef(0);
+
+  // keep analyser output without triggering rerenders
+  const setLocalLevel = (v) => {
+    _localLevelRef.current = v;
+  };
 
   // Generate a persistent, session-unique ID for the local peer
   const myPeerId = useRef(userId || crypto.randomUUID().slice(0, 8)).current;
@@ -162,6 +159,7 @@ const VideoCall = ({ roomId, userId, userName, onClose, audioOnly = false }) => 
         }
         const rms = Math.sqrt(sum / data.length) / 128;
         setLocalLevel(Math.min(1, rms));
+
         localRafRef.current = requestAnimationFrame(tick);
       };
       localRafRef.current = requestAnimationFrame(tick);
