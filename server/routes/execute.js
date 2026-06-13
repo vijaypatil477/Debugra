@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const NodeCache = require('node-cache');
 const crypto = require('crypto');
@@ -17,7 +17,6 @@ const executeCache = new NodeCache({
   checkperiod: 60,
 });
 const executeCacheInsertionOrder = new Map();
-
 // Remove expired/deleted entries from the insertion order tracker to prevent memory leaks
 executeCache.on('del', (key) => {
   executeCacheInsertionOrder.delete(key);

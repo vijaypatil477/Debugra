@@ -563,7 +563,9 @@ const VideoCall = ({ roomId, userId, userName, onClose, audioOnly = false }) => 
       if (peerObj.unsubCandidates) peerObj.unsubCandidates();
 
       // Clean up connection documents in Firestore
-      const connectionId = peerObj.connectionId || (myPeerId < peerId ? `${myPeerId}_${peerId}` : `${peerId}_${myPeerId}`);
+      const connectionId =
+        peerObj.connectionId ||
+        (myPeerId < peerId ? `${myPeerId}_${peerId}` : `${peerId}_${myPeerId}`);
       const connectionRef = doc(db, 'rooms', roomId, 'connections', connectionId);
       deleteDoc(connectionRef).catch((e) =>
         console.warn('Failed to clean up WebRTC connection document:', e)

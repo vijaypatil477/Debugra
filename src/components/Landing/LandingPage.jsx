@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import {
@@ -10,6 +10,7 @@ import {
 import { auth, googleProvider } from '../../services/firebase';
 import toast from 'react-hot-toast';
 import './LandingPage.css';
+import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 
 // ─── Inline SVG Icons ─────────────────────────────────────────────────────────
@@ -311,8 +312,22 @@ const REVIEWS = [
 ];
 export default function LandingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const featuresCarouselRef = useRef(null);
   const { theme, toggleTheme } = useTheme();
+
+  // Scroll to hash on page load/navigation change
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.substring(1);
+      const element = document.getElementById(id);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    }
+  }, [location.hash]);
   const [showLogin, setShowLogin] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -430,7 +445,7 @@ export default function LandingPage() {
     <div className="landing-root">
       {/* ===== NAVBAR ===== */}
       <nav className="landing-nav">
-        <div className="landing-nav-left">
+        <Link to="/" className="landing-nav-left text-decoration-none">
           <img
             src={theme === 'light' ? '/icon-light.svg' : '/icon-dark.svg'}
             height="26"
@@ -438,7 +453,7 @@ export default function LandingPage() {
           />
           <span className="landing-logo">Debugra</span>
           <span className="landing-version-badge">v1.0</span>
-        </div>
+        </Link>
         <div className="landing-nav-right desktop-only">
           <a href="#features" className="landing-nav-link">
             Features
@@ -446,6 +461,9 @@ export default function LandingPage() {
           <a href="#languages" className="landing-nav-link">
             Languages
           </a>
+          <Link to="/contributors" className="landing-nav-link">
+            Contributors
+          </Link>
           <a href="#faq" className="landing-nav-link">
             FAQ
           </a>
@@ -590,6 +608,9 @@ export default function LandingPage() {
           >
             Languages
           </a>
+          <Link to="/contributors" className="landing-nav-link">
+            Contributors
+          </Link>
           <a href="#faq" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>
             FAQ
           </a>
@@ -694,7 +715,7 @@ export default function LandingPage() {
                   <span className="preview-tag">Python 3</span>
                   <span
                     className="d-none d-sm-inline"
-                    style={{ fontSize: '0.65rem', color: '#6a6a6a' }}
+                    style={{ fontSize: '0.65rem', color: '#9d9d9d' }}
                   >
                     14px
                   </span>
@@ -761,7 +782,7 @@ export default function LandingPage() {
                   >
                     <div className="preview-success-badge">✓ SUCCESS</div>
                     <div className="mt-2">[0, 1]</div>
-                    <div className="mt-2" style={{ color: '#6a6a6a', fontSize: '0.68rem' }}>
+                    <div className="mt-2" style={{ color: '#9d9d9d', fontSize: '0.68rem' }}>
                       Time: 0.03s
                     </div>
                   </div>
@@ -933,70 +954,64 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* <div className="reviews-grid">
-    {REVIEWS.map((review, index) => (
-      <div key={index} className="review-card">
-        <div className="review-stars">
-          {'★'.repeat(review.rating)}
+      {/* ===== REVIEWS & FEEDBACK ===== */}
+      <section id="reviews" className="landing-section container text-center">
+        <div className="section-header">
+          <p className="section-eyebrow">Community</p>
+          <h2 className="section-title">Feedback & Reviews</h2>
+          <p className="section-subtitle">
+            Hear what developers think about Debugra and share your own experience.
+          </p>
         </div>
 
-        <p className="review-text">
-          "{review.review}"
-        </p>
+        <div className="reviews-carousel">
+          <div className="reviews-track">
+            {[...REVIEWS, ...REVIEWS].map((review, index) => (
+              <div key={index} className="review-card">
+                <div className="review-stars">{'★'.repeat(review.rating)}</div>
 
-        <span className="review-author">
-          — {review.name}
-        </span>
-      </div>
-    ))}
-  </div> */}
-      <div className="reviews-carousel">
-        <div className="reviews-track">
-          {[...REVIEWS, ...REVIEWS].map((review, index) => (
-            <div key={index} className="review-card">
-              <div className="review-stars">{'★'.repeat(review.rating)}</div>
+                <p className="review-text">&quot;{review.review}&quot;</p>
 
-              <p className="review-text">&quot;{review.review}&quot;</p>
-
-              <span className="review-author">— {review.name}</span>
-            </div>
-          ))}
+                <span className="review-author">— {review.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="feedback-form-card">
-        <h3 style={{ marginBottom: '16px' }}>Share Your Feedback</h3>
+        <div className="feedback-form-card">
+          <h3 style={{ marginBottom: '16px' }}>Share Your Feedback</h3>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            toast.success('Thank you for your feedback!');
-          }}
-        >
-          <input type="text" placeholder="Your Name" className="modal-input" required />
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              toast.success('Thank you for your feedback!');
+            }}
+          >
+            <input type="text" placeholder="Your Name" aria-label="Your Name" className="modal-input" required />
 
-          <select className="modal-input" required>
-            <option value="">Select Rating</option>
-            <option value="5">★★★★★ (5)</option>
-            <option value="4">★★★★☆ (4)</option>
-            <option value="3">★★★☆☆ (3)</option>
-            <option value="2">★★☆☆☆ (2)</option>
-            <option value="1">★☆☆☆☆ (1)</option>
-          </select>
+            <select className="modal-input" aria-label="Select Rating" required>
+              <option value="">Select Rating</option>
+              <option value="5">★★★★★ (5)</option>
+              <option value="4">★★★★☆ (4)</option>
+              <option value="3">★★★☆☆ (3)</option>
+              <option value="2">★★☆☆☆ (2)</option>
+              <option value="1">★☆☆☆☆ (1)</option>
+            </select>
 
-          <textarea
-            placeholder="Tell us about your experience..."
-            className="modal-input"
-            rows="4"
-            required
-          />
+            <textarea
+              placeholder="Tell us about your experience..."
+              aria-label="Your feedback"
+              className="modal-input"
+              rows="4"
+              required
+            />
 
-          <button type="submit" className="landing-btn-primary" style={{ width: 'fit-content' }}>
-            Submit Feedback
-          </button>
-        </form>
-      </div>
-      {/* </section> */}
+            <button type="submit" className="landing-btn-primary" style={{ width: 'fit-content' }}>
+              Submit Feedback
+            </button>
+          </form>
+        </div>
+      </section>
       {/* ===== CTA ===== */}
       <section className="landing-cta-section">
         <div className="cta-glow" />
@@ -1035,33 +1050,11 @@ export default function LandingPage() {
               Create free account
             </button>
           </div>
-          <p style={{ marginTop: '20px', fontSize: '0.75rem', color: '#4a4a6a' }}>
+          <p style={{ marginTop: '20px', fontSize: '0.75rem', color: '#9d9d9d' }}>
             debugra.tech · Free · Open Source
           </p>
         </div>
       </section>
-
-      {/* ===== FOOTER ===== */}
-      <footer className="landing-footer">
-        <div className="d-flex align-items-center gap-2 justify-content-center mb-1">
-          <img
-            src={theme === 'light' ? '/icon-light.svg' : '/icon-dark.svg'}
-            height="14"
-            alt="Debugra Logo"
-          />
-          <span className="landing-footer-logo-text">Debugra</span>
-        </div>
-
-        <p style={{ margin: 0, fontSize: '0.72rem', color: '#4a4a6a' }}>
-          © {new Date().getFullYear()} Debugra · Built for Hackathon SVKM 2026 ·{' '}
-          <a
-            href="https://github.com/omkhandare55/Debugra"
-            style={{ color: '#6a6a8a', textDecoration: 'none' }}
-          >
-            GitHub
-          </a>
-        </p>
-      </footer>
 
       {/* ===== BACK TO TOP ===== */}
       {showBackToTop && (
@@ -1090,7 +1083,7 @@ export default function LandingPage() {
         <div className="modal-backdrop" onClick={() => setShowLogin(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             {/* CLOSE BUTTON - ADD HERE */}
-            <button className="modal-close-btn" onClick={() => setShowLogin(false)}>
+            <button className="modal-close-btn" aria-label="Close dialog" onClick={() => setShowLogin(false)}>
               ✕
             </button>
 
