@@ -568,7 +568,7 @@
 .ln {
   display: inline-block;
   width: 24px;
-  color: #3f3f46;
+  color: #71717a;
   user-select: none;
   margin-right: 18px;
   text-align: right;
@@ -579,7 +579,7 @@
 }
 .preview-chrome-label {
   font-size: 0.72rem;
-  color: #52525b;
+  color: #9d9d9d;
   margin-left: 10px;
 }
 .editor-preview {

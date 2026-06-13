@@ -49,7 +49,7 @@ export default function ContributorsPage() {
     <div className="landing-root contributors-page-root">
       {/* ===== NAVBAR ===== */}
       <nav className="landing-nav">
-        <div className="landing-nav-left">
+        <Link to="/" className="landing-nav-left text-decoration-none">
           <img src="/icon-dark.svg" height="26" alt="Debugra Logo" />
           <span className="landing-logo">Debugra</span>
           <span
@@ -63,14 +63,14 @@ export default function ContributorsPage() {
           >
             v1.0
           </span>
-        </div>
+        </Link>
         <div className="landing-nav-right desktop-only">
-          <a href="#features" className="landing-nav-link">
+          <Link to="/#features" className="landing-nav-link">
             Features
-          </a>
-          <a href="#languages" className="landing-nav-link">
+          </Link>
+          <Link to="/#languages" className="landing-nav-link">
             Languages
-          </a>
+          </Link>
           <Link to="/contributors" className="landing-nav-link">
             Contributors
           </Link>
@@ -235,41 +235,6 @@ export default function ContributorsPage() {
           </div>
         </div>
       </section>
-
-      {/* ===== FOOTER ===== */}
-      <footer className="landing-footer">
-        <div className="d-flex align-items-center gap-2 justify-content-center mb-1">
-          <img src="/icon-dark.svg" height="14" alt="Debugra Logo" />
-
-          <span
-            style={{
-              fontWeight: 600,
-              color: '#e2e8f0',
-            }}
-          >
-            Debugra
-          </span>
-        </div>
-
-        <p
-          style={{
-            margin: 0,
-            fontSize: '0.72rem',
-            color: '#4a4a6a',
-          }}
-        >
-          Built for Hackathon SVKM 2026 ·{' '}
-          <a
-            href="https://github.com/vijaypatil477/Debugra"
-            style={{
-              color: '#6a6a8a',
-              textDecoration: 'none',
-            }}
-          >
-            GitHub
-          </a>
-        </p>
-      </footer>
       {showLogin && (
         <AuthModal
           initialMode={isSignUp ? 'signup' : 'login'}
