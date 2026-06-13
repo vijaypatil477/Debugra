@@ -14,5 +14,5 @@ export { useInlineCompletion } from './useInlineCompletion';
 export { useWelcomeTour } from './useWelcomeTour';
 
 export { useDebounce, useDebouncedCallback } from './useDebounce';
-export { useWelcomeTour } from './useWelcomeTour';
+
 
