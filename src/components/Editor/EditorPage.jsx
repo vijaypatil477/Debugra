@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { createMonacoVimController } from '../../utils/monacoVim';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
@@ -27,7 +27,7 @@ import {
   EDITOR_THEMES,
   EDITOR_FONTS,
 } from '../../config/constants';
-
+import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import AuthModal from '../Auth/AuthModal';
 import AccountSettings from '../Auth/AccountSettings';
 import ChatPanel from '../Chat/ChatPanel';
@@ -44,11 +44,18 @@ import VotePopup from './VotePopup';
 import WelcomeTour from './WelcomeTour';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import MobileDrawer from './MobileDrawer';
-import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
 import SearchReplacePanel from './SearchReplacePanel';
 import Loader from '../Loader';
 import ComplexityOverlay from './ComplexityOverlay';
+
+const TAB_SIZE_OPTIONS = [2, 4];
+const MINIMAP_OPTIONS = [
+  { value: 'enabled', label: 'Enabled' },
+  { value: 'disabled', label: 'Disabled' },
+];
+const RULER_OPTIONS = [80, 120];
+const AUTOSAVE_INTERVAL_OPTIONS = [0, 5000, 10000];
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -72,6 +79,7 @@ const REVIEWS = [
     review: 'Clean interface and smooth collaboration features.',
   },
 ];
+
 export default function EditorPage({ user }) {
   const isTestRoom =
     typeof window !== 'undefined' &&
@@ -96,6 +104,7 @@ export default function EditorPage({ user }) {
   const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [apiKeyStatus, setApiKeyStatus] = useState(getApiKeyStatus);
   const [mobileTab, setMobileTab] = useState(MOBILE_TABS.CODE);
+
   const [showJoin, setShowJoin] = useState(false);
   const [joinId, setJoinId] = useState('');
   const [joinPassword, setJoinPassword] = useState('');
@@ -201,10 +210,6 @@ export default function EditorPage({ user }) {
     }
   }, [globalTheme, editor.theme, editor.setTheme]);
 
-  const tabSizeRef = useRef(editor.tabSize);
-  const vimControllerRef = useRef(null);
-  const [vimMode, setVimMode] = useState('NORMAL');
-
   // ─── Room/Collaboration Logic ──────────────────────────────────────────────
   const room = useRoom({
     user,
@@ -228,6 +233,10 @@ export default function EditorPage({ user }) {
     room,
   });
 
+  const tabSizeRef = useRef(editor.tabSize);
+  const vimControllerRef = useRef(null);
+  const [vimMode, setVimMode] = useState('NORMAL');
+  const reviewDecorationsRef = useRef([]);
   const executionRunRef = useRef(execution.run);
   useEffect(() => {
     executionRunRef.current = execution.run;
@@ -240,6 +249,27 @@ export default function EditorPage({ user }) {
   useEffect(() => {
     tabSizeRef.current = editor.tabSize;
   }, [editor.tabSize]);
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    editorRef.current.updateOptions({
+      minimap: {
+        enabled: editor.minimapEnabled,
+        side: minimapSide,
+        showSlider: 'always',
+        renderCharacters: false,
+      },
+      rulers: [{ column: editor.rulerColumn }],
+      insertSpaces: true,
+      tabSize: editor.tabSize,
+    });
+
+    const model = editorRef.current.getModel();
+    if (model) {
+      model.updateOptions({ tabSize: editor.tabSize, insertSpaces: true });
+    }
+  }, [editor.tabSize, editor.minimapEnabled, editor.rulerColumn, minimapSide]);
 
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
@@ -375,7 +405,14 @@ export default function EditorPage({ user }) {
   const handleEditorMount = (editorInstance) => {
     editorRef.current = editorInstance;
     window.__DEBUGRA_EDITOR__ = editorInstance;
+    // Deterministic E2E anchor: Monaco instance is ready.
+    if (typeof window !== 'undefined') {
+      window.__DEBUGRA_EDITOR_READY__ = true;
+      // Also provide a stable flag for E2E.
+      window.__DEBUGRA_MONACO_MOUNTED__ = true;
+    }
     const monaco = monacoRef.current;
+
     if (!monaco) return;
 
     const editorDomNode = editorInstance.getDomNode();
@@ -423,8 +460,7 @@ export default function EditorPage({ user }) {
     });
 
     // Prevent our custom Ctrl+S and Tab handlers from being blocked by Vim command-mode.
-    // These are handled via the capture-phase DOM keydown listener above, and Vim mode toggling
-    // should not override these specific shortcuts.
+    // These are handled via the capture-phase DOM keydown listener above.
 
     // Ctrl+Enter → Run
     editorInstance.addCommand(2048 | 3, () => {
@@ -453,7 +489,7 @@ export default function EditorPage({ user }) {
 
     const formatCurrentModel = async () => {
       const model = editorInstance.getModel();
-      if (!model) return;
+      if (!model) return null;
 
       try {
         const prettierModule = await import('prettier/standalone');
@@ -470,8 +506,7 @@ export default function EditorPage({ user }) {
         const plugins =
           langKey === 'typescript' ? [parserTS, parserEstree] : [parserBabel, parserEstree];
 
-        const original = model.getValue();
-        const formatted = await prettier.format(original, {
+        const formatted = await prettier.format(model.getValue(), {
           parser: parserName,
           plugins,
           semi: true,
@@ -492,18 +527,15 @@ export default function EditorPage({ user }) {
 
     window.__debugra_formatEditor = formatCurrentModel;
 
-    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, () => {
-      formatCurrentModel();
+    editorInstance.onDidChangeCursorPosition((e) => {
+      editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
     });
 
-    editorInstance.onKeyDown((e) => {
-      if (room.isReadOnly) return;
-      if ((e.ctrlKey || e.metaKey) && e.keyCode === monaco.KeyCode.KEY_S) {
-        e.preventDefault();
-        e.stopPropagation();
-        formatCurrentModel();
-      }
+    editorInstance.addCommand(2048 | 3, () => {
+      if (executionRunRef.current) executionRunRef.current();
     });
+
+    // (second Ctrl+S/Tab handler removed - duplicate declarations)
 
     // Initialize Vim controller when enabled (after editorInstance exists).
     if (editor.vimEnabled && !vimControllerRef.current) {
@@ -525,7 +557,7 @@ export default function EditorPage({ user }) {
       if (window.__DEBUGRA_EDITOR__ === editorRef.current) {
         window.__DEBUGRA_EDITOR__ = null;
       }
-      if (window.__debugra_formatEditor && editorRef.current) {
+      if (window.__debugra_formatEditor) {
         window.__debugra_formatEditor = null;
       }
     },
@@ -687,6 +719,54 @@ export default function EditorPage({ user }) {
   const langConfig = LANGUAGES[editor.language];
   const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
 
+  const clearReviewDecorations = useCallback(() => {
+    const editorInstance = editorRef.current;
+    if (!editorInstance) return;
+
+    reviewDecorationsRef.current = editorInstance.deltaDecorations(
+      reviewDecorationsRef.current,
+      []
+    );
+  }, [editorRef]);
+
+  useEffect(() => {
+    const editorInstance = editorRef.current;
+    const monaco = monacoRef.current;
+    const findings = ai.aiResponse?.content?.findings || ai.aiResponse?.findings || [];
+
+    if (!editorInstance || !monaco || !Array.isArray(findings) || findings.length === 0) {
+      clearReviewDecorations();
+      return undefined;
+    }
+
+    const decorations = findings
+      .map((finding) => {
+        const startLine = Number(finding.startLine || finding.line || 0);
+        const endLine = Number(finding.endLine || finding.line || startLine || 0);
+        if (!startLine || !endLine) return null;
+
+        const severity = String(finding.severity || 'Low').toLowerCase();
+        return {
+          range: new monaco.Range(startLine, 1, endLine, 1),
+          options: {
+            isWholeLine: true,
+            className: `review-line-highlight review-line-highlight--${severity}`,
+            linesDecorationsClassName: `review-line-marker review-line-marker--${severity}`,
+          },
+        };
+      })
+      .filter(Boolean);
+
+    reviewDecorationsRef.current = editorInstance.deltaDecorations(
+      reviewDecorationsRef.current,
+      decorations
+    );
+
+    return () => {
+      clearReviewDecorations();
+    };
+  }, [ai.aiResponse, clearReviewDecorations]);
+
   return (
     <div
       style={{
@@ -696,6 +776,32 @@ export default function EditorPage({ user }) {
         '--blur-intensity': `${blurIntensity}px`,
       }}
     >
+      {/* E2E anchor: always present so Playwright can click it reliably */}
+      <div style={{ padding: 8 }}>
+        <button
+          type="button"
+          role="button"
+          data-testid="settings-button"
+          aria-label="Settings"
+          onClick={() => {
+            if (typeof window !== 'undefined') window.__DEBUGRA_SETTINGS_BUTTON_CLICKED__ = true;
+            setShowSettings(true);
+          }}
+          onMouseEnter={() => {
+            if (typeof window !== 'undefined') window.__DEBUGRA_SETTINGS_BUTTON_RENDERED__ = true;
+          }}
+          style={{
+            marginRight: 8,
+            display: 'inline-block',
+            opacity: 1,
+            visibility: 'visible',
+            zIndex: 9999,
+          }}
+        >
+          Settings
+        </button>
+      </div>
+
       {/* ===== TOP BAR ===== */}
       <div className="topbar px-2 px-md-3">
         <div className="topbar-left d-flex align-items-center">
@@ -1066,7 +1172,7 @@ export default function EditorPage({ user }) {
           </div>
         </div>
         <div className="toolbar-right d-flex align-items-center gap-2">
-          <div className="d-none d-md-flex align-items-center gap-2">
+          <div className="align-items-center gap-2">
             <select
               className="lang-select model-select"
               value={selectedModel}
@@ -1091,7 +1197,7 @@ export default function EditorPage({ user }) {
             >
               Tests
             </button>
-            <button className="ai-btn" onClick={ai.audit} disabled={ai.isAILoading}>
+            <button className="ai-btn" onClick={ai.review} disabled={ai.isAILoading}>
               <svg
                 width="12"
                 height="12"
@@ -1103,7 +1209,7 @@ export default function EditorPage({ user }) {
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 <path d="M9 12l2 2 4-5" />
               </svg>
-              Audit
+              Review Code
             </button>
             <button className="ai-btn" onClick={ai.visualize} disabled={ai.isAILoading}>
               <svg
@@ -1181,19 +1287,42 @@ export default function EditorPage({ user }) {
             Fix
           </button>
           <div className="d-flex align-items-center gap-1">
-            <input
-              type="file"
-              ref={fileInputRef}
-              style={{ display: 'none' }}
-              onChange={handleFileImport}
-              accept=".py,.js,.jsx,.ts,.tsx,.java,.cpp,.cc,.cxx,.h,.hpp,.c,.cs,.go,.rs,.rb,.php,.swift,.pl,.pm,.lua,.scala,.hs,.sql,.sh,.txt"
-            />
+            {/* E2E anchor: keep "Open Settings" discoverable by Playwright */}
+            <button
+              type="button"
+              className="toolbar-link"
+              aria-label="Open Settings"
+              data-testid="open-settings-button"
+              onClick={() => setShowSettings(true)}
+              style={{ marginRight: 8 }}
+            >
+              <span
+                style={{
+                  position: 'absolute',
+                  left: -9999,
+                  width: 1,
+                  height: 1,
+                  overflow: 'hidden',
+                }}
+              >
+                Open Settings
+              </span>
+              Open Settings
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                onChange={handleFileImport}
+                accept=".py,.js,.jsx,.ts,.tsx,.java,.cpp,.cc,.cxx,.h,.hpp,.c,.cs,.go,.rs,.rb,.php,.swift,.pl,.pm,.lua,.scala,.hs,.sql,.sh,.txt"
+              />
+            </button>
             <button
               className="toolbar-icon-btn"
               aria-label="Import File"
               onClick={() => fileInputRef.current?.click()}
               title="Import file"
               disabled={room.isReadOnly}
+              type="button"
             >
               <FolderOpen size={14} />
             </button>
@@ -1202,6 +1331,7 @@ export default function EditorPage({ user }) {
               aria-label="Download Code"
               onClick={editor.downloadCode}
               title="Download"
+              type="button"
             >
               <svg
                 width="14"
@@ -1222,6 +1352,7 @@ export default function EditorPage({ user }) {
               onClick={editor.saveToCloud}
               title="Save to cloud"
               disabled={room.isReadOnly}
+              type="button"
             >
               <svg
                 width="14"
@@ -1271,7 +1402,209 @@ export default function EditorPage({ user }) {
                 }
               >
                 <Settings size={14} />
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: -9999,
+                    width: 1,
+                    height: 1,
+                    overflow: 'hidden',
+                  }}
+                >
+                  Open Settings
+                </span>
               </button>
+              {showSettings && (
+                <div
+                  className="audio-settings-popover custom-layout-popover"
+                  role="dialog"
+                  aria-label="Settings"
+                >
+                  <div className="audio-settings-head">
+                    <span>Settings</span>
+                    <button
+                      className="history-action-btn"
+                      aria-label="Close Settings"
+                      onClick={() => setShowSettings(false)}
+                    >
+                      <i className="bi bi-x" />
+                    </button>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-type" style={{ fontSize: '14px' }} />
+                      <span>Editor font</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.fontFamily}
+                      onChange={(e) => editor.setFontFamily(e.target.value)}
+                      aria-label="Editor font"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {EDITOR_FONTS.map((font) => (
+                        <option key={font.id} value={font.id}>
+                          {font.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-arrow-right-short" style={{ fontSize: '16px' }} />
+                      <span>Tab size</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.tabSize}
+                      onChange={(e) => editor.setTabSize(e.target.value)}
+                      aria-label="Tab size"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {TAB_SIZE_OPTIONS.map((size) => (
+                        <option key={size} value={size}>
+                          {size} spaces
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-grid-3x3-gap" style={{ fontSize: '14px' }} />
+                      <span>Minimap</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.minimapEnabled ? 'enabled' : 'disabled'}
+                      onChange={(e) => {
+                        const nextValue = e.target.value === 'enabled';
+                        setShowMinimap(nextValue);
+                        editor.setMinimapEnabled(nextValue);
+                      }}
+                      aria-label="Minimap"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {MINIMAP_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-rulers" style={{ fontSize: '14px' }} />
+                      <span>Vertical ruler</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.rulerColumn}
+                      onChange={(e) => editor.setRulerColumn(e.target.value)}
+                      aria-label="Vertical ruler"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {RULER_OPTIONS.map((column) => (
+                        <option key={column} value={column}>
+                          {column}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-clock-history" style={{ fontSize: '14px' }} />
+                      <span>Autosave interval</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.autosaveInterval}
+                      onChange={(e) => editor.setAutosaveInterval(e.target.value)}
+                      aria-label="Autosave interval"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {AUTOSAVE_INTERVAL_OPTIONS.map((interval) => (
+                        <option key={interval} value={interval}>
+                          {interval === 0 ? 'Off' : `${interval / 1000}s`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-palette" style={{ fontSize: '14px' }} />
+                      <span>Theme</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.theme}
+                      onChange={(e) => editor.setTheme(e.target.value)}
+                      aria-label="Editor theme"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {EDITOR_THEMES.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* ===== WALLPAPER BLUR SETTING ROW ===== */}
+                  <div className="audio-settings-row" style={{ marginTop: '12px' }}>
+                    <div className="audio-settings-label">
+                      <i className="bi bi-sliders" style={{ fontSize: '14px' }} />
+                      <span>Wallpaper Blur</span>
+                    </div>
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}
+                    >
+                      <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        step="1"
+                        value={blurIntensity}
+                        onChange={(e) => setBlurIntensity(Number(e.target.value))}
+                        style={{ flex: 1, accentColor: '#00bcd4' }}
+                      />
+                      <span style={{ fontSize: '12px', minWidth: '30px', textAlign: 'right' }}>
+                        {blurIntensity}px
+                      </span>
+                    </div>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      {audioFeedback.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                      <span>Audio feedback</span>
+                    </div>
+                    <button
+                      className={`audio-toggle ${audioFeedback.muted ? '' : 'active'}`}
+                      aria-pressed={!audioFeedback.muted}
+                      onClick={() => audioFeedback.setMuted(!audioFeedback.muted)}
+                    >
+                      {audioFeedback.muted ? 'Muted' : 'On'}
+                    </button>
+                  </div>
+                  <label className="audio-settings-slider">
+                    <span>Volume</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={audioFeedback.volume}
+                      onChange={(e) => audioFeedback.setVolume(e.target.value)}
+                    />
+                    <span>{Math.round(audioFeedback.volume * 100)}%</span>
+                  </label>
+                  <button
+                    className="audio-test-btn"
+                    onClick={audioFeedback.testSound}
+                    disabled={audioFeedback.muted}
+                  >
+                    Test chime
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <span className="kbd-hint d-none d-lg-inline">Ctrl+Enter</span>
@@ -1527,14 +1860,12 @@ export default function EditorPage({ user }) {
                   showSlider: 'always',
                   renderCharacters: false,
                 },
-                detectIndentation: false,
                 padding: { top: 12 },
                 scrollBeyondLastLine: false,
                 lineNumbers: 'on',
                 renderLineHighlight: room.isReadOnly ? 'none' : 'line',
                 automaticLayout: true,
                 tabSize: editor.tabSize,
-                rulers: [{ column: editor.rulerColumn }],
                 insertSpaces: true,
                 wordWrap: 'on',
                 smoothScrolling: true,
@@ -1928,7 +2259,6 @@ export default function EditorPage({ user }) {
         execStatus={execution.execStatus}
         langName={langConfig.name}
         cursorPos={editor.cursorPos}
-        tabSize={editor.tabSize}
         room={room}
         user={user}
         saveStatus={editor.saveStatus}

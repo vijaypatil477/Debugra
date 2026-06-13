@@ -23,7 +23,8 @@ async function chatCompletion(systemPrompt, userPrompt, apiKey = '', model = DEF
       { role: 'user', content: userPrompt },
     ],
     temperature: 0.2,
-    max_tokens: 2000,response_format: { type: 'json_object' },
+    max_tokens: 2000,
+    response_format: { type: 'json_object' },
   });
 
   const rawContent = response.choices[0].message.content;
@@ -120,13 +121,10 @@ async function chatCompletionText(systemPrompt, userPrompt, apiKey = '', model =
   const aiMessage = response.choices[0].message.content;
   const tokenUsage = response.usage;
 
-  console.log("Metadata caught (Text): ", tokenUsage);
+  console.log('Metadata caught (Text): ', tokenUsage);
 
   return { content: aiMessage, usage: tokenUsage };
 }
-
-
-
 
 // 1. Error Explanation
 async function explainError(code, error, language, apiKey = '', model = DEFAULT_MODEL) {
@@ -199,7 +197,7 @@ ${error || 'No specific error, but optimize and fix any issues.'}
 }
 
 // 3. Logic Explanation
-async function explainLogicAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+async function explainLogicAI(code, language, apiKey = '', model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are a CS tutor. Explain code step-by-step. Always respond in valid JSON.`,
     `Explain this <language>${language}</language> code step-by-step:
@@ -221,7 +219,7 @@ Respond in JSON:
 }
 
 // 4. Test Case Generation
-async function generateTestsAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+async function generateTestsAI(code, language, apiKey = '', model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are a QA engineer. Generate test cases. Always respond in valid JSON.`,
     `Generate test cases for this <language>${language}</language> function:
@@ -245,7 +243,7 @@ Respond in JSON:
 }
 
 // 5. Security and refactoring audit
-async function auditCodeAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+async function auditCodeAI(code, language, apiKey = '', model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are a senior application security reviewer and refactoring coach. Audit code for exploitable security risks, reliability hazards, memory/resource leaks, and unsafe architecture. Always respond in valid JSON.`,
     `Audit this <language>${language}</language> code:
@@ -282,8 +280,48 @@ Rules:
   );
 }
 
+// 5. Code review
+async function reviewCodeAI(code, language, apiKey = '') {
+  return chatCompletion(
+    `You are a senior code reviewer. Review code for performance, readability, and security. Always respond in valid JSON.`,
+    'Review this ' +
+      language +
+      ' code:\n\n' +
+      code +
+      '\n\nRespond in this EXACT JSON format:\n' +
+      '{\n' +
+      '  "summary": "one-line review summary",\n' +
+      '  "riskScore": 0,\n' +
+      '  "findings": [\n' +
+      '    {\n' +
+      '      "category": "Performance",\n' +
+      '      "severity": "High",\n' +
+      '      "title": "short finding title",\n' +
+      '      "explanation": "why this matters in 1-2 sentences",\n' +
+      '      "evidence": "specific code pattern or line reference if obvious",\n' +
+      '      "suggestion": "specific mitigation",\n' +
+      '      "refactor": "cleaner architecture or safer pattern",\n' +
+      '      "line": 12,\n' +
+      '      "startLine": 12,\n' +
+      '      "endLine": 18\n' +
+      '    }\n' +
+      '  ],\n' +
+      '  "remediationSteps": ["highest priority next step", "second priority next step"]\n' +
+      '}\n\n' +
+      'Rules:\n' +
+      '- Use category values Performance, Readability, or Security.\n' +
+      '- Use severity values High, Medium, or Low.\n' +
+      '- Prefer concrete, actionable guidance and explain why each issue matters.\n' +
+      '- Use riskScore as an integer from 0 to 100.\n' +
+      '- Include an empty findings array when no meaningful risk is found.\n' +
+      '- Do not invent line numbers when they are not obvious from the snippet.\n' +
+      '- Prefer concrete secure-coding guidance over generic advice.',
+    apiKey
+  );
+}
+
 // 6. Execution Visualization
-async function visualizeAI(code, language, input = '', apiKey = '',model = DEFAULT_MODEL) {
+async function visualizeAI(code, language, input = '', apiKey = '', model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are a code tracer. Trace through code step by step showing variable states. Always respond in valid JSON.`,
     `Trace through this <language>${language}</language> code step by step. Show variable states after each line.
@@ -292,9 +330,13 @@ async function visualizeAI(code, language, input = '', apiKey = '',model = DEFAU
 ${code}
 </code>
 
-${input ? `<input>
+${
+  input
+    ? `<input>
 ${input}
-</input>` : ''}
+</input>`
+    : ''
+}
 
 Respond in JSON:
 {
@@ -309,7 +351,7 @@ Respond in JSON:
 }
 
 // 7. AI Code Explainer — explains a selected code snippet in plain language
-async function explainCodeSnippetAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+async function explainCodeSnippetAI(code, language, apiKey = '', model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are an expert programming tutor. When a user highlights a snippet of code, explain what it does in simple, beginner-friendly language. Always respond in valid JSON.`,
     `Explain this <language>${language}</language> code snippet in simple terms:
@@ -331,7 +373,14 @@ Respond in this EXACT JSON format:
 }
 
 // 8. AI Code Explainer — follow-up Q&A on previously explained code
-async function askFollowUpAI(code, language, question, previousExplanation, apiKey = '',model = DEFAULT_MODEL) {
+async function askFollowUpAI(
+  code,
+  language,
+  question,
+  previousExplanation,
+  apiKey = '',
+  model = DEFAULT_MODEL
+) {
   return chatCompletion(
     `You are an expert programming tutor engaged in an interactive Q&A session. The user previously highlighted code and received an explanation. Now they have a follow-up question. Answer clearly and concisely. Always respond in valid JSON.`,
     `The user is asking about this <language>${language}</language> code:
@@ -401,6 +450,7 @@ module.exports = {
   fixCodeAI,
   explainLogicAI,
   generateTestsAI,
+  reviewCodeAI,
   auditCodeAI,
   visualizeAI,
   explainCodeSnippetAI,

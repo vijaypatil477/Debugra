@@ -163,14 +163,15 @@ export default function AIResponsePanel({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     if (!dropdownOpen) return;
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
       }
     };
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [dropdownOpen]);
@@ -191,7 +192,7 @@ export default function AIResponsePanel({
       <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-2)' }}>
         <p style={{ fontSize: '0.85rem' }}>AI Assistant</p>
         <p style={{ fontSize: '0.72rem', marginTop: '8px' }}>
-          Use toolbar: Tests, Visualize, Explain, Fix
+          Use toolbar: Tests, Visualize, Explain, Fix, Review Code
         </p>
       </div>
     );
@@ -217,18 +218,67 @@ export default function AIResponsePanel({
     setDropdownOpen(false);
   };
 
+  const renderFindingCard = (finding, index, keyPrefix = '') => {
+    const severity = finding.severity || 'Low';
+    const style = severityStyles[severity] || severityStyles.Low;
+
+    return (
+      <div
+        key={`${keyPrefix}${severity}-${finding.title || index}`}
+        className="ai-card"
+        style={{
+          borderColor: style.border,
+          background: style.bg,
+          borderLeftColor: style.color,
+          borderLeftWidth: '3px',
+        }}
+      >
+        <div
+          className="ai-card-label d-flex align-items-center justify-content-between"
+          style={{ color: style.color }}
+        >
+          <span>{finding.title || `Finding ${index + 1}`}</span>
+          <span
+            style={{
+              border: `1px solid ${style.border}`,
+              borderRadius: '999px',
+              padding: '1px 7px',
+              fontSize: '0.62rem',
+            }}
+          >
+            {severity}
+          </span>
+        </div>
+        {finding.explanation && <div className="ai-card-content">{finding.explanation}</div>}
+        {finding.evidence && (
+          <div className="ai-card-content" style={{ marginTop: '6px' }}>
+            <strong style={{ color: 'var(--text-0)' }}>Evidence:</strong> {finding.evidence}
+          </div>
+        )}
+        {finding.suggestion && (
+          <div className="ai-card-content" style={{ marginTop: '6px' }}>
+            <strong style={{ color: 'var(--text-0)' }}>Fix:</strong> {finding.suggestion}
+          </div>
+        )}
+        {finding.refactor && (
+          <div className="ai-card-content" style={{ marginTop: '6px' }}>
+            <strong style={{ color: 'var(--text-0)' }}>Refactor:</strong> {finding.refactor}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div>
-      {/* ─── Download Button ─────────────────────────────────────────────── */}
       <div className="ai-download-wrap" ref={dropdownRef}>
         <button
           className="ai-download-btn"
-          onClick={() => setDropdownOpen((o) => !o)}
+          onClick={() => setDropdownOpen((open) => !open)}
           title="Download AI report"
           aria-label="Download AI report"
           aria-expanded={dropdownOpen}
         >
-          {/* Download arrow icon */}
           <svg
             width="12"
             height="12"
@@ -309,7 +359,6 @@ export default function AIResponsePanel({
         )}
       </div>
 
-      {/* ─── Response Cards ───────────────────────────────────────────────── */}
       {response.issue && (
         <div className="ai-card error">
           <div className="ai-card-label">Issue</div>
@@ -373,17 +422,18 @@ export default function AIResponsePanel({
           >
             ⟡ Execution Trace ({response.steps.length} steps)
           </div>
-          {response.steps.map((step, i) => {
+          {response.steps.map((step, index) => {
             const isString = typeof step === 'string';
-            const desc = isString
+            const description = isString
               ? step
               : step.description || step.explanation || step.action || '';
             const line = isString ? null : step.line;
             const stepCode = isString ? null : step.code;
-            const vars = isString ? null : step.variables;
+            const variables = isString ? null : step.variables;
+
             return (
               <div
-                key={i}
+                key={index}
                 className="ai-card"
                 style={{
                   padding: '8px 10px',
@@ -408,7 +458,7 @@ export default function AIResponsePanel({
                       flexShrink: 0,
                     }}
                   >
-                    {i + 1}
+                    {index + 1}
                   </span>
                   {line && (
                     <span
@@ -438,12 +488,12 @@ export default function AIResponsePanel({
                     {stepCode}
                   </pre>
                 )}
-                {desc && (
+                {description && (
                   <div className="ai-card-content" style={{ fontSize: '0.72rem' }}>
-                    {desc}
+                    {description}
                   </div>
                 )}
-                {vars && (
+                {variables && (
                   <div
                     style={{
                       marginTop: '4px',
@@ -463,10 +513,10 @@ export default function AIResponsePanel({
                         fontFamily: "'JetBrains Mono', monospace",
                       }}
                     >
-                      {typeof vars === 'string'
-                        ? vars
-                        : Object.entries(vars)
-                            .map(([k, v]) => `${k} = ${JSON.stringify(v)}`)
+                      {typeof variables === 'string'
+                        ? variables
+                        : Object.entries(variables)
+                            .map(([key, value]) => `${key} = ${JSON.stringify(value)}`)
                             .join(', ')}
                     </code>
                   </div>
@@ -485,50 +535,34 @@ export default function AIResponsePanel({
             className="ai-card-label"
             style={{ color: 'var(--accent)', marginBottom: '8px', fontSize: '0.7rem' }}
           >
-            Security Audit
+            {hasCategorizedFindings ? 'Code Review' : 'Security Audit'}
             {typeof response.riskScore === 'number' && (
               <span style={{ color: 'var(--text-2)', marginLeft: '8px', fontWeight: 500 }}>
                 Risk {response.riskScore}/100
               </span>
             )}
           </div>
-          {auditFindings.length === 0 ? (
+          {findings.length === 0 ? (
             <div className="ai-card success">
               <div className="ai-card-label">No Findings</div>
               <div className="ai-card-content">
-                No meaningful vulnerabilities were detected in this snippet.
+                {hasCategorizedFindings
+                  ? 'No meaningful review findings were detected in this snippet.'
+                  : 'No meaningful vulnerabilities were detected in this snippet.'}
               </div>
             </div>
-          ) : (
-            auditFindings.map((finding, i) => {
-              const severity = finding.severity || 'Low';
-              const style = severityStyles[severity] || severityStyles.Low;
+          ) : hasCategorizedFindings ? (
+            reviewCategories.map((category) => {
+              const categoryFindings = groupedFindings?.[category] || [];
+              if (!categoryFindings.length) return null;
+
               return (
-                <div
-                  key={`${severity}-${finding.title || i}`}
-                  className="ai-card"
-                  style={{
-                    borderColor: style.border,
-                    background: style.bg,
-                    borderLeftColor: style.color,
-                    borderLeftWidth: '3px',
-                  }}
-                >
+                <div key={category} style={{ marginBottom: '12px' }}>
                   <div
-                    className="ai-card-label d-flex align-items-center justify-content-between"
-                    style={{ color: style.color }}
+                    className="ai-card-label"
+                    style={{ color: 'var(--accent)', marginBottom: '6px', fontSize: '0.68rem' }}
                   >
-                    <span>{finding.title || `Finding ${i + 1}`}</span>
-                    <span
-                      style={{
-                        border: `1px solid ${style.border}`,
-                        borderRadius: '999px',
-                        padding: '1px 7px',
-                        fontSize: '0.62rem',
-                      }}
-                    >
-                      {severity}
-                    </span>
+                    {category}
                   </div>
                   {finding.explanation && (
                     <div className="ai-card-content">{finding.explanation}</div>
@@ -553,17 +587,24 @@ export default function AIResponsePanel({
                 </div>
               );
             })
+          ) : (
+            findings.map((finding, index) => renderFindingCard(finding, index))
           )}
         </div>
       )}
+
       {Array.isArray(response.remediationSteps) && response.remediationSteps.length > 0 && (
         <div className="ai-card" style={{ borderColor: 'rgba(86,156,214,0.3)' }}>
           <div className="ai-card-label" style={{ color: 'var(--accent)' }}>
             Remediation Steps
           </div>
           <ol style={{ margin: '6px 0 0 18px', padding: 0 }}>
-            {response.remediationSteps.map((step, i) => (
-              <li key={`${step}-${i}`} className="ai-card-content" style={{ marginBottom: '4px' }}>
+            {response.remediationSteps.map((step, index) => (
+              <li
+                key={`${step}-${index}`}
+                className="ai-card-content"
+                style={{ marginBottom: '4px' }}
+              >
                 {step}
               </li>
             ))}
@@ -621,9 +662,8 @@ export default function AIResponsePanel({
             {usage.completion_time
               ? Math.round(usage.completion_tokens / usage.completion_time)
               : 0}{' '}
-            T/s
+            tok/s
           </span>
-          <span>💰 Cost: ${(usage.total_tokens * 0.0000005).toFixed(6)}</span>
         </div>
       )}
     </div>

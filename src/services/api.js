@@ -88,8 +88,13 @@ export const aiGenerateTests = async (code, language, model = '') => {
   return data;
 };
 
-export const aiAuditCode = async (code, language, model = '') => {
-  const { data } = await api.post('/api/ai/audit-code', { code, language, model });
+export const aiReviewCode = async (code, language) => {
+  const { data } = await api.post('/api/ai/review-code', { code, language });
+  return data;
+};
+
+export const aiAuditCode = async (code, language) => {
+  const { data } = await api.post('/api/ai/audit-code', { code, language });
   return data;
 };
 

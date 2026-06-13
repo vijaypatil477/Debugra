@@ -10,7 +10,7 @@ function retryAfterSeconds(req) {
 function createExecuteLimiter() {
   return rateLimit({
     windowMs: 60 * 1000,
-    limit: 10,
+    max: 10,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     handler(req, res) {
@@ -27,7 +27,7 @@ function createExecuteLimiter() {
 function createAiLimiter() {
   return rateLimit({
     windowMs: 5 * 60 * 1000,
-    limit: 5,
+    max: 5,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     handler(req, res) {

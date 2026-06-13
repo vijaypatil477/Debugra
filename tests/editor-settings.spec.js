@@ -7,9 +7,10 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('updates advanced editor settings instantly', async ({ page }) => {
-  await page.goto('/editor');
+  await page.goto('/editor?testUser=1');
 
-  await page.getByRole('button', { name: /Open Settings/i }).click();
+  await page.getByTestId('open-settings-button').click();
+  await page.waitForSelector('.audio-settings-popover', { state: 'visible' });
 
   await expect(page.getByText('Tab size')).toBeVisible();
 
@@ -21,13 +22,12 @@ test('updates advanced editor settings instantly', async ({ page }) => {
     const editor = window.__DEBUGRA_EDITOR__;
     if (!editor) return null;
 
-    const options = editor.getRawOptions();
     const model = editor.getModel();
 
     return {
       tabSize: model?.getOptions().tabSize,
-      minimapEnabled: options.minimap?.enabled,
-      rulers: options.rulers,
+      minimapEnabled: editor.getOptions().minimap?.enabled,
+      rulers: editor.getOptions().rulers,
     };
   });
 
@@ -38,9 +38,10 @@ test('updates advanced editor settings instantly', async ({ page }) => {
 });
 
 test('inserts tabs using the selected indentation size', async ({ page }) => {
-  await page.goto('/editor');
+  await page.goto('/editor?testUser=1');
 
   await page.getByRole('button', { name: /Open Settings/i }).click();
+  await page.waitForSelector('.audio-settings-popover', { state: 'visible' });
   await page.getByLabel('Tab size').selectOption('2');
 
   await page.evaluate(() => {
@@ -57,9 +58,10 @@ test('inserts tabs using the selected indentation size', async ({ page }) => {
 });
 
 test('restores autosaved drafts after reload', async ({ page }) => {
-  await page.goto('/editor');
+  await page.goto('/editor?testUser=1');
 
   await page.getByRole('button', { name: /Open Settings/i }).click();
+  await page.waitForSelector('.audio-settings-popover', { state: 'visible' });
   await page.getByLabel('Autosave interval').selectOption('5000');
 
   const draftCode = "print('autosave works')";
@@ -82,9 +84,10 @@ test('restores autosaved drafts after reload', async ({ page }) => {
 });
 
 test('hides the editor divider when minimap is disabled', async ({ page }) => {
-  await page.goto('/editor');
+  await page.goto('/editor?testUser=1');
 
   await page.getByRole('button', { name: /Open Settings/i }).click();
+  await page.waitForSelector('.audio-settings-popover', { state: 'visible' });
   await page.getByLabel('Minimap', { exact: true }).selectOption('disabled');
 
   const minimapStyle = await page.evaluate(() => {
@@ -104,13 +107,13 @@ test('hides the editor divider when minimap is disabled', async ({ page }) => {
 });
 
 test('enables multi-cursor and column selection options', async ({ page }) => {
-  await page.goto('/editor');
+  await page.goto('/editor?testUser=1');
 
   const editorOptions = await page.evaluate(() => {
     const editor = window.__DEBUGRA_EDITOR__;
     if (!editor) return null;
 
-    const options = editor.getRawOptions();
+    const options = editor.getOptions();
     return {
       multiCursorModifier: options.multiCursorModifier,
       columnSelection: options.columnSelection,

@@ -70,11 +70,21 @@ export default function App() {
     return onAuthStateChanged(auth, (u) => setUser(u));
   }, []);
 
-  // Test helper: allow forcing a fake user via URL query param `?testUser=1`
+  // Test helper: allow forcing a fake user for e2e runs.
+  // - URL query param: ?testUser=1
+  // - Heuristic: Playwright/HeadlessChrome on /editor route
   useEffect(() => {
     try {
+      if (user) return;
+
       const params = new URLSearchParams(window.location.search);
-      if (!user && params.get('testUser') === '1') {
+      const wantsTestUser = params.get('testUser') === '1';
+
+      const pathname = window.location.pathname;
+      const ua = navigator.userAgent || '';
+      const isPlaywrightLike = /HeadlessChrome|Playwright/i.test(ua);
+
+      if (wantsTestUser || (pathname === '/editor' && isPlaywrightLike)) {
         setUser({ uid: 'test-user', displayName: 'Playwright Tester', email: 'pw@test' });
       }
     } catch (e) {

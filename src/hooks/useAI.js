@@ -13,6 +13,7 @@ import { showRateLimitToast } from '../utils/rateLimitToast';
 import { LANGUAGES } from '../utils/languageConfig';
 import { OUTPUT_TABS } from '../config/constants';
 
+
 /**
  * useAI
  * Encapsulates all Groq AI feature logic: Fix, Explain, Visualize, Tests, Audit.
@@ -67,12 +68,17 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, m
   const explain = useCallback(
     () =>
       withAI(async () => {
-        const sel = editorRef?.current?.getSelection();
-        const selectedCode =
-          sel && !sel.isEmpty() ? editorRef.current.getModel().getValueInRange(sel) : code;
-        return await aiExplainLogic(selectedCode, LANGUAGES[language].name, model);
+        return await aiExplainLogic(getSelectedOrFullCode(), LANGUAGES[language].name);
       }),
-    [withAI, code, language, editorRef, model]
+    [withAI, language, getSelectedOrFullCode]
+  );
+
+  const review = useCallback(
+    () =>
+      withAI(async () => {
+        return await aiReviewCode(getSelectedOrFullCode(), LANGUAGES[language].name);
+      }),
+    [withAI, language, getSelectedOrFullCode]
   );
 
   const visualize = useCallback(
@@ -86,8 +92,8 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, m
   );
 
   const audit = useCallback(
-    () => withAI(() => aiAuditCode(code, LANGUAGES[language].name, model)),
-    [withAI, code, language, model]
+    () => withAI(() => aiAuditCode(getSelectedOrFullCode(), LANGUAGES[language].name)),
+    [withAI, language, getSelectedOrFullCode]
   );
 
   const clearAI = useCallback(() => setAiResponse(null), []);
@@ -132,6 +138,7 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, m
     isAILoading,
     fix,
     explain,
+    review,
     visualize,
     generateTests,
     audit,

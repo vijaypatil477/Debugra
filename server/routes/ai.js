@@ -7,6 +7,7 @@ const {
   fixCodeAI,
   explainLogicAI,
   generateTestsAI,
+  reviewCodeAI,
   auditCodeAI,
   visualizeAI,
   explainCodeSnippetAI,
