@@ -19,7 +19,9 @@ test('format on save', async ({ page, browserName }) => {
     window.__DEBUGRA_EDITOR__?.focus();
   });
   await page.keyboard.press('Control+S');
-  await page.waitForTimeout(800);
+  
+  // Wait for the 'Formatted' toast to appear, ensuring Prettier finishes execution
+  await expect(page.getByText('Formatted')).toBeVisible({ timeout: 6000 });
 
   // Read the editor content from Monaco's model so rendering quirks do not matter.
   const text = await page.evaluate(() => window.__DEBUGRA_EDITOR__?.getValue() ?? '');

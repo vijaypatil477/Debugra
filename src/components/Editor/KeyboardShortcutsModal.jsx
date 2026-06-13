@@ -3,13 +3,29 @@ import { createPortal } from 'react-dom';
 
 const SHORTCUT_GROUPS = [
   {
+    title: 'AI Features',
+    items: [
+      { label: 'AI Fix', combos: [['Ctrl', 'Shift', 'F']] },
+      { label: 'AI Explain', combos: [['Ctrl', 'Shift', 'E']] },
+      { label: 'Generate Tests', combos: [['Ctrl', 'Shift', 'T']] },
+    ],
+  },
+  {
     title: 'Editing',
     items: [
       { label: 'Toggle line comment', combos: [['Ctrl', '/']] },
       { label: 'Trigger autocomplete', combos: [['Ctrl', 'Space']] },
       { label: 'Select next occurrence', combos: [['Ctrl', 'D']] },
-      { label: 'Move line up/down', combos: [['Alt', '↑'], ['Alt', '↓']] },
+      {
+        label: 'Move line up/down',
+        combos: [
+          ['Alt', '↑'],
+          ['Alt', '↓'],
+        ],
+      },
       { label: 'Format document', combos: [['Shift', 'Alt', 'F']] },
+      { label: 'Add cursor', combos: [['Alt', 'Click']] },
+      { label: 'Column selection', combos: [['Shift', 'Alt', 'Drag']] },
     ],
   },
   {
@@ -25,7 +41,6 @@ const SHORTCUT_GROUPS = [
     items: [
       { label: 'Find', combos: [['Ctrl', 'F']] },
       { label: 'Replace', combos: [['Ctrl', 'H']] },
-      { label: 'Find in files', combos: [['Ctrl', 'Shift', 'F']] },
     ],
   },
   {
@@ -298,7 +313,12 @@ const styles = `
 function isEditableElement(element) {
   if (!(element instanceof HTMLElement)) return false;
   const tagName = element.tagName;
-  return element.isContentEditable || tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+  return (
+    element.isContentEditable ||
+    tagName === 'INPUT' ||
+    tagName === 'TEXTAREA' ||
+    tagName === 'SELECT'
+  );
 }
 
 function getFocusableElements(container) {
@@ -335,25 +355,28 @@ export default function KeyboardShortcutsModal() {
   const closeTimerRef = useRef(null);
   const returnFocusRef = useRef(null);
 
-  const openModal = useCallback((focusTarget) => {
-    if (closeTimerRef.current) {
-      window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
+  const openModal = useCallback(
+    (focusTarget) => {
+      if (closeTimerRef.current) {
+        window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
 
-    returnFocusRef.current =
-      focusTarget instanceof HTMLElement &&
-      focusTarget !== document.body &&
-      focusTarget !== document.documentElement
-        ? focusTarget
-        : triggerRef.current;
+      returnFocusRef.current =
+        focusTarget instanceof HTMLElement &&
+        focusTarget !== document.body &&
+        focusTarget !== document.documentElement
+          ? focusTarget
+          : triggerRef.current;
 
-    if (!isRendered) {
-      setIsRendered(true);
-    }
+      if (!isRendered) {
+        setIsRendered(true);
+      }
 
-    setIsOpen(true);
-  }, [isRendered]);
+      setIsOpen(true);
+    },
+    [isRendered]
+  );
 
   const closeModal = useCallback(() => {
     setIsOpen(false);
@@ -391,7 +414,9 @@ export default function KeyboardShortcutsModal() {
       if (isEditableElement(document.activeElement)) return;
 
       event.preventDefault();
-      openModal(document.activeElement instanceof HTMLElement ? document.activeElement : triggerRef.current);
+      openModal(
+        document.activeElement instanceof HTMLElement ? document.activeElement : triggerRef.current
+      );
     };
 
     document.addEventListener('keydown', handleDocumentKeyDown);
@@ -503,7 +528,10 @@ export default function KeyboardShortcutsModal() {
                                 <span className="keyboard-shortcuts-label">{item.label}</span>
                                 <div className="keyboard-shortcuts-combos" aria-label={item.label}>
                                   {item.combos.map((combo, comboIndex) => (
-                                    <span className="keyboard-shortcuts-combo" key={`${item.label}-${comboIndex}`}>
+                                    <span
+                                      className="keyboard-shortcuts-combo"
+                                      key={`${item.label}-${comboIndex}`}
+                                    >
                                       {renderCombo(combo)}
                                       {comboIndex < item.combos.length - 1 ? (
                                         <span className="keyboard-shortcuts-separator">/</span>

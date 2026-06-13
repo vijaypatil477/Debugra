@@ -1,49 +1,71 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Allow users to access their own private collections
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
 
     match /rooms/{roomId} {
-
       // ── READ ─────────────────────────────────────────────────────────────
-      // Allow reading room metadata but NEVER expose password fields.
-      // passwordHash and passwordSalt are server-only — verified via backend.
-      allow read: if
-        // Block unauthenticated reads entirely
-        request.auth != null
-        // Even authenticated users must not receive password hash/salt fields
-        && !('passwordHash' in resource.data)
-        && !('passwordSalt' in resource.data);
-
-      // Public room metadata (name, language, passwordProtected flag) —
-      // readable by anyone who knows the roomId, but WITHOUT hash/salt.
-      // We use a separate /rooms/{roomId}/meta subcollection for public data.
-      allow read: if
-        !('passwordHash' in resource.data)
-        && !('passwordSalt' in resource.data);
+      allow read: if request.auth != null && request.auth.uid in resource.data.participantIds;
 
       // ── WRITE ────────────────────────────────────────────────────────────
-      // Only authenticated users (room owners) can create/update rooms.
-      // passwordHash and passwordSalt can NEVER be written from the client —
-      // they are set exclusively by the trusted backend via Admin SDK.
-      allow create: if
-        request.auth != null
-        && !('passwordHash' in request.resource.data)
-        && !('passwordSalt' in request.resource.data);
+      allow create: if request.auth != null
+                    && !('passwordHash' in request.resource.data)
+                    && !('passwordSalt' in request.resource.data);
 
-      allow update: if
-        request.auth != null
-        && request.auth.uid == resource.data.ownerId
-        && !('passwordHash' in request.resource.data)
-        && !('passwordSalt' in request.resource.data);
+      allow update: if request.auth != null 
+                    && (
+                      // Host/Creator can update anything (except writing password hash/salt from client)
+                      (request.auth.uid == resource.data.createdBy && !('passwordHash' in request.resource.data) && !('passwordSalt' in request.resource.data))
+                      || (
+                        // Editors can update code, language, stdin, etc. but cannot modify administrative fields
+                        (resource.data.roles[request.auth.uid] == 'editor' || resource.data.roles[request.auth.uid] == 'host')
+                        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdBy', 'passwordHash', 'passwordSalt', 'roles'])
+                      )
+                      || (
+                        // Viewers can only join/leave/vote but cannot modify code, language, roles, or settings.
+                        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['code', 'language', 'createdBy', 'passwordHash', 'passwordSalt'])
+                        && (
+                          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['roles'])
+                          || (
+                            request.resource.data.roles[request.auth.uid] == 'viewer'
+                            && request.resource.data.roles.diff(resource.data.roles).affectedKeys().hasOnly([request.auth.uid])
+                          )
+                        )
+                      )
+                    );
 
-      allow delete: if
-        request.auth != null
-        && request.auth.uid == resource.data.ownerId;
+      allow delete: if request.auth != null 
+                    && request.auth.uid == resource.data.createdBy;
+
+      // Subcollection for collaborative voting
+      match /votes/{voteId} {
+        allow read: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.participants;
+        allow create, update: if request.auth != null;
+        allow delete: if request.auth != null 
+                      && (
+                        resource.data.createdBy == request.auth.uid ||
+                        get(/databases/$(database)/documents/rooms/$(roomId)).data.createdBy == request.auth.uid
+                      );
+      }
+
+      // Subcollection for collaborative cursors
+      match /cursors/{userId} {
+        allow read: if request.auth != null
+                    && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.participantIds;
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Subcollection for chat messages
+      match /messages/{messageId} {
+        allow read, create: if request.auth != null
+                           && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.participantIds;
+      }
     }
 
     // ── Public room metadata subcollection ───────────────────────────────────
-    // Stores only: roomName, language, passwordProtected (bool), createdAt.
-    // Safe for unauthenticated reads — no sensitive fields.
     match /rooms/{roomId}/meta/{document} {
       allow read:  if true;
       allow write: if request.auth != null;
@@ -55,3 +77,4 @@ service cloud.firestore {
     }
   }
 }
+

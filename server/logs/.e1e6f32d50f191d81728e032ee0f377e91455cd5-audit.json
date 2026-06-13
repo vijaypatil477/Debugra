@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "/Users/shwetasingh/Debugra/server/logs/.e1e6f32d50f191d81728e032ee0f377e91455cd5-audit.json",
+    "files": [
+        {
+            "date": 1779957151105,
+            "name": "/Users/shwetasingh/Debugra/server/logs/error-2026-05-28.log",
+            "hash": "097140d47b6022e503485361a4fa2bb0370c52f3f86a59d2ca6c11fb47314459"
+        }
+    ],
+    "hashType": "sha256"
+}
