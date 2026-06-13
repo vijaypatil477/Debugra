@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Peer from 'simple-peer';
 import {
   collection,
@@ -34,7 +34,75 @@ export function useWebRTC(roomId, user) {
   const sweepTimeoutRef = useRef(null);
   const signalsUnsubscribeRef = useRef(null);
 
-  const joinCall = async () => {
+  const createPeer = useCallback((userToSignal, callerID, stream) => {
+    const peer = new Peer({
+      initiator: callerID > userToSignal,
+      trickle: false,
+      stream,
+    });
+
+    peer.on('signal', (signal) => {
+      addDoc(collection(db, 'rooms', roomId, 'signals'), {
+        targetUid: userToSignal,
+        senderUid: callerID,
+        signal: JSON.stringify(signal),
+        createdAt: serverTimestamp(),
+      });
+    });
+
+    peer.on('stream', (peerStream) => {
+      setPeers((prev) => [
+        ...prev.filter((p) => p.peerId !== userToSignal),
+        { peerId: userToSignal, stream: peerStream },
+      ]);
+    });
+
+    peer.on('close', () => {
+      if (peersRef.current[userToSignal]) {
+        delete peersRef.current[userToSignal];
+        setPeers((prev) => prev.filter((p) => p.peerId !== userToSignal));
+      }
+    });
+
+    return peer;
+  }, [roomId]);
+
+  const addPeer = useCallback((incomingSignal, callerID, stream) => {
+    const peer = new Peer({
+      initiator: false,
+      trickle: false,
+      stream,
+    });
+
+    peer.on('signal', (signal) => {
+      addDoc(collection(db, 'rooms', roomId, 'signals'), {
+        targetUid: callerID,
+        senderUid: user.uid,
+        signal: JSON.stringify(signal),
+        createdAt: serverTimestamp(),
+      });
+    });
+
+    peer.signal(JSON.parse(incomingSignal.signal));
+
+    peer.on('stream', (peerStream) => {
+      setPeers((prev) => [
+        ...prev.filter((p) => p.peerId !== callerID),
+        { peerId: callerID, stream: peerStream },
+      ]);
+    });
+
+    peer.on('close', () => {
+      if (peersRef.current[callerID]) {
+        delete peersRef.current[callerID];
+        setPeers((prev) => prev.filter((p) => p.peerId !== callerID));
+      }
+    });
+
+    return peer;
+  }, [roomId, user?.uid]);
+
+  const joinCall = useCallback(async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       setStream(mediaStream);
@@ -133,77 +201,9 @@ export function useWebRTC(roomId, user) {
       console.error(err);
       toast.error('Could not access microphone.');
     }
-  };
+  }, [roomId, user, createPeer, addPeer]);
 
-  const createPeer = (userToSignal, callerID, stream) => {
-    const peer = new Peer({
-      initiator: callerID > userToSignal,
-      trickle: false,
-      stream,
-    });
-
-    peer.on('signal', (signal) => {
-      addDoc(collection(db, 'rooms', roomId, 'signals'), {
-        targetUid: userToSignal,
-        senderUid: callerID,
-        signal: JSON.stringify(signal),
-        createdAt: serverTimestamp(),
-      });
-    });
-
-    peer.on('stream', (peerStream) => {
-      setPeers((prev) => [
-        ...prev.filter((p) => p.peerId !== userToSignal),
-        { peerId: userToSignal, stream: peerStream },
-      ]);
-    });
-
-    peer.on('close', () => {
-      if (peersRef.current[userToSignal]) {
-        delete peersRef.current[userToSignal];
-        setPeers((prev) => prev.filter((p) => p.peerId !== userToSignal));
-      }
-    });
-
-    return peer;
-  };
-
-  const addPeer = (incomingSignal, callerID, stream) => {
-    const peer = new Peer({
-      initiator: false,
-      trickle: false,
-      stream,
-    });
-
-    peer.on('signal', (signal) => {
-      addDoc(collection(db, 'rooms', roomId, 'signals'), {
-        targetUid: callerID,
-        senderUid: user.uid,
-        signal: JSON.stringify(signal),
-        createdAt: serverTimestamp(),
-      });
-    });
-
-    peer.signal(JSON.parse(incomingSignal.signal));
-
-    peer.on('stream', (peerStream) => {
-      setPeers((prev) => [
-        ...prev.filter((p) => p.peerId !== callerID),
-        { peerId: callerID, stream: peerStream },
-      ]);
-    });
-
-    peer.on('close', () => {
-      if (peersRef.current[callerID]) {
-        delete peersRef.current[callerID];
-        setPeers((prev) => prev.filter((p) => p.peerId !== callerID));
-      }
-    });
-
-    return peer;
-  };
-
-  const leaveCall = async () => {
+  const leaveCall = useCallback(async () => {
     if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     if (unsubscribeRef.current) unsubscribeRef.current();
     if (signalsUnsubscribeRef.current) {
@@ -230,20 +230,24 @@ export function useWebRTC(roomId, user) {
     setPeers([]);
 
     // Remove self from participants
-    await deleteDoc(doc(db, 'rooms', roomId, 'voice_participants', user.uid));
+    if (user?.uid) {
+      await deleteDoc(doc(db, 'rooms', roomId, 'voice_participants', user.uid));
+    }
 
     // Clean up any stale signals left for this user from disconnected peers
     try {
-      const signalsRef = collection(db, 'rooms', roomId, 'signals');
-      const staleSignals = query(signalsRef, where('targetUid', '==', user.uid));
-      const snapshot = await getDocs(staleSignals);
-      snapshot.docs.forEach((d) => deleteDoc(d.ref));
+      if (user?.uid) {
+        const signalsRef = collection(db, 'rooms', roomId, 'signals');
+        const staleSignals = query(signalsRef, where('targetUid', '==', user.uid));
+        const snapshot = await getDocs(staleSignals);
+        snapshot.docs.forEach((d) => deleteDoc(d.ref));
+      }
     } catch (e) {
       // Best-effort cleanup
     }
-  };
+  }, [roomId, user?.uid]);
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     if (stream) {
       const audioTrack = stream.getAudioTracks()[0];
       if (audioTrack) {
@@ -251,14 +255,14 @@ export function useWebRTC(roomId, user) {
         setIsMuted(!audioTrack.enabled);
       }
     }
-  };
+  }, [stream]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount or room/call change
   useEffect(() => {
     return () => {
       if (inCall) leaveCall();
     };
-  }, [inCall, roomId]);
+  }, [inCall, leaveCall]);
 
   return { inCall, joinCall, leaveCall, isMuted, toggleMute, peers };
 }
