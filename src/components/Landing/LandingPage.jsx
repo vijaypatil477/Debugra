@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider } from '../../services/firebase';
 import toast from 'react-hot-toast';
+import ThemeToggle from '../ThemeToggle';
 import './LandingPage.css';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
@@ -452,6 +453,18 @@ export default function LandingPage() {
             alt="Debugra Logo"
           />
           <span className="landing-logo">Debugra</span>
+          <span
+            style={{
+              fontSize: '0.6rem',
+              color: 'var(--text-2)',
+              fontFamily: 'JetBrains Mono, monospace',
+              marginLeft: '4px',
+              paddingBottom: '1px',
+            }}
+          >
+            v1.0
+          </span>
+        </div>
           <span className="landing-version-badge">v1.0</span>
         </Link>
         <div className="landing-nav-right desktop-only">
@@ -461,6 +474,7 @@ export default function LandingPage() {
           <a href="#languages" className="landing-nav-link">
             Languages
           </a>
+            <ThemeToggle />
           <Link to="/contributors" className="landing-nav-link">
             Contributors
           </Link>
@@ -524,6 +538,21 @@ export default function LandingPage() {
             )}
           </button>
         </div>
+        <button
+          className="mobile-menu-btn mobile-only"
+          aria-label="Toggle mobile menu"
+          aria-expanded={mobileMenu}
+          onClick={() => setMobileMenu(!mobileMenu)}
+          style={{ color: 'var(--text-0)' }}
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
 
         <div className="d-flex align-items-center gap-2 mobile-only">
           <button
@@ -608,6 +637,7 @@ export default function LandingPage() {
           >
             Languages
           </a>
+          <ThemeToggle />
           <Link to="/contributors" className="landing-nav-link">
             Contributors
           </Link>
@@ -715,6 +745,7 @@ export default function LandingPage() {
                   <span className="preview-tag">Python 3</span>
                   <span
                     className="d-none d-sm-inline"
+                    style={{ fontSize: '0.65rem', color: 'var(--text-2)' }}
                     style={{ fontSize: '0.65rem', color: '#9d9d9d' }}
                   >
                     14px
@@ -781,6 +812,8 @@ export default function LandingPage() {
                     }}
                   >
                     <div className="preview-success-badge">✓ SUCCESS</div>
+                    <div className="text-light mt-2">[0, 1]</div>
+                    <div className="mt-2" style={{ color: 'var(--text-2)', fontSize: '0.68rem' }}>
                     <div className="mt-2">[0, 1]</div>
                     <div className="mt-2" style={{ color: '#9d9d9d', fontSize: '0.68rem' }}>
                       Time: 0.03s
@@ -1050,12 +1083,24 @@ export default function LandingPage() {
               Create free account
             </button>
           </div>
+          <p style={{ marginTop: '20px', fontSize: '0.75rem', color: 'var(--text-2)' }}>
           <p style={{ marginTop: '20px', fontSize: '0.75rem', color: '#9d9d9d' }}>
             debugra.tech · Free · Open Source
           </p>
         </div>
       </section>
 
+      {/* ===== FOOTER ===== */}
+      <footer className="landing-footer">
+        <div className="d-flex align-items-center gap-2 justify-content-center mb-1">
+          <img src="/icon-dark.svg" height="14" alt="Debugra Logo" />
+          <span style={{ fontWeight: 600, color:'var(--text-0)'  }}>Debugra</span>
+        </div>
+        <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--text-2)' }}>
+          Built for Hackathon SVKM 2026 ·{' '}
+          <a
+            href="https://github.com/omkhandare55/Debugra"
+            style={{ color: 'var(--accent)', textDecoration: 'none' }}
       {/* ===== BACK TO TOP ===== */}
       {showBackToTop && (
         <button

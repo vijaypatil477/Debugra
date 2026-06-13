@@ -5,6 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
+import { Moon, Settings, Sun, Volume2, VolumeX } from 'lucide-react';
 import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -45,6 +46,7 @@ import WelcomeTour from './WelcomeTour';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import MobileDrawer from './MobileDrawer';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
+import { useTheme } from '../../context/ThemeContext';
 import DebugOverlay from './DebugOverlay';
 import SearchReplacePanel from './SearchReplacePanel';
 import Loader from '../Loader';
@@ -78,6 +80,7 @@ export default function EditorPage({ user }) {
     new URLSearchParams(window.location.search).get('testRoom') === '1';
   const navigate = useNavigate();
   const editorRef = useRef(null);
+  const { isLight, toggleTheme } = useTheme();
   const monacoRef = useRef(null);
   const fileInputRef = useRef(null);
   const providerRegisteredRef = useRef(false);
@@ -300,6 +303,38 @@ export default function EditorPage({ user }) {
         'editorBracketHighlight.foreground6': '#b5cea8',
         'editorBracketMatch.background': '#4ec9b033',
         'editorBracketMatch.border': '#4ec9b0',
+      },
+    });
+        monaco.editor.defineTheme('debugra-light', {
+      base: 'vs',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '008000', fontStyle: 'italic' },
+        { token: 'keyword', foreground: '0000ff' },
+        { token: 'string', foreground: 'a31515' },
+        { token: 'number', foreground: '098658' },
+        { token: 'type', foreground: '267f99' },
+        { token: 'function', foreground: '795e26' },
+        { token: 'operator', foreground: '111827' },
+      ],
+      colors: {
+        'editor.background': '#ffffff',
+        'editor.foreground': '#111827',
+        'editor.lineHighlightBackground': '#f3f4f6',
+        'editor.selectionBackground': '#bfdbfe',
+        'editorCursor.foreground': '#111827',
+        'editorLineNumber.foreground': '#94a3b8',
+        'editorLineNumber.activeForeground': '#334155',
+        'editorIndentGuide.background1': '#e5e7eb',
+        'editorIndentGuide.activeBackground1': '#0f766e',
+        'editorBracketHighlight.foreground1': '#0f766e',
+        'editorBracketHighlight.foreground2': '#ca8a04',
+        'editorBracketHighlight.foreground3': '#ea580c',
+        'editorBracketHighlight.foreground4': '#2563eb',
+        'editorBracketHighlight.foreground5': '#9333ea',
+        'editorBracketHighlight.foreground6': '#059669',
+        'editorBracketMatch.background': '#0f766e22',
+        'editorBracketMatch.border': '#0f766e',
       },
     });
 
@@ -819,6 +854,15 @@ export default function EditorPage({ user }) {
 
         <div className="topbar-right d-flex align-items-center gap-2">
           <button
+    type="button"
+    className="theme-toggle-btn"
+    onClick={toggleTheme}
+    aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
+    title={isLight ? 'Dark mode' : 'Light mode'}
+  >
+    {isLight ? <Moon size={16} /> : <Sun size={16} />}
+  </button>
+          {!room.roomId && (
             onClick={toggleGlobalTheme}
             className="topbar-link p-0 d-flex align-items-center justify-content-center"
             title="Toggle theme"
@@ -1272,6 +1316,92 @@ export default function EditorPage({ user }) {
               >
                 <Settings size={14} />
               </button>
+              {showSettings && (
+                <div className="audio-settings-popover custom-layout-popover" role="dialog" aria-label="Settings">
+                  <div className="audio-settings-head">
+                    <span>Settings</span>
+                    <button
+                      className="history-action-btn"
+                      aria-label="Close Settings"
+                      onClick={() => setShowSettings(false)}
+                    >
+                      <i className="bi bi-x" />
+                    </button>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-palette" style={{ fontSize: '14px' }} />
+                      <span>Theme</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.theme}
+                      onChange={(e) => editor.setTheme(e.target.value)}
+                      aria-label="Editor theme"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {EDITOR_THEMES.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* ===== WALLPAPER BLUR SETTING ROW ===== */}
+                  <div className="audio-settings-row" style={{ marginTop: '12px' }}>
+                    <div className="audio-settings-label">
+                      <i className="bi bi-sliders" style={{ fontSize: '14px' }} />
+                      <span>Wallpaper Blur</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        step="1"
+                        value={blurIntensity}
+                        onChange={(e) => setBlurIntensity(Number(e.target.value))}
+                        style={{ flex: 1, accentColor: 'var(--accent)' }} 
+                      />
+                      <span style={{ fontSize: '12px', minWidth: '30px', textAlign: 'right' }}>
+                        {blurIntensity}px
+                      </span>
+                    </div>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      {audioFeedback.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                      <span>Audio feedback</span>
+                    </div>
+                    <button
+                      className={`audio-toggle ${audioFeedback.muted ? '' : 'active'}`}
+                      aria-pressed={!audioFeedback.muted}
+                      onClick={() => audioFeedback.setMuted(!audioFeedback.muted)}
+                    >
+                      {audioFeedback.muted ? 'Muted' : 'On'}
+                    </button>
+                  </div>
+                  <label className="audio-settings-slider">
+                    <span>Volume</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={audioFeedback.volume}
+                      onChange={(e) => audioFeedback.setVolume(e.target.value)}
+                    />
+                    <span>{Math.round(audioFeedback.volume * 100)}%</span>
+                  </label>
+                  <button
+                    className="audio-test-btn"
+                    onClick={audioFeedback.testSound}
+                    disabled={audioFeedback.muted}
+                  >
+                    Test chime
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <span className="kbd-hint d-none d-lg-inline">Ctrl+Enter</span>
@@ -1516,7 +1646,7 @@ export default function EditorPage({ user }) {
               }}
               beforeMount={handleEditorWillMount}
               onMount={handleEditorMount}
-              theme={editor.theme}
+              theme={isLight ? 'debugra-light' : editor.theme}
               options={{
                 readOnly: room.isReadOnly,
                 fontSize: editor.fontSize,
@@ -1692,7 +1822,7 @@ export default function EditorPage({ user }) {
                     background: 'transparent',
                     border: 'none',
                     cursor: 'pointer',
-                    color: '#aaa',
+                    color: 'var(--text-2)',
                     display: 'flex',
                     alignItems: 'center',
                   }}

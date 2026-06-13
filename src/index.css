@@ -19,8 +19,6 @@
   --yellow: #dcdcaa;
   --orange: #ce9178;
   --status-bar: #007acc;
-
-  /* extended for Debugra */
   --bg-primary: #1e1e1e;
   --bg-secondary: #252526;
   --bg-tertiary: #2d2d2d;
@@ -34,6 +32,55 @@
   --warning: #dcdcaa;
   --error: #f44747;
   --info: #0078d4;
+  --body-bg: linear-gradient(135deg, #0f0c20 0%, #15102a 50%, #06040a 100%);
+  --modal-overlay: rgba(0, 0, 0, 0.7);
+  --soft-border: rgba(255, 255, 255, 0.08);
+  --soft-border-strong: rgba(255, 255, 255, 0.15);
+  --panel-shadow: rgba(0, 0, 0, 0.45);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.1);
+}
+body.light-theme {
+  --bg-0: #ffffff;
+  --bg-1: #f8fafc;
+  --bg-2: #eef2f7;
+  --bg-3: #dbe3ee;
+  --bg-active: #dbeafe;
+  --border: #cbd5e1;
+
+  --text-0: #111827;
+  --text-1: #374151;
+  --text-2: #64748b;
+
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --green: #059669;
+  --red: #dc2626;
+  --yellow: #ca8a04;
+  --orange: #ea580c;
+  --status-bar: #2563eb;
+
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #eef2f7;
+  --bg-card: #ffffff;
+  --bg-header: #f8fafc;
+  --bg-hover: rgba(15, 23, 42, 0.06);
+
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #64748b;
+
+  --success: #059669;
+  --warning: #ca8a04;
+  --error: #dc2626;
+  --info: #2563eb;
+
+  --body-bg: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #ffffff 100%);
+  --modal-overlay: rgba(15, 23, 42, 0.35);
+  --soft-border: rgba(15, 23, 42, 0.1);
+  --soft-border-strong: rgba(15, 23, 42, 0.18);
+  --panel-shadow: rgba(15, 23, 42, 0.16);
+  --scrollbar-thumb: rgba(15, 23, 42, 0.18);
 }
 
 /* ============ LIGHT THEME OVERRIDES ============ */
@@ -221,6 +268,7 @@
   right: 12px;
   background: transparent;
   border: none;
+  color: var(--text-2); /* Muted color from your design system */
   color: #6a6a6a;
   /* Muted color from your design system */
   cursor: pointer;
@@ -236,6 +284,8 @@
 }
 
 .copy-output-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-0);
   background-color: rgba(255, 255, 255, 0.08);
   color: #e2e8f0;
   /* Brighter color on hover */
@@ -248,6 +298,11 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  transition:
+    background-color 0.22s ease,
+    color 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
 }
 
 html,
@@ -260,7 +315,7 @@ body,
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background: linear-gradient(135deg, #0f0c20 0%, #15102a 50%, #06040a 100%);
+  background: var(--body-bg);
   color: var(--text-0);
   -webkit-font-smoothing: antialiased;
 }
@@ -366,6 +421,29 @@ body {
   background: rgba(0, 120, 212, 0.08);
   box-shadow: 0 1px 4px rgba(0, 120, 212, 0.15);
 }
+  .theme-toggle-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-2);
+  color: var(--text-1);
+  cursor: pointer;
+}
+
+.theme-toggle-btn:hover {
+  color: var(--text-0);
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+
+.theme-toggle-btn:active {
+  transform: scale(0.94);
+}
+  
 
 /* Topbar inline room ID input */
 .topbar-input {
@@ -1682,9 +1760,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #252526;
-  color: #e2e8f0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-1);
+  color: var(--text-0);
+  border: 1px solid var(--border);
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   transition: all 0.2s;
@@ -1704,8 +1782,8 @@ body {
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  background: #1e1e1e;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-0);
+  border: 1px solid var(--border);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   z-index: 30;
   overflow: hidden;
@@ -1758,10 +1836,10 @@ body {
 
 /* ============ LANDING PAGE ============ */
 .landing-root {
-  background: #0a0a0f;
+  background: var(--bg-primary);
   height: 100vh;
   font-family: 'Inter', system-ui, sans-serif;
-  color: #e2e8f0;
+  color: var(--text-0);
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -1776,9 +1854,10 @@ body {
   justify-content: space-between;
   padding: 0 32px;
   height: 56px;
-  background: rgba(10, 10, 15, 0.88);
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+  border-bottom: 1px solid var(--border);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  
 }
 
 .landing-nav-left {
@@ -3136,7 +3215,7 @@ input[type='password']::-ms-clear {
   align-items: center;
   justify-content: space-around;
   height: 56px;
-  background: #1a1a1a;
+  background: var(--bg-1);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
   padding: 0 8px;

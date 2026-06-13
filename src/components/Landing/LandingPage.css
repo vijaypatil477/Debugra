@@ -10,6 +10,29 @@
   --border-hover: rgba(255, 255, 255, 0.14);
   --text-hi: #f4f4f5;
   --text-mid: #a1a1aa;
+  --text-lo: #52525b;
+  --bento-bg: #0c0c0e;
+  --bento-bg-hover: #111115;
+  --preview-line-number: #3f3f46;
+  --preview-label: #52525b;
+  --preview-shadow: rgba(0, 0, 0, 0.6);
+}
+body.light-theme {
+  --brand: #0f766e; /* VS Code teal — already in the editor */
+  --brand-dim: rgba(15, 118, 110, 0.1);
+  --brand-border: rgba(15, 118, 110, 0.24);
+  --surface: rgba(15, 23, 42, 0.035);
+  --surface-hover: rgba(15, 23, 42, 0.06);
+  --border-subtle: rgba(15, 23, 42, 0.1);
+  --border-hover: rgba(15, 23, 42, 0.2);
+  --text-hi: #111827;
+  --text-mid: #475569;
+  --text-lo: #64748b;
+  --bento-bg: #ffffff;
+  --bento-bg-hover: #f8fafc;
+  --preview-line-number: #94a3b8;
+  --preview-label: #64748b;
+  --preview-shadow: rgba(15, 23, 42, 0.14);
   --text-lo: #888888;
   --btn-primary-text: #09090b;
 }
@@ -215,6 +238,26 @@
   flex: 0 0 clamp(280px, 34vw, 360px);
   position: relative;
   overflow: hidden;
+  padding: 32px 28px;
+  background: var(--bento-bg);
+  border: none;
+  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.2s;
+  cursor: default;
+  border-radius: 0;
+}
+/* remove right border on last in each row */
+.bento-card:nth-child(3n) {
+  border-right: none;
+}
+/* remove bottom on last row - approximate via last 3 */
+.bento-card:nth-last-child(-n + 3) {
+  border-bottom: none;
+}
+
+.bento-card:hover {
+  background: var(--bento-bg-hover);
   padding: 32px 28px 30px;
   background: #0c0c0e;
   border: 1px solid var(--border-subtle);
@@ -259,7 +302,7 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 18px;
-  background: rgba(255, 255, 255, 0.04) !important;
+  background: var(--surface-hover) !important;
   color: var(--text-lo) !important;
   transition:
     color 0.2s,
@@ -280,7 +323,7 @@
   padding: 2px 6px;
   border-radius: 3px;
   margin-bottom: 12px;
-  background: rgba(255, 255, 255, 0.04) !important;
+  background: var(--surface-hover) !important;
   color: var(--text-lo) !important;
   border: 1px solid var(--border-subtle) !important;
 }
@@ -568,6 +611,7 @@
 .ln {
   display: inline-block;
   width: 24px;
+  color: var(--preview-line-number);
   color: #71717a;
   user-select: none;
   margin-right: 18px;
@@ -579,13 +623,14 @@
 }
 .preview-chrome-label {
   font-size: 0.72rem;
+  color: var(--preview-label);
   color: #9d9d9d;
   margin-left: 10px;
 }
 .editor-preview {
   box-shadow:
     0 24px 60px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+    0 0 0 1px var(--border-subtle) !important;
 }
 
 /* ─── Responsive ────────────────────────────────────────────────────── */

@@ -5,6 +5,7 @@ import { auth } from './services/firebase';
 import { Toaster } from 'react-hot-toast';
 import LandingPage from './components/Landing/LandingPage';
 import EditorPage from './components/Editor/EditorPage';
+import OfflineBanner from "./components/Editor/OfflineBanner";
 import VideoCall from './components/Editor/VideoCall';
 import OfflineBanner from './components/Editor/OfflineBanner';
 import ContributorsPage from './components/Landing/ContributorsPage';
@@ -18,6 +19,9 @@ function AppContent({ user }) {
   const showFooter = !hideFooterRoutes.includes(location.pathname);
 
   return (
+    <ThemeProvider>
+    <BrowserRouter>
+    <OfflineBanner />
     <div className="flex flex-col min-h-screen bg-transparent">
       <OfflineBanner />
 
@@ -25,6 +29,18 @@ function AppContent({ user }) {
         position="top-right"
         toastOptions={{
           style: {
+             background: 'var(--bg-1)',
+              color: 'var(--text-0)',
+              border: '1px solid var(--border)',
+          },
+        }}
+      />
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/editor" element={<EditorPage user={user} />} />
+      </Routes>
+    </BrowserRouter>
+  </ThemeProvider>);
             background: 'var(--bg-card)',
             color: 'var(--text-primary)',
             border: '1px solid var(--border)',
