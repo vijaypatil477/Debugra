@@ -199,6 +199,9 @@ app.use(
     xssFilter: true,
     hidePoweredBy: true,
     ieNoOpen: true,
+
+    // Allow Firebase Auth popup to communicate back via window.closed
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   })
 );
 
