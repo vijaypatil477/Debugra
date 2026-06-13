@@ -31,37 +31,40 @@ const fetchSuggestion = useCallback(async () => {
 
   const requestSeq = ++requestSeqRef.current;
 
-  try {
-    const result = await aiInlineComplete(
-      prefix,
-      suffix,
-      LANGUAGES[language].name
-    );
+setIsLoading(true);
 
-    // Ignore stale responses
-    if (requestSeq !== requestSeqRef.current) return;
+const requestSeq = ++requestSeqRef.current;
 
-    if (result?.completion) {
-      const displayText = result.completion.split('\n')[0].trim();
+try {
+  const result = await aiInlineComplete(
+    prefix,
+    suffix,
+    LANGUAGES[language].name
+  );
 
-      setSuggestion({
-        text: result.completion,
-        displayText,
-        line: position.lineNumber,
-        column: position.column,
-      });
-    } else {
-      clearSuggestion();
-    }
-  } catch (err) {
-    console.error('Inline completion error:', err);
+  if (requestSeq !== requestSeqRef.current) return;
 
-    if (requestSeq === requestSeqRef.current) {
-      clearSuggestion();
-    }
-  } finally {
-    if (requestSeq === requestSeqRef.current) {
-      setIsLoading(false);
-    }
+  if (result?.completion) {
+    const displayText = result.completion.split('\n')[0].trim();
+
+    setSuggestion({
+      text: result.completion,
+      displayText,
+      line: position.lineNumber,
+      column: position.column,
+    });
+  } else {
+    clearSuggestion();
   }
+} catch (err) {
+  console.error('Inline completion error:', err);
+
+  if (requestSeq === requestSeqRef.current) {
+    clearSuggestion();
+  }
+} finally {
+  if (requestSeq === requestSeqRef.current) {
+    setIsLoading(false);
+  }
+}
 }, [language, editorRef, clearSuggestion]);
