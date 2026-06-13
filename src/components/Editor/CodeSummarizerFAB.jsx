@@ -1,5 +1,5 @@
-import React from "react";
-import { useCodeSummarizer } from "../../hooks/useCodeSummarizer";
+import React from 'react';
+import { useCodeSummarizer } from '../../hooks/useCodeSummarizer';
 
 /**
  * CodeSummarizerFAB
@@ -11,16 +11,15 @@ import { useCodeSummarizer } from "../../hooks/useCodeSummarizer";
  *   <CodeSummarizerFAB code={code} language={language} />
  */
 export default function CodeSummarizerFAB({ code, language }) {
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-  const { isOpen, isLoading, result, error, summarize, close } =
-    useCodeSummarizer(apiUrl);
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const { isOpen, isLoading, result, error, summarize, close } = useCodeSummarizer(apiUrl);
 
   return (
     <>
       {!isOpen && (
         <button
           className="csf-fab"
-          onClick={() => summarize(code, language || "javascript")}
+          onClick={() => summarize(code, language || 'javascript')}
           aria-label="Summarize code with AI"
           title="AI Code Summarizer (analyzes complexity + explains logic)"
         >
@@ -43,18 +42,14 @@ export default function CodeSummarizerFAB({ code, language }) {
             <div className="csf-header-actions">
               <button
                 className="csf-refresh-btn"
-                onClick={() => summarize(code, language || "javascript")}
+                onClick={() => summarize(code, language || 'javascript')}
                 aria-label="Re-summarize"
                 title="Re-run analysis"
                 disabled={isLoading}
               >
                 ↻
               </button>
-              <button
-                className="csf-close-btn"
-                onClick={close}
-                aria-label="Close summarizer"
-              >
+              <button className="csf-close-btn" onClick={close} aria-label="Close summarizer">
                 ✕
               </button>
             </div>

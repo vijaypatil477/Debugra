@@ -49,13 +49,22 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
         <div className="complexity-overlay-header">
           <div className="complexity-overlay-title">
             <span className="complexity-overlay-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
               </svg>
             </span>
             <div>
               <span className="complexity-overlay-title-text">Big-O Complexity Analyzer</span>
-              <span className="complexity-overlay-subtitle">AI-powered time &amp; space analysis</span>
+              <span className="complexity-overlay-subtitle">
+                AI-powered time &amp; space analysis
+              </span>
             </div>
           </div>
           <button
@@ -69,7 +78,6 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
 
         {/* ── Body ─────────────────────────────────────────────────────── */}
         <div className="complexity-overlay-body">
-
           {/* Loading state */}
           {isLoading && (
             <div className="complexity-overlay-loading">
@@ -79,7 +87,9 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
               </div>
               <div className="complexity-loading-text">
                 <p className="complexity-loading-headline">Analyzing complexity…</p>
-                <p className="complexity-loading-sub">Computing Big-O bounds across all operations</p>
+                <p className="complexity-loading-sub">
+                  Computing Big-O bounds across all operations
+                </p>
               </div>
               <div className="complexity-skeleton-wrap">
                 <div className="complexity-skeleton complexity-skeleton-chips" />
@@ -93,18 +103,26 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
           {/* Result state */}
           {!isLoading && content && (
             <div className="complexity-overlay-results">
-
               {/* Function name + overall rating badge */}
               <div className="complexity-fn-header">
                 <div className="complexity-fn-name">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <polyline points="16 18 22 12 16 6" />
                     <polyline points="8 6 2 12 8 18" />
                   </svg>
                   <span>{content.functionName || 'Code Block'}</span>
                 </div>
                 {content.overallRating && (
-                  <span className={`complexity-rating-badge rating-${(content.overallRating || 'Good').toLowerCase()}`}>
+                  <span
+                    className={`complexity-rating-badge rating-${(content.overallRating || 'Good').toLowerCase()}`}
+                  >
                     {ratingIcon(content.overallRating)} {content.overallRating}
                   </span>
                 )}
@@ -113,7 +131,14 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
               {/* Time Complexity Section */}
               <div className="complexity-section">
                 <div className="complexity-section-label">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 16 14" />
                   </svg>
@@ -121,7 +146,11 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
                 </div>
                 <div className="complexity-chips-row">
                   <ComplexityChip label="Best Case" value={content.timeComplexity?.best} />
-                  <ComplexityChip label="Average Case" value={content.timeComplexity?.average} accent />
+                  <ComplexityChip
+                    label="Average Case"
+                    value={content.timeComplexity?.average}
+                    accent
+                  />
                   <ComplexityChip label="Worst Case" value={content.timeComplexity?.worst} worst />
                 </div>
                 {content.timeComplexity?.explanation && (
@@ -132,7 +161,14 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
               {/* Space Complexity Section */}
               <div className="complexity-section">
                 <div className="complexity-section-label">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <rect x="2" y="3" width="20" height="14" rx="2" />
                     <path d="M8 21h8M12 17v4" />
                   </svg>
@@ -153,7 +189,14 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
               {content.breakdown && content.breakdown.length > 0 && (
                 <div className="complexity-section">
                   <div className="complexity-section-label">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <line x1="8" y1="6" x2="21" y2="6" />
                       <line x1="8" y1="12" x2="21" y2="12" />
                       <line x1="8" y1="18" x2="21" y2="18" />
@@ -173,7 +216,9 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
                       <div className="complexity-breakdown-row" key={i}>
                         <span className="breakdown-operation">{item.operation}</span>
                         <span>
-                          <span className={`breakdown-chip chip-${getComplexityClass(item.complexity)}`}>
+                          <span
+                            className={`breakdown-chip chip-${getComplexityClass(item.complexity)}`}
+                          >
                             {item.complexity}
                           </span>
                         </span>
@@ -188,7 +233,14 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
               {content.tips && content.tips.length > 0 && (
                 <div className="complexity-section">
                   <div className="complexity-section-label">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <circle cx="12" cy="12" r="10" />
                       <line x1="12" y1="8" x2="12" y2="12" />
                       <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -249,7 +301,9 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
 function ComplexityChip({ label, value, accent, worst }) {
   const cls = getComplexityClass(value);
   return (
-    <div className={`complexity-chip chip-${cls} ${accent ? 'chip-accent' : ''} ${worst ? 'chip-worst' : ''}`}>
+    <div
+      className={`complexity-chip chip-${cls} ${accent ? 'chip-accent' : ''} ${worst ? 'chip-worst' : ''}`}
+    >
       <span className="chip-label">{label}</span>
       <span className="chip-value">{value || '—'}</span>
     </div>
@@ -277,7 +331,10 @@ function ComplexitySeverityBar({ worst }) {
           />
         ))}
       </div>
-      <div className="complexity-severity-marker" style={{ left: `${(activeIdx / (levels.length - 1)) * 100}%` }}>
+      <div
+        className="complexity-severity-marker"
+        style={{ left: `${(activeIdx / (levels.length - 1)) * 100}%` }}
+      >
         <span className="severity-marker-label">{normalized || worst || '—'}</span>
       </div>
     </div>

@@ -8,6 +8,7 @@ import {
   getDoc,
   runTransaction,
   deleteDoc,
+  collection,
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import toast from 'react-hot-toast';
@@ -84,12 +85,22 @@ async function hasValidRoomAccess(roomId) {
  * @param {Function} setLanguage - to apply remote language changes
  * @param {Function} setStdinValue - to apply remote stdin changes
  */
-export function useRoom({ user, code, language, stdinValue, setCode, setLanguage, setStdinValue }) {
+export function useRoom({
+  user,
+  code,
+  language,
+  stdinValue,
+  setCode,
+  setLanguage,
+  setStdinValue,
+  cursorPos,
+}) {
   const [roomId, setRoomId] = useState(null);
   const [roomData, setRoomData] = useState(null);
   const [activeUsers, setActiveUsers] = useState([]);
   const [showOnlineDropdown, setShowOnlineDropdown] = useState(false);
   const [showRequestsDropdown, setShowRequestsDropdown] = useState(false);
+  const [remoteCursors, setRemoteCursors] = useState({});
 
   // ─── Derived permissions ────────────────────────────────────────────────────
   const myRole = roomId
@@ -99,6 +110,44 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   const isEditor = !roomId || myRole === 'editor' || isHost;
   const isReadOnly = roomId ? !isEditor : false;
   const currentEditorName = isEditor ? user?.displayName || 'Editor' : 'Viewer';
+
+  // ─── Sync local cursor to Firestore ──────────────────────────────────────────
+  useEffect(() => {
+    if (!roomId || !user || !isEditor || !cursorPos) return;
+    const timer = setTimeout(() => {
+      const cursorRef = doc(db, 'rooms', roomId, 'cursors', user.uid);
+      setDoc(cursorRef, {
+        uid: user.uid,
+        displayName: user.displayName || user.email?.split('@')[0] || 'Guest',
+        line: cursorPos.line,
+        col: cursorPos.col,
+        updatedAt: serverTimestamp(),
+      }).catch(() => {});
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [roomId, user, isEditor, cursorPos]);
+
+  // ─── Listen for remote cursors ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!roomId) {
+      setRemoteCursors({});
+      return;
+    }
+    const cursorsRef = collection(db, 'rooms', roomId, 'cursors');
+    const unsub = onSnapshot(cursorsRef, (snapshot) => {
+      const cursors = {};
+      snapshot.forEach((cursorDoc) => {
+        const data = cursorDoc.data();
+        if (data.uid !== user?.uid) {
+          cursors[data.uid] = data;
+        }
+      });
+      setRemoteCursors(cursors);
+    });
+    return () => {
+      unsub();
+    };
+  }, [roomId, user]);
 
   // ─── Live sync from Firestore ───────────────────────────────────────────────
   useEffect(() => {
@@ -142,7 +191,6 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
     }
   }, [roomId, user, roomData, language]);
-
 
   // ─── Create room ────────────────────────────────────────────────────────────
   const createRoom = useCallback(
@@ -247,7 +295,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
             roomId: newRoomId,
             userName: displayName,
           }),
-          }).catch(console.error);
+        }).catch(console.error);
 
         return true;
       } catch (err) {
@@ -271,10 +319,13 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   // ─── Presence cleanup on browser tab/window close ──────────────────────────
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (roomId && user && roomData) {
-        const currentUsers = roomData.activeUsers || [];
-        const newUsers = currentUsers.filter((u) => u.uid !== user.uid);
-        updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+      if (roomId && user) {
+        if (roomData) {
+          const currentUsers = roomData.activeUsers || [];
+          const newUsers = currentUsers.filter((u) => u.uid !== user.uid);
+          updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+        }
+        deleteDoc(doc(db, 'rooms', roomId, 'cursors', user.uid)).catch(() => {});
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -295,9 +346,12 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     if (!roomId) return;
     try {
       localStorage.removeItem('debugra_roomId');
-      if (user && roomData) {
-        const newUsers = (roomData.activeUsers || []).filter((u) => u.uid !== user.uid);
-        await updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+      if (user) {
+        await deleteDoc(doc(db, 'rooms', roomId, 'cursors', user.uid)).catch(() => {});
+        if (roomData) {
+          const newUsers = (roomData.activeUsers || []).filter((u) => u.uid !== user.uid);
+          await updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+        }
       }
     } catch (e) {
       console.error(e);
@@ -305,6 +359,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     setRoomId(null);
     setRoomData(null);
     setActiveUsers([]);
+    setRemoteCursors({});
     toast.success('Left the room');
   }, [roomId, user, roomData]);
 
@@ -489,15 +544,28 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
   );
 
   // Fix for Distributed Deadlock: Proactively resolve vote consensus if active users drop
+  // Uses a transaction to atomically re-check vote state before writing, preventing
+  // races with castVote which also uses runTransaction.
   useEffect(() => {
     if (!roomId || !roomData?.activeVote) return;
     const vote = roomData.activeVote;
     const activeCount = roomData.activeUsers?.length || 1;
-    
+
     if (vote.status === 'voting' && vote.initiatorUid === user?.uid) {
-      // If the remaining approvals exceed the new 50% threshold
       if (vote.approvals?.length > activeCount / 2) {
-        updateDoc(doc(db, 'rooms', roomId), { 'activeVote.status': 'approved' }).catch(console.error);
+        const roomRef = doc(db, 'rooms', roomId);
+        runTransaction(db, async (transaction) => {
+          const snap = await transaction.get(roomRef);
+          if (!snap.exists()) return;
+          const current = snap.data().activeVote;
+          if (current && current.status === 'voting' && current.initiatorUid === user?.uid) {
+            const freshActiveCount = (snap.data().activeUsers || []).length;
+            if ((current.approvals || []).length > freshActiveCount / 2) {
+              current.status = 'approved';
+              transaction.update(roomRef, { activeVote: current });
+            }
+          }
+        }).catch(console.error);
       }
     }
   }, [roomId, roomData?.activeVote, roomData?.activeUsers, user?.uid]);
@@ -530,5 +598,6 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     clearExecutionResult,
     fetchFullVotePayload,
     transitionVoteToExecuting,
+    remoteCursors,
   };
 }

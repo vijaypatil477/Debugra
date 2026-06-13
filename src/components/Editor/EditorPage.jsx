@@ -5,7 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu } from 'lucide-react';
+import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 import {
@@ -19,8 +19,12 @@ import {
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
+
 import { loadActivePromptId, loadCustomPrompts, findPromptById, PROMPT_PRESETS, DEFAULT_PROMPT_ID } from '../../utils/aiPromptManager';
 import { LANGUAGES } from '../../utils/languageConfig';
+
+import { LANGUAGES, detectLanguageByFileName } from '../../utils/languageConfig';
+
 import {
   LANG_FILE_NAMES,
   MOBILE_TABS,
@@ -47,6 +51,7 @@ import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import MobileDrawer from './MobileDrawer';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
+import SearchReplacePanel from './SearchReplacePanel';
 import Loader from '../Loader';
 import ComplexityOverlay from './ComplexityOverlay';
 
@@ -79,10 +84,14 @@ export default function EditorPage({ user }) {
   const navigate = useNavigate();
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
+  const fileInputRef = useRef(null);
   const providerRegisteredRef = useRef(false);
+  const remoteCursorDecorationsRef = useRef([]);
 
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
+  // Separate flash-state for the Room ID chip's copy interaction
+  const [linkCopied, setLinkCopied] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
@@ -104,6 +113,7 @@ export default function EditorPage({ user }) {
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10);
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
+
 
   const [activePromptId, setActivePromptId] = useState(DEFAULT_PROMPT_ID);
   const [activePromptText, setActivePromptText] = useState(PROMPT_PRESETS[0]?.prompt || '');
@@ -150,6 +160,40 @@ export default function EditorPage({ user }) {
     }
   };
 
+  const handleFileImport = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File is too large (max 5MB)');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target.result;
+      const detectedLang = detectLanguageByFileName(file.name);
+
+      editor.loadCode(content, detectedLang);
+
+      if (detectedLang) {
+        toast.success(`Imported ${file.name} (detected ${LANGUAGES[detectedLang].name})`);
+      } else {
+        toast.success(`Imported ${file.name} as text`);
+      }
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    };
+
+    reader.onerror = () => {
+      toast.error('Failed to read file');
+    };
+
+    reader.readAsText(file);
+  };
+
   const editor = useEditor({
     user,
     onNeedAuth: () => {
@@ -190,6 +234,7 @@ export default function EditorPage({ user }) {
     setCode: editor.setCode,
     setLanguage: editor.setLanguage,
     setStdinValue: editor.setStdinValue,
+    cursorPos: editor.cursorPos,
   });
 
   const execution = useExecution({
@@ -229,6 +274,16 @@ export default function EditorPage({ user }) {
     model: selectedModel,
 
   });
+
+  const aiFixRef = useRef(ai.fix);
+  const aiExplainRef = useRef(ai.explain);
+  const aiGenerateTestsRef = useRef(ai.generateTests);
+
+  useEffect(() => {
+    aiFixRef.current = ai.fix;
+    aiExplainRef.current = ai.explain;
+    aiGenerateTestsRef.current = ai.generateTests;
+  }, [ai.fix, ai.explain, ai.generateTests]);
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
@@ -400,6 +455,26 @@ export default function EditorPage({ user }) {
       if (executionRunRef.current) executionRunRef.current();
     });
 
+    // AI Shortcuts
+    editorInstance.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F,
+      () => {
+        if (aiFixRef.current) aiFixRef.current();
+      }
+    );
+    editorInstance.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_E,
+      () => {
+        if (aiExplainRef.current) aiExplainRef.current();
+      }
+    );
+    editorInstance.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_T,
+      () => {
+        if (aiGenerateTestsRef.current) aiGenerateTestsRef.current();
+      }
+    );
+
     const formatCurrentModel = async () => {
       const model = editorInstance.getModel();
       if (!model) return;
@@ -510,6 +585,110 @@ export default function EditorPage({ user }) {
     return () => clearTimeout(timer);
   }, [isOutputCollapsed]);
 
+  // ─── Render Remote Cursors ────────────────────────────────────────────────
+  const escapeForCssContent = (str) => {
+    if (!str) return '';
+    return str
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'") 
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\A ')
+      .replace(/\r/g, '')
+      .slice(0, 30);
+  };
+
+  useEffect(() => {
+    const editorInstance = editorRef.current;
+    const monaco = monacoRef.current;
+    if (!editorInstance || !monaco || !room.remoteCursors) return;
+
+    const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+    const getUserColor = (uid) => {
+      let hash = 0;
+      for (let i = 0; i < uid.length; i++) {
+        hash = uid.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const index = Math.abs(hash) % colors.length;
+      return colors[index];
+    };
+
+    const newDecorations = [];
+    Object.values(room.remoteCursors).forEach((c) => {
+      if (!c.line || !c.col) return;
+      const userColor = getUserColor(c.uid);
+      const className = `remote-cursor-${c.uid}`;
+
+      let styleEl = document.getElementById(`style-${c.uid}`);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = `style-${c.uid}`;
+        document.head.appendChild(styleEl);
+      }
+      const escapedDisplayName = escapeForCssContent(c.displayName);
+      styleEl.innerHTML = `
+        .${className} {
+          border-left: 2px solid ${userColor} !important;
+          margin-left: -1px;
+          position: relative;
+        }
+        .${className}::after {
+          content: '${escapedDisplayName}';
+          position: absolute;
+          bottom: 100%;
+          left: 0;
+          background: ${userColor};
+          color: #ffffff;
+          font-size: 10px;
+          padding: 1px 4px;
+          border-radius: 3px;
+          white-space: nowrap;
+          opacity: 0;
+          transition: opacity 0.2s ease-in-out;
+          pointer-events: none;
+          z-index: 10;
+        }
+        .${className}:hover::after {
+          opacity: 1;
+        }
+      `;
+
+      newDecorations.push({
+        range: new monaco.Range(c.line, c.col, c.line, c.col),
+        options: {
+          className: className,
+          hoverMessage: { value: `**${c.displayName}** is here` },
+        },
+      });
+    });
+
+    remoteCursorDecorationsRef.current = editorInstance.deltaDecorations(
+      remoteCursorDecorationsRef.current,
+      newDecorations
+    );
+
+    return () => {
+      const activeUids = new Set(Object.keys(room.remoteCursors || {}));
+      const styleElements = document.querySelectorAll('[id^="style-"]');
+      styleElements.forEach((el) => {
+        const uid = el.id.substring(6);
+        if (!activeUids.has(uid)) {
+          el.remove();
+        }
+      });
+    };
+  }, [room.remoteCursors]);
+
+  // Cleanup all cursor style elements on unmount
+  useEffect(() => {
+    return () => {
+      const styleElements = document.querySelectorAll('[id^="style-"]');
+      styleElements.forEach((el) => el.remove());
+      if (editorRef.current) {
+        editorRef.current.deltaDecorations(remoteCursorDecorationsRef.current, []);
+      }
+    };
+  }, []);
+
   // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
     e.preventDefault();
@@ -570,23 +749,60 @@ export default function EditorPage({ user }) {
           <span className="topbar-title d-none d-md-block">Code Editor</span>
           {(room.roomId || isTestRoom) && (
             <>
-              <div className="topbar-sep mx-2 d-none d-sm-block" />
-              <span className="topbar-title text-success d-none d-sm-inline">
-                ✦ Room: {room.roomId}
-                <span className="d-none d-lg-inline"> ({room.activeUsers.length} online)</span>
-              </span>
+              {/* ── Room Session Badge Group ── */}
+              <div className="room-badge-group d-none d-sm-flex">
+                {/* Room ID Chip — click to copy shareable link */}
+                <button
+                  className={`room-id-chip${linkCopied ? ' copied' : ''}`}
+                  title="Click to copy shareable room link"
+                  aria-label="Copy room link"
+                  onClick={() => {
+                    const link = `${window.location.origin}/editor?room=${room.roomId}`;
+                    navigator.clipboard.writeText(link);
+                    toast.success('Room link copied!');
+                    setLinkCopied(true);
+                    setTimeout(() => setLinkCopied(false), 1500);
+                  }}
+                >
+                  🔗{' '}
+                  <span>
+                    Room: {/* Full ID on ≥601px, short on mobile */}
+                    <span className="room-id-chip__full">#{room.roomId}</span>
+                    <span className="room-id-chip__short">#{room.roomId?.slice(0, 6)}</span>
+                  </span>
+                  {/* Copy icon — opacity-0 by default, slides in on hover */}
+                  <svg
+                    className="room-id-chip__icon"
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                </button>
+
+                {/* Live Users Bubble */}
+                <div
+                  className="room-live-bubble"
+                  title={`${room.activeUsers.length} active collaborator${
+                    room.activeUsers.length !== 1 ? 's' : ''
+                  }`}
+                >
+                  <span className="room-live-dot" aria-hidden="true" />
+                  {room.activeUsers.length} active
+                </div>
+              </div>
+
+              {/* Video / Voice call buttons — unchanged */}
               <button
-                className="topbar-link ms-2"
-                onClick={() => {
-                  navigator.clipboard.writeText(room.roomId);
-                  toast.success('Copied!');
-                }}
-              >
-                <span className="d-none d-sm-inline">Copy ID</span>
-                <span className="d-inline d-sm-none">ID</span>
-              </button>
-              <button
-                className="topbar-link ms-2"
+                className="topbar-link"
                 onClick={() => setShowVideoCall(!showVideoCall)}
                 style={{
                   background: showVideoCall
@@ -605,7 +821,7 @@ export default function EditorPage({ user }) {
                 📹 {showVideoCall ? 'Leave Call' : 'Join Call'}
               </button>
               <button
-                className="topbar-link ms-2"
+                className="topbar-link"
                 onClick={() => setShowVoiceCall((s) => !s)}
                 style={{
                   background: showVoiceCall ? 'rgba(34,197,94,0.12)' : 'rgba(99,102,241,0.06)',
@@ -794,7 +1010,7 @@ export default function EditorPage({ user }) {
               </button>
               <button
                 className="topbar-link"
-                style={{ background: '#8b5cf6', color: 'white', border: 'none' }}
+                style={{ background: '#6d28d9', color: 'white', border: 'none' }}
                 onClick={() => {
                   setAuthMode('signup');
                   setShowAuth(true);
@@ -812,6 +1028,7 @@ export default function EditorPage({ user }) {
         <div className="toolbar-left d-flex align-items-center gap-2">
           <select
             className="lang-select"
+            aria-label="Programming language"
             value={editor.language}
             onChange={(e) => editor.changeLanguage(e.target.value)}
             disabled={room.isReadOnly}
@@ -996,6 +1213,22 @@ export default function EditorPage({ user }) {
             Fix
           </button>
           <div className="d-flex align-items-center gap-1">
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              onChange={handleFileImport}
+              accept=".py,.js,.jsx,.ts,.tsx,.java,.cpp,.cc,.cxx,.h,.hpp,.c,.cs,.go,.rs,.rb,.php,.swift,.pl,.pm,.lua,.scala,.hs,.sql,.sh,.txt"
+            />
+            <button
+              className="toolbar-icon-btn"
+              aria-label="Import File"
+              onClick={() => fileInputRef.current?.click()}
+              title="Import file"
+              disabled={room.isReadOnly}
+            >
+              <FolderOpen size={14} />
+            </button>
             <button
               className="toolbar-icon-btn"
               aria-label="Download Code"
@@ -1243,6 +1476,39 @@ export default function EditorPage({ user }) {
                 ×
               </button>
             </div>
+            <button
+              className="editor-tab-action-btn"
+              onClick={() => fileInputRef.current?.click()}
+              title="Import File"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '2px 8px',
+                margin: '0 8px',
+                fontSize: '0.68rem',
+                color: 'var(--text-1)',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px dashed var(--border)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--text-0)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                e.currentTarget.style.borderColor = 'var(--accent)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-1)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                e.currentTarget.style.borderColor = 'var(--border)';
+              }}
+              disabled={room.isReadOnly}
+            >
+              <FolderOpen size={11} />
+              <span>Import File</span>
+            </button>
             {room.roomId && (
               <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
                 <AudioChannel room={room} user={user} />
@@ -1323,6 +1589,12 @@ export default function EditorPage({ user }) {
                 columnSelection: true,
               }}
             />
+            {showSearchReplace && (
+              <SearchReplacePanel
+                editorRef={editorRef}
+                onClose={() => setShowSearchReplace(false)}
+              />
+            )}
           </div>
 
           {/* Stdin Panel */}
@@ -1630,7 +1902,24 @@ export default function EditorPage({ user }) {
                 response={ai.aiResponse}
                 language={editor.language}
                 onApplyFix={(code) => {
-                  editor.setCode(code);
+                  if (editorRef.current) {
+                    const model = editorRef.current.getModel();
+                    if (model) {
+                      editorRef.current.pushUndoStop();
+                      editorRef.current.executeEdits('ai-fix', [
+                        {
+                          range: model.getFullModelRange(),
+                          text: code,
+                          forceMoveMarkers: true,
+                        },
+                      ]);
+                      editorRef.current.pushUndoStop();
+                    } else {
+                      editor.setCode(code);
+                    }
+                  } else {
+                    editor.setCode(code);
+                  }
                   toast.success('Solution applied!');
                 }}
               />
@@ -1674,6 +1963,10 @@ export default function EditorPage({ user }) {
         tabSize={editor.tabSize}
         room={room}
         user={user}
+        saveStatus={editor.saveStatus}
+        lastSavedAt={editor.lastSavedAt}
+        isOffline={editor.isOffline}
+        hasPendingChanges={editor.hasPendingChanges}
         vimEnabled={editor.vimEnabled}
         vimMode={vimMode}
       />
@@ -1803,13 +2096,11 @@ export default function EditorPage({ user }) {
       {showVideoCall && room.roomId && (
         <VideoCall
           roomId={room.roomId}
+          userId={user?.uid}
           userName={user?.displayName || user?.email?.split('@')[0] || 'Guest'}
           onClose={() => setShowVideoCall(false)}
         />
       )}
-
-      {/* Real-time Democratic Vote Popup */}
-      <VotePopup room={room} user={user} />
 
       {/* Premium Full-Screen Code Execution Loading Overlay */}
       <Loader isVisible={execution.isRunning} />
