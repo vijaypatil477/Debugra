@@ -39,9 +39,18 @@ async function executeCode(sourceCode, languageId, stdin = '') {
   }
 
   try {
+    let finalSourceCode = sourceCode;
+    
+    // SQLite: Format output beautifully and separate multiple result sets
+    if (compiler === 'sqlite-3.46.1') {
+      if (!finalSourceCode.includes('.mode')) {
+        finalSourceCode = '.mode box\n' + finalSourceCode;
+      }
+    }
+
     const body = {
       compiler: compiler,
-      code: sourceCode,
+      code: finalSourceCode,
       stdin: stdin || '',
       save: false,
     };
@@ -55,7 +64,7 @@ async function executeCode(sourceCode, languageId, stdin = '') {
     const stdout = (data.program_output || '').slice(0, MAX_OUTPUT_LENGTH);
     const compileError = (data.compiler_error || '').slice(0, MAX_OUTPUT_LENGTH);
     const runtimeError = (data.program_error || '').slice(0, MAX_OUTPUT_LENGTH);
-    const exitCode = parseInt(data.status ?? '0');
+    const exitCode = data.status != null ? parseInt(data.status, 10) : -1;
 
     // Compile error takes priority, then runtime error, then exit code
     const hasCompileError = compileError.trim().length > 0;
@@ -87,4 +96,7 @@ async function executeCode(sourceCode, languageId, stdin = '') {
   }
 }
 
-module.exports = { executeCode };
+const SUPPORTED_LANGUAGE_IDS = new Set(Object.keys(WANDBOX_COMPILERS).map(Number));
+
+module.exports = { executeCode, SUPPORTED_LANGUAGE_IDS };
+

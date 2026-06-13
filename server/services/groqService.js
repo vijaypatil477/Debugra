@@ -12,6 +12,12 @@ const MODELS = {
 const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 
 
+function sanitizePromptInput(input) {
+  if (typeof input !== 'string') return '';
+  return input.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+
 function getGroqClient(apiKey) {
   return new Groq({ apiKey: apiKey || process.env.GROQ_API_KEY || 'missing_key' });
 }
@@ -26,10 +32,82 @@ async function chatCompletion(systemPrompt, userPrompt, apiKey = '', model = DEF
     max_tokens: 2000,response_format: { type: 'json_object' },
   });
 
-  const aiMessage = JSON.parse(response.choices[0].message.content);
+  const rawContent = response.choices[0].message.content;
   const tokenUsage = response.usage;
-
   console.log("Metadata caught: ", tokenUsage);
+
+  let aiMessage;
+  try {
+    aiMessage = JSON.parse(rawContent);
+  } catch (error) {
+    console.error("Failed to parse LLM response directly as JSON:", error);
+    
+    // Try to extract JSON from markdown code fences
+    const markdownMatch = rawContent.match(/```(?:json)?\n([\s\S]*?)```/);
+    if (markdownMatch) {
+      try {
+        aiMessage = JSON.parse(markdownMatch[1].trim());
+      } catch (nestedError) {
+        console.error("Failed to parse extracted JSON from markdown blocks:", nestedError);
+      }
+    }
+    
+    // If still undefined, try to extract first '{' to last '}'
+    if (!aiMessage) {
+      const startIdx = rawContent.indexOf('{');
+      const endIdx = rawContent.lastIndexOf('}');
+      if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+        try {
+          aiMessage = JSON.parse(rawContent.substring(startIdx, endIdx + 1));
+        } catch (nestedError2) {
+          console.error("Failed to parse extracted JSON substring:", nestedError2);
+        }
+      }
+    }
+
+    // If all attempts fail, provide a robust fallback object
+    if (!aiMessage) {
+      aiMessage = {
+        issue: 'Failed to parse AI response',
+        explanation: rawContent,
+        fix: 'Please retry the request.',
+        bestPractice: 'Ensure the API is returning clean JSON.',
+        
+        steps: ['Failed to trace code execution step-by-step', rawContent],
+        timeComplexity: 'N/A',
+        spaceComplexity: 'N/A',
+        summary: 'Failed to analyze code: raw response returned',
+        
+        testCases: [],
+        
+        riskScore: 0,
+        findings: [],
+        remediationSteps: [],
+        
+        title: 'AI Explanation',
+        concepts: [],
+        tip: '',
+        
+        answer: rawContent,
+        codeExample: '',
+        
+        functionName: 'Unknown',
+        timeComplexity: {
+          best: 'N/A',
+          average: 'N/A',
+          worst: 'N/A',
+          explanation: rawContent
+        },
+        spaceComplexity: {
+          value: 'N/A',
+          explanation: rawContent
+        },
+        breakdown: [],
+        overallRating: 'N/A',
+        tips: []
+      };
+    }
+  }
 
   return { content: aiMessage, usage: tokenUsage };
 }
@@ -374,3 +452,22 @@ module.exports = {
   askFollowUpAI,
   analyzeComplexityAI,
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
