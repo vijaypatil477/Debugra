@@ -9,6 +9,7 @@ const {
   generateTestsAI,
   auditCodeAI,
   visualizeAI,
+  inlineCompleteAI,
   explainCodeSnippetAI,
   askFollowUpAI,
   analyzeComplexityAI,
@@ -99,14 +100,16 @@ const handleCachedRequest = (actionFn) => async (req, res, next) => {
   try {
     const apiKey = getUserGroqApiKey(req);
     // Build a stable hash from the request body instead of embedding raw JSON
-    const sanitizedBody = {
-      code: req.body.code,
-      error: req.body.error,
-      language: req.body.language,
-      question: req.body.question,
-      previousExplanation: req.body.previousExplanation,
-      input: req.body.input
-    };
+  const sanitizedBody = {
+  code: req.body.code,
+  error: req.body.error,
+  language: req.body.language,
+  question: req.body.question,
+  previousExplanation: req.body.previousExplanation,
+  input: req.body.input,
+  prefix: req.body.prefix || '',
+  suffix: req.body.suffix || '',
+};
     const bodyHash = crypto.createHash('sha256').update(JSON.stringify(sanitizedBody)).digest('hex');
     const cacheKey = `${req.path}_${getApiKeyFingerprint(apiKey)}_${bodyHash}`;
     
@@ -169,6 +172,30 @@ router.post('/visualize', validateAiInput, handleCachedRequest(async (body, apiK
   const { code, language, input, model } = body;
   return await visualizeAI(code, language, input, apiKey, model);
 }));
+
+// Low-latency inline completion
+router.post(
+  '/inline-complete',
+  handleCachedRequest(async (body, apiKey) => {
+    const { prefix, suffix, language } = body;
+
+    if (
+      typeof prefix !== 'string' ||
+      typeof suffix !== 'string' ||
+      prefix.length > 5000 ||
+      suffix.length > 5000
+    ) {
+      throw new Error('Invalid inline completion request');
+    }
+
+    return await inlineCompleteAI(
+      prefix,
+      suffix,
+      language,
+      apiKey
+    );
+  })
+);
 
 // AI Code Explainer — explain selected snippet
 router.post('/explain-snippet', validateAiInput, handleCachedRequest(async (body, apiKey) => {

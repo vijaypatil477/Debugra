@@ -1,5 +1,9 @@
 const Groq = require('groq-sdk');
 
+
+const MODEL = 'llama-3.3-70b-versatile';
+const INLINE_MODEL = process.env.GROQ_INLINE_MODEL || MODEL;
+
 const MODELS = {
   'llama-3.3-70b-versatile': 'Llama 3.3 70B',
   'llama-3.1-8b-instant': 'Llama 3.1 8B',
@@ -7,10 +11,12 @@ const MODELS = {
 };
 const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 
+
 function sanitizePromptInput(input) {
   if (typeof input !== 'string') return '';
   return input.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
+
 
 function getGroqClient(apiKey) {
   return new Groq({ apiKey: apiKey || process.env.GROQ_API_KEY || 'missing_key' });
@@ -109,6 +115,7 @@ async function chatCompletion(systemPrompt, userPrompt, apiKey = '', model = DEF
 async function chatCompletionText(systemPrompt, userPrompt, apiKey = '', model = DEFAULT_MODEL) {
   const response = await getGroqClient(apiKey).chat.completions.create({
     model: MODELS[model] ? model : DEFAULT_MODEL,
+
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -308,6 +315,39 @@ Respond in JSON:
   );
 }
 
+
+// 7. Low-latency inline completion
+async function inlineCompleteAI(prefix, suffix, language, apiKey = '') {
+  const response = await chatCompletionText(
+    `You are an inline code completion expert. Continue the user's code from the cursor using the provided prefix and suffix context. Return only the completion text, with no markdown, no explanation, and no extra commentary. Do not repeat the prefix or suffix.`,
+    `Prefix:
+${prefix}
+
+Suffix:
+${suffix}
+
+Provide only the text that should be inserted at the cursor position. If no completion is appropriate, return an empty string.`,
+    apiKey,
+    INLINE_MODEL
+  );
+
+  let completion = response.content;
+
+  // Strip markdown fences or accidental chat artifacts
+  if (completion.includes('```')) {
+    const match = completion.match(/```[a-z]*\n([\s\S]*?)```/);
+    if (match) {
+      completion = match[1];
+    } else {
+      completion = completion.replace(/```[a-z]*\n?/g, '').replace(/```/g, '');
+    }
+  }
+
+  return { completion: completion.trimEnd(), usage: response.usage };
+}
+
+// 8. AI Code Explainer — explains a selected code snippet in plain language
+
 // 7. AI Code Explainer — explains a selected code snippet in plain language
 async function explainCodeSnippetAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
   return chatCompletion(
@@ -403,6 +443,7 @@ module.exports = {
   generateTestsAI,
   auditCodeAI,
   visualizeAI,
+  inlineCompleteAI,
   explainCodeSnippetAI,
   askFollowUpAI,
   analyzeComplexityAI,

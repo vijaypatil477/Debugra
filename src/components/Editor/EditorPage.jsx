@@ -15,7 +15,11 @@ import {
   useEditor,
   useIsMobile,
   useAudioFeedback,
+
+  useInlineCompletion,
+
   useWelcomeTour,
+
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
@@ -105,6 +109,8 @@ export default function EditorPage({ user }) {
   const [minimapSide, setMinimapSide] = useState('right');
   const [showSettings, setShowSettings] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
+  const [inlineSuggestion, setInlineSuggestion] = useState('');
+  const [editorCode, setEditorCode] = useState('');
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10);
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
@@ -251,6 +257,13 @@ export default function EditorPage({ user }) {
     model: selectedModel,
   });
 
+
+  const inlineCompletion = useInlineCompletion({
+    language: editor.language,
+    code: editor.code,
+    editorRef,
+  });
+
   const aiFixRef = useRef(ai.fix);
   const aiExplainRef = useRef(ai.explain);
   const aiGenerateTestsRef = useRef(ai.generateTests);
@@ -260,6 +273,7 @@ export default function EditorPage({ user }) {
     aiExplainRef.current = ai.explain;
     aiGenerateTestsRef.current = ai.generateTests;
   }, [ai.fix, ai.explain, ai.generateTests]);
+
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
@@ -372,7 +386,7 @@ export default function EditorPage({ user }) {
     });
   };
 
-  const handleEditorMount = (editorInstance) => {
+  const handleEditorMount = (editorInstance, monaco) => {
     editorRef.current = editorInstance;
     window.__DEBUGRA_EDITOR__ = editorInstance;
     const monaco = monacoRef.current;
@@ -420,16 +434,40 @@ export default function EditorPage({ user }) {
 
     editorInstance.onDidChangeCursorPosition((e) => {
       editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
+      inlineCompletion.clearSuggestion();
+      inlineCompletion.triggerSuggestion();
+    });
+
+    editorInstance.onDidChangeModelContent(() => {
+      inlineCompletion.clearSuggestion();
+      inlineCompletion.triggerSuggestion();
+    });
+
+
+    editorInstance.onKeyDown((event) => {
+      if (event.keyCode === monaco.KeyCode.Tab && inlineCompletion?.suggestion) {
+        event.preventDefault();
+        inlineCompletion.acceptSuggestion();
+      }
+      if (event.keyCode === monaco.KeyCode.Escape && inlineCompletion?.suggestion) {
+        event.preventDefault();
+        inlineCompletion.clearSuggestion();
+      }
     });
 
     // Prevent our custom Ctrl+S and Tab handlers from being blocked by Vim command-mode.
     // These are handled via the capture-phase DOM keydown listener above, and Vim mode toggling
     // should not override these specific shortcuts.
 
+
     // Ctrl+Enter → Run
     editorInstance.addCommand(2048 | 3, () => {
       if (executionRunRef.current) executionRunRef.current();
     });
+
+
+
+    inlineCompletion.triggerSuggestion();
 
     // AI Shortcuts
     editorInstance.addCommand(
@@ -518,6 +556,7 @@ export default function EditorPage({ user }) {
         vimControllerRef.current = controller;
       });
     }
+
   };
 
   useEffect(

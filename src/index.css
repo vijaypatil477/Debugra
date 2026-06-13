@@ -572,6 +572,17 @@ body {
   font-family: 'Inter', sans-serif;
 }
 
+/* Inline AI suggestion styling */
+.inline-suggestion-text {
+  color: rgba(255, 255, 255, 0.48) !important;
+  font-style: italic;
+  opacity: 0.9;
+}
+
+[data-theme='light'] .inline-suggestion-text {
+  color: rgba(44, 44, 44, 0.42) !important;
+}
+
 /* Stdin panel toggle button */
 .stdin-toggle-btn {
   width: 100%;

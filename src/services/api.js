@@ -103,4 +103,13 @@ export const aiAnalyzeComplexity = async (code, language) => {
   return data;
 };
 
+export const aiInlineComplete = async (prefix, suffix, language) => {
+  const { data } = await api.post('/api/ai/inline-complete', {
+    prefix,
+    suffix,
+    language,
+  });
+  return data;
+};
+
 export default api;

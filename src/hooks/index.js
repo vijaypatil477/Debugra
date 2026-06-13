@@ -7,5 +7,12 @@ export { useExecution } from './useExecution';
 export { useEditor } from './useEditor';
 export { useIsMobile } from './useIsMobile';
 export { useAudioFeedback } from './useAudioFeedback';
-export { useDebounce, useDebouncedCallback } from './useDebounce';
+
+
+export { useInlineCompletion } from './useInlineCompletion';
+
 export { useWelcomeTour } from './useWelcomeTour';
+
+export { useDebounce, useDebouncedCallback } from './useDebounce';
+
+
