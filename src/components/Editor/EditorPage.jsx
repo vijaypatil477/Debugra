@@ -19,6 +19,7 @@ import {
 } from '../../hooks';
 import { registerSnippets } from '../../utils/snippetsConfig';
 import { ensureEditorFontLoaded, getEditorFontFamily } from '../../utils/editorFonts';
+import { getUserColor } from '../../utils/cursorColors';
 import { LANGUAGES, detectLanguageByFileName } from '../../utils/languageConfig';
 import {
   LANG_FILE_NAMES,
@@ -418,8 +419,16 @@ export default function EditorPage({ user }) {
       editorDomNode?.removeEventListener('keydown', handleDomKeyDown, true);
     });
 
-    editorInstance.onDidChangeCursorPosition((e) => {
-      editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
+    editorInstance.onDidChangeCursorSelection((e) => {
+      const sel = e.selection;
+      editor.setCursorPos({
+        line: sel.positionLineNumber,
+        col: sel.positionColumn,
+        selectionStartLine: sel.startLineNumber,
+        selectionStartCol: sel.startColumn,
+        selectionEndLine: sel.endLineNumber,
+        selectionEndCol: sel.endColumn,
+      });
     });
 
     // Prevent our custom Ctrl+S and Tab handlers from being blocked by Vim command-mode.
@@ -566,7 +575,7 @@ export default function EditorPage({ user }) {
     if (!str) return '';
     return str
       .replace(/\\/g, '\\\\')
-      .replace(/'/g, "\\'") 
+      .replace(/'/g, "\\'")
       .replace(/"/g, '\\"')
       .replace(/\n/g, '\\A ')
       .replace(/\r/g, '')
@@ -578,21 +587,20 @@ export default function EditorPage({ user }) {
     const monaco = monacoRef.current;
     if (!editorInstance || !monaco || !room.remoteCursors) return;
 
-    const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
-    const getUserColor = (uid) => {
-      let hash = 0;
-      for (let i = 0; i < uid.length; i++) {
-        hash = uid.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      const index = Math.abs(hash) % colors.length;
-      return colors[index];
-    };
-
+    const now = Date.now();
     const newDecorations = [];
+
     Object.values(room.remoteCursors).forEach((c) => {
       if (!c.line || !c.col) return;
+
+      // Hide cursors for users idle >30 seconds
+      const updatedAt =
+        c.updatedAt?.toMillis?.() || (c.updatedAt?.seconds ? c.updatedAt.seconds * 1000 : 0);
+      if (now - updatedAt > 30000) return;
+
       const userColor = getUserColor(c.uid);
-      const className = `remote-cursor-${c.uid}`;
+      const cursorClass = `remote-cursor-${c.uid}`;
+      const selectionClass = `remote-selection-${c.uid}`;
 
       let styleEl = document.getElementById(`style-${c.uid}`);
       if (!styleEl) {
@@ -602,12 +610,12 @@ export default function EditorPage({ user }) {
       }
       const escapedDisplayName = escapeForCssContent(c.displayName);
       styleEl.innerHTML = `
-        .${className} {
+        .${cursorClass} {
           border-left: 2px solid ${userColor} !important;
           margin-left: -1px;
           position: relative;
         }
-        .${className}::after {
+        .${cursorClass}::after {
           content: '${escapedDisplayName}';
           position: absolute;
           bottom: 100%;
@@ -623,18 +631,47 @@ export default function EditorPage({ user }) {
           pointer-events: none;
           z-index: 10;
         }
-        .${className}:hover::after {
+        .${cursorClass}:hover::after {
           opacity: 1;
+        }
+        .${selectionClass} {
+          background-color: ${userColor}33 !important;
+          border-radius: 2px;
         }
       `;
 
+      // Cursor bar decoration
       newDecorations.push({
         range: new monaco.Range(c.line, c.col, c.line, c.col),
         options: {
-          className: className,
+          className: cursorClass,
           hoverMessage: { value: `**${c.displayName}** is here` },
         },
       });
+
+      // Selection highlight decoration
+      const hasSelection =
+        c.selectionStartLine != null &&
+        c.selectionEndLine != null &&
+        (c.selectionStartLine !== c.selectionEndLine || c.selectionStartCol !== c.selectionEndCol);
+
+      if (hasSelection) {
+        newDecorations.push({
+          range: new monaco.Range(
+            c.selectionStartLine,
+            c.selectionStartCol,
+            c.selectionEndLine,
+            c.selectionEndCol
+          ),
+          options: {
+            className: selectionClass,
+            overviewRuler: {
+              color: userColor,
+              position: monaco.editor.OverviewRulerLane.Full,
+            },
+          },
+        });
+      }
     });
 
     remoteCursorDecorationsRef.current = editorInstance.deltaDecorations(
