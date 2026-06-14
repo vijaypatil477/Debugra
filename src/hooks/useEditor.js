@@ -76,7 +76,14 @@ export function useEditor({ user, onNeedAuth }) {
   const [autosaveInterval, setAutosaveIntervalState] = useState(() =>
     getStoredNumber('debugra-autosave-interval', 0, AUTOSAVE_INTERVAL_VALUES)
   );
-  const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
+  const [cursorPos, setCursorPos] = useState({
+    line: 1,
+    col: 1,
+    selectionStartLine: null,
+    selectionStartCol: null,
+    selectionEndLine: null,
+    selectionEndCol: null,
+  });
   const [stdinValue, setStdinValue] = useState(initialDraft?.stdinValue ?? '');
   const [stdinOpen, setStdinOpen] = useState(false);
 
