@@ -1,13 +1,16 @@
-﻿module.exports = (err, req, res, next) => {
-  console.error('âŒ Error:', err.stack || err.message);
-  const status = err.status || 500;
-  const isDev = process.env.NODE_ENV === 'development';
-  const message = (status >= 400 && status < 500) || isDev
-    ? (err.message || 'Internal server error')
-    : 'Internal server error';
+module.exports = (err, req, res, next) => {
+  console.error('❌ Error:', err.message);
 
-  res.status(status).json({
-    error: message,
-    ...(isDev && { stack: err.stack }),
+  // Strip sensitive request config and request objects from Axios/HTTP errors to prevent leaking keys/headers
+  if (err.config) {
+    delete err.config;
+  }
+  if (err.request) {
+    delete err.request;
+  }
+
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 };
