@@ -77,6 +77,7 @@ export function useEditor({ user, onNeedAuth }) {
     getStoredNumber('debugra-autosave-interval', 0, AUTOSAVE_INTERVAL_VALUES)
   );
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
+  const lastLocalEditTimeRef = useRef(0);
   const [stdinValue, setStdinValue] = useState(initialDraft?.stdinValue ?? '');
   const [stdinOpen, setStdinOpen] = useState(false);
 
@@ -162,6 +163,11 @@ export function useEditor({ user, onNeedAuth }) {
 
   const updateCode = useCallback((newCode) => {
     hasUserChangesRef.current = true;
+    setCode(newCode);
+    lastLocalEditTimeRef.current = Date.now();
+  }, []);
+
+  const applyRemoteCode = useCallback((newCode) => {
     setCode(newCode);
   }, []);
 
@@ -355,6 +361,8 @@ export function useEditor({ user, onNeedAuth }) {
   return {
     code,
     setCode: updateCode,
+    applyRemoteCode,
+    lastLocalEditTimeRef,
     language,
     setLanguage: updateLanguage,
     fontSize,
