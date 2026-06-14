@@ -47,6 +47,7 @@ import MobileDrawer from './MobileDrawer';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
 import DebugOverlay from './DebugOverlay';
 import SearchReplacePanel from './SearchReplacePanel';
+import MergeConflictPanel from './MergeConflictPanel';
 import Loader from '../Loader';
 import ComplexityOverlay from './ComplexityOverlay';
 
@@ -215,6 +216,8 @@ export default function EditorPage({ user }) {
     setLanguage: editor.setLanguage,
     setStdinValue: editor.setStdinValue,
     cursorPos: editor.cursorPos,
+    applyRemoteCode: editor.applyRemoteCode,
+    lastLocalEditTimeRef: editor.lastLocalEditTimeRef,
   });
 
   const execution = useExecution({
@@ -1489,8 +1492,21 @@ export default function EditorPage({ user }) {
           <div
             id="editor-container"
             className={showMinimap ? '' : 'minimap-disabled'}
-            style={{ flex: 1, minHeight: 0, opacity: room.isReadOnly ? 0.8 : 1 }}
+            style={{
+              flex: 1,
+              minHeight: 0,
+              opacity: room.isReadOnly ? 0.8 : 1,
+              position: room.activeConflict ? 'relative' : undefined,
+            }}
           >
+            {room.activeConflict && (
+              <MergeConflictPanel
+                conflict={room.activeConflict}
+                onResolve={room.resolveConflict}
+                language={langConfig.monacoLang}
+                theme={editor.theme}
+              />
+            )}
             {room.isReadOnly && (
               <div className="readonly-badge">
                 <svg
