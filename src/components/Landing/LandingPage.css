@@ -473,7 +473,7 @@
 .faq-item {
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface);
   overflow: hidden;
   transition:
     border-color 0.2s,
@@ -484,7 +484,7 @@
 .faq-item:hover,
 .faq-item.is-open {
   border-color: var(--border-hover);
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--surface-hover);
 }
 
 .faq-question {
@@ -518,7 +518,7 @@
   justify-content: center;
   border: 1px solid var(--border-subtle);
   color: var(--brand);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface);
   font-size: 1rem;
   line-height: 1;
 }
