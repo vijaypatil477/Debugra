@@ -2250,6 +2250,10 @@ body {
   --text-2: #9d9d9d;
   --accent: #0078d4;
   --warning: #dcdcaa;
+  --syn-keyword: #569cd6;
+  --syn-function: #dcdcaa;
+  --syn-variable: #9cdcfe;
+  --syn-text: #d4d4d4;
 
   border-radius: 12px;
   overflow: hidden;
@@ -2316,6 +2320,31 @@ body {
 .preview-divider {
   width: 1px;
   background: var(--border);
+}
+
+[data-theme="light"] .editor-preview {
+  --bg-0: #f5f5f5;
+  --bg-1: #ffffff;
+  --bg-2: #ebebeb;
+  --bg-3: #d4d4d4;
+  --bg-active: #e0e0e0;
+  --border: #d0d0d0;
+  --text-0: #1e1e1e;
+  --text-1: #666666;
+  --text-2: #808080;
+  --accent: #0066b8;
+  --warning: #856e00;
+  --syn-keyword: #0000ff;
+  --syn-function: #795e26;
+  --syn-variable: #001080;
+  --syn-text: #1e1e1e;
+
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .preview-run-tag {
+  color: #fff;
 }
 
 .preview-output {
@@ -2488,9 +2517,7 @@ input[type='password']::-ms-clear {
 
 /* ============ FEEDBACK PAGE (FIX FOR GSSOC 2026) ============ */
 .feedback-page {
-  /* FIX: Changed to height 100% to ensure the container uses all available space 
-     and doesn't clip the submit button or other controls when interacting with the form */
-  height: 100%;
+  min-height: 100vh;
   overflow-y: auto;
   background: var(--bg-0);
   color: var(--text-0);
@@ -2499,11 +2526,10 @@ input[type='password']::-ms-clear {
 }
 
 .feedback-shell {
-  width: min(1080px, 100%);
+  width: min(860px, 100%);
   margin: 0 auto;
   display: grid;
-  /* Maintains the original 2-column layout from Captura.PNG */
-  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+  grid-template-columns: 1fr 1.2fr;
   gap: 40px;
   align-items: start;
 }
@@ -2575,9 +2601,9 @@ input[type='password']::-ms-clear {
 }
 
 .feedback-form {
-  padding: 24px;
+  padding: 28px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--bg-card);
 }
 
