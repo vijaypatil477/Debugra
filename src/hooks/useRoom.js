@@ -11,24 +11,13 @@ import {
   collection,
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import api from '../services/api';
 import toast from 'react-hot-toast';
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
 
 async function verifyRoomPassword(roomId, password) {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-  const res = await fetch(`${apiUrl}/api/rooms/verify-password`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roomId, password }),
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.error || 'Password verification failed.');
-  }
+  const { data } = await api.post('/api/rooms/verify-password', { roomId, password });
 
   sessionStorage.setItem(
     `${ROOM_AUTH_PREFIX}${roomId}`,
@@ -42,7 +31,6 @@ async function verifyRoomPassword(roomId, password) {
 }
 
 async function hasValidRoomAccess(roomId) {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
   const stored = sessionStorage.getItem(`${ROOM_AUTH_PREFIX}${roomId}`);
 
   if (!stored) return false;
@@ -54,13 +42,8 @@ async function hasValidRoomAccess(roomId) {
       return false;
     }
 
-    const res = await fetch(`${apiUrl}/api/rooms/validate-token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomId, accessToken }),
-    });
-
-    if (res.ok) return true;
+    await api.post('/api/rooms/validate-token', { roomId, accessToken });
+    return true;
   } catch {
     // corrupted storage or network issue; fall through to remove token
   }
@@ -220,16 +203,12 @@ export function useRoom({
       navigator.clipboard.writeText(id);
 
       // Trigger Webhook via Backend API
-      fetch(import.meta.env.VITE_API_URL + '/api/webhooks/room-event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event: 'room_created',
-          roomId: id,
-          userName: displayName,
-          passwordProtected,
-        }),
-      }).catch(console.error);
+      api.post('/api/webhooks/room-event', {
+        event: 'room_created',
+        roomId: id,
+        userName: displayName,
+        passwordProtected,
+      }).catch(() => {});
 
       return true;
     },
@@ -287,15 +266,11 @@ export function useRoom({
         toast.success(`Joined room: ${newRoomId}`);
 
         // Trigger Webhook via Backend API
-        fetch(import.meta.env.VITE_API_URL + '/api/webhooks/room-event', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            event: 'room_joined',
-            roomId: newRoomId,
-            userName: displayName,
-          }),
-        }).catch(console.error);
+        api.post('/api/webhooks/room-event', {
+          event: 'room_joined',
+          roomId: newRoomId,
+          userName: displayName,
+        }).catch(() => {});
 
         return true;
       } catch (err) {
