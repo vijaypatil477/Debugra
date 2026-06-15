@@ -736,35 +736,35 @@ export default function LandingPage() {
                 <div className="col-12 col-md-8 preview-code">
                   <code>
                     <span className="ln">1</span>
-                    <span style={{ color: '#569cd6' }}>def</span>{' '}
-                    <span style={{ color: '#dcdcaa' }}>two_sum</span>
-                    <span style={{ color: '#d4d4d4' }}>(nums, target):{'\n'}</span>
+                    <span style={{ color: 'var(--syn-keyword)' }}>def</span>{' '}
+                    <span style={{ color: 'var(--syn-function)' }}>two_sum</span>
+                    <span style={{ color: 'var(--syn-text)' }}>(nums, target):{'\n'}</span>
                     <span className="ln">2</span>
-                    <span style={{ color: '#d4d4d4' }}>
+                    <span style={{ color: 'var(--syn-text)' }}>
                       {' '}
                       seen = {'{}'}
                       {'\n'}
                     </span>
                     <span className="ln">3</span>
-                    <span style={{ color: '#569cd6' }}> for</span>{' '}
-                    <span style={{ color: '#9cdcfe' }}>i, num</span>{' '}
-                    <span style={{ color: '#569cd6' }}> in</span>{' '}
-                    <span style={{ color: '#dcdcaa' }}> enumerate</span>
-                    <span style={{ color: '#d4d4d4' }}>(nums):{'\n'}</span>
+                    <span style={{ color: 'var(--syn-keyword)' }}> for</span>{' '}
+                    <span style={{ color: 'var(--syn-variable)' }}>i, num</span>{' '}
+                    <span style={{ color: 'var(--syn-keyword)' }}> in</span>{' '}
+                    <span style={{ color: 'var(--syn-function)' }}> enumerate</span>
+                    <span style={{ color: 'var(--syn-text)' }}>(nums):{'\n'}</span>
                     <span className="ln">4</span>
-                    <span style={{ color: '#d4d4d4' }}> diff = target - num{'\n'}</span>
+                    <span style={{ color: 'var(--syn-text)' }}> diff = target - num{'\n'}</span>
                     <span className="ln highlight-ln">5</span>
-                    <span style={{ color: '#569cd6' }}> if</span>{' '}
-                    <span style={{ color: '#9cdcfe' }}> diff</span>{' '}
-                    <span style={{ color: '#569cd6' }}> in</span>{' '}
-                    <span style={{ color: '#9cdcfe' }}> seen</span>
-                    <span style={{ color: '#d4d4d4' }}>:{'\n'}</span>
+                    <span style={{ color: 'var(--syn-keyword)' }}> if</span>{' '}
+                    <span style={{ color: 'var(--syn-variable)' }}> diff</span>{' '}
+                    <span style={{ color: 'var(--syn-keyword)' }}> in</span>{' '}
+                    <span style={{ color: 'var(--syn-variable)' }}> seen</span>
+                    <span style={{ color: 'var(--syn-text)' }}>:{'\n'}</span>
                     <span className="ln highlight-ln">6</span>
-                    <span style={{ color: '#d4d4d4' }}> </span>
-                    <span style={{ color: '#569cd6' }}>return</span>
-                    <span style={{ color: '#d4d4d4' }}> [seen[diff], i]{'\n'}</span>
+                    <span style={{ color: 'var(--syn-text)' }}> </span>
+                    <span style={{ color: 'var(--syn-keyword)' }}>return</span>
+                    <span style={{ color: 'var(--syn-text)' }}> [seen[diff], i]{'\n'}</span>
                     <span className="ln">7</span>
-                    <span style={{ color: '#d4d4d4' }}> seen[num] = i</span>
+                    <span style={{ color: 'var(--syn-text)' }}> seen[num] = i</span>
                   </code>
                 </div>
                 <div className="col-12 col-md-4 preview-output">

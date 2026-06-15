@@ -2250,6 +2250,10 @@ body {
   --text-2: #9d9d9d;
   --accent: #0078d4;
   --warning: #dcdcaa;
+  --syn-keyword: #569cd6;
+  --syn-function: #dcdcaa;
+  --syn-variable: #9cdcfe;
+  --syn-text: #d4d4d4;
 
   border-radius: 12px;
   overflow: hidden;
@@ -2316,6 +2320,31 @@ body {
 .preview-divider {
   width: 1px;
   background: var(--border);
+}
+
+[data-theme="light"] .editor-preview {
+  --bg-0: #f5f5f5;
+  --bg-1: #ffffff;
+  --bg-2: #ebebeb;
+  --bg-3: #d4d4d4;
+  --bg-active: #e0e0e0;
+  --border: #d0d0d0;
+  --text-0: #1e1e1e;
+  --text-1: #666666;
+  --text-2: #808080;
+  --accent: #0066b8;
+  --warning: #856e00;
+  --syn-keyword: #0000ff;
+  --syn-function: #795e26;
+  --syn-variable: #001080;
+  --syn-text: #1e1e1e;
+
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .preview-run-tag {
+  color: #fff;
 }
 
 .preview-output {
