@@ -2497,11 +2497,10 @@ input[type='password']::-ms-clear {
 }
 
 .feedback-shell {
-  width: min(1080px, 100%);
+  width: min(860px, 100%);
   margin: 0 auto;
   display: grid;
-  /* Maintains the original 2-column layout from Captura.PNG */
-  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+  grid-template-columns: 1fr 1.2fr;
   gap: 40px;
   align-items: start;
 }
@@ -2573,9 +2572,9 @@ input[type='password']::-ms-clear {
 }
 
 .feedback-form {
-  padding: 24px;
+  padding: 28px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--bg-card);
 }
 
