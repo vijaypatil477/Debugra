@@ -37,6 +37,34 @@ vi.mock('react-hot-toast', () => ({
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+const localStorageMock = (function () {
+  let store = {};
+  return {
+    getItem(key) {
+      return store[key] || null;
+    },
+    setItem(key, value) {
+      store[key] = String(value);
+    },
+    clear() {
+      store = {};
+    },
+    removeItem(key) {
+      delete store[key];
+    },
+  };
+})();
+Object.defineProperty(globalThis, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'localStorage', {
+    value: localStorageMock,
+    writable: true,
+  });
+}
+
 const { addDoc, setDoc } = firestoreMocks;
 
 function setOnline(value) {
@@ -85,7 +113,7 @@ describe('useEditor auto-save', () => {
     addDoc.mockResolvedValue({ id: 'manual-save' });
     setDoc.mockResolvedValue(undefined);
     window.prompt = vi.fn(() => 'main.py');
-    localStorage.clear();
+    window.localStorage?.clear();
     setOnline(true);
   });
 
