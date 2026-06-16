@@ -240,12 +240,6 @@ app.post(
 app.use(
   cors({
     origin(origin, callback) {
-      // Reject missing Origin headers consistently to avoid loosening CORS
-      // protections in development mode.
-      if (!origin) {
-     return callback(null, true);
-    }
-
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
