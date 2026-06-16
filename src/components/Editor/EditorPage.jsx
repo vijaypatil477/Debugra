@@ -81,9 +81,12 @@ export default function EditorPage({ user }) {
   const monacoRef = useRef(null);
   const fileInputRef = useRef(null);
   const providerRegisteredRef = useRef(false);
+  const remoteCursorDecorationsRef = useRef([]);
 
   // ─── UI State ──────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
+  // Separate flash-state for the Room ID chip's copy interaction
+  const [linkCopied, setLinkCopied] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [showHistory, setShowHistory] = useState(false);
@@ -212,6 +215,7 @@ export default function EditorPage({ user }) {
     setCode: editor.setCode,
     setLanguage: editor.setLanguage,
     setStdinValue: editor.setStdinValue,
+    cursorPos: editor.cursorPos,
   });
 
   const execution = useExecution({
@@ -309,15 +313,24 @@ export default function EditorPage({ user }) {
     });
 
     // AI Shortcuts
-    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F, () => {
-      if (aiFixRef.current) aiFixRef.current();
-    });
-    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_E, () => {
-      if (aiExplainRef.current) aiExplainRef.current();
-    });
-    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_T, () => {
-      if (aiGenerateTestsRef.current) aiGenerateTestsRef.current();
-    });
+    editorInstance.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F,
+      () => {
+        if (aiFixRef.current) aiFixRef.current();
+      }
+    );
+    editorInstance.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_E,
+      () => {
+        if (aiExplainRef.current) aiExplainRef.current();
+      }
+    );
+    editorInstance.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_T,
+      () => {
+        if (aiGenerateTestsRef.current) aiGenerateTestsRef.current();
+      }
+    );
 
     const formatCurrentModel = async () => {
       const model = editorInstance.getModel();
@@ -413,6 +426,119 @@ export default function EditorPage({ user }) {
     }
   }, [vimEnabled]);
 
+  // ─── Monaco layout refresh after console collapse/restore animation ──────
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      editorRef.current?.layout();
+    }, 310);
+    return () => clearTimeout(timer);
+  }, [isOutputCollapsed]);
+
+  // ─── Render Remote Cursors ────────────────────────────────────────────────
+  const escapeForCssContent = (str) => {
+    if (!str) return '';
+    return str
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'") 
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\A ')
+      .replace(/\r/g, '')
+      .slice(0, 30);
+  };
+
+  useEffect(() => {
+    const editorInstance = editorRef.current;
+    const monaco = monacoRef.current;
+    if (!editorInstance || !monaco || !room.remoteCursors) return;
+
+    const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+    const getUserColor = (uid) => {
+      let hash = 0;
+      for (let i = 0; i < uid.length; i++) {
+        hash = uid.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const index = Math.abs(hash) % colors.length;
+      return colors[index];
+    };
+
+    const newDecorations = [];
+    Object.values(room.remoteCursors).forEach((c) => {
+      if (!c.line || !c.col) return;
+      const userColor = getUserColor(c.uid);
+      const className = `remote-cursor-${c.uid}`;
+
+      let styleEl = document.getElementById(`style-${c.uid}`);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = `style-${c.uid}`;
+        document.head.appendChild(styleEl);
+      }
+      const escapedDisplayName = escapeForCssContent(c.displayName);
+      styleEl.innerHTML = `
+        .${className} {
+          border-left: 2px solid ${userColor} !important;
+          margin-left: -1px;
+          position: relative;
+        }
+        .${className}::after {
+          content: '${escapedDisplayName}';
+          position: absolute;
+          bottom: 100%;
+          left: 0;
+          background: ${userColor};
+          color: #ffffff;
+          font-size: 10px;
+          padding: 1px 4px;
+          border-radius: 3px;
+          white-space: nowrap;
+          opacity: 0;
+          transition: opacity 0.2s ease-in-out;
+          pointer-events: none;
+          z-index: 10;
+        }
+        .${className}:hover::after {
+          opacity: 1;
+        }
+      `;
+
+      newDecorations.push({
+        range: new monaco.Range(c.line, c.col, c.line, c.col),
+        options: {
+          className: className,
+          hoverMessage: { value: `**${c.displayName}** is here` },
+        },
+      });
+    });
+
+    remoteCursorDecorationsRef.current = editorInstance.deltaDecorations(
+      remoteCursorDecorationsRef.current,
+      newDecorations
+    );
+
+    return () => {
+      const activeUids = new Set(Object.keys(room.remoteCursors || {}));
+      const styleElements = document.querySelectorAll('[id^="style-"]');
+      styleElements.forEach((el) => {
+        const uid = el.id.substring(6);
+        if (!activeUids.has(uid)) {
+          el.remove();
+        }
+      });
+    };
+  }, [room.remoteCursors]);
+
+  // Cleanup all cursor style elements on unmount
+  useEffect(() => {
+    return () => {
+      const styleElements = document.querySelectorAll('[id^="style-"]');
+      styleElements.forEach((el) => el.remove());
+      if (editorRef.current) {
+        editorRef.current.deltaDecorations(remoteCursorDecorationsRef.current, []);
+      }
+    };
+  }, []);
+
+  // ─── Output Pane Resize ───────────────────────────────────────────────────
   const handleResizeStart = (e) => {
     resizingRef.current = true;
     document.addEventListener('mousemove', handleResizeMove);
@@ -471,47 +597,75 @@ export default function EditorPage({ user }) {
           >
             <Menu size={18} />
           </button>
-          <div className="brand" onClick={() => navigate('/')}>
-            <div className="logo-icon">D</div>
-            <span className="logo-text d-none d-sm-inline">Debugra</span>
-          </div>
 
-          <div className="toolbar-divider d-none d-lg-block" />
-
-          {/* Model Selector */}
-          <div className="model-selector d-none d-lg-flex">
-            <i className="bi bi-cpu" />
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              aria-label="Select AI Model"
-            >
-              <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-              <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
-              <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
-              <option value="gemma2-9b-it">Gemma 2 9B</option>
-            </select>
-          </div>
-
-          <div className="toolbar-divider d-none d-lg-block" />
-
-          {/* Language Selector */}
-          <div className="lang-selector d-none d-sm-flex">
-            <FileIcon filename={editorFileName} size={14} />
-            <select
-              value={editor.language}
-              onChange={(e) => editor.setLanguage(e.target.value)}
-              disabled={room.isReadOnly}
-              aria-label="Select Programming Language"
-              className="lang-select"
-            >
-              {Object.entries(LANGUAGES).map(([id, lang]) => (
-                <option key={id} value={id}>
-                  {lang.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div className="topbar-sep mx-2 d-none d-md-block" />
+          <span className="topbar-title d-none d-md-block">Code Editor</span>
+          {(room.roomId || isTestRoom) && (
+            <>
+              <div className="room-badge-group d-none d-sm-flex">
+                <button
+                  className={`room-id-chip${linkCopied ? ' copied' : ''}`}
+                  title="Click to copy shareable room link"
+                  aria-label="Copy room link"
+                  onClick={() => {
+                    const link = `${window.location.origin}/editor?room=${room.roomId}`;
+                    navigator.clipboard.writeText(link);
+                    toast.success('Room link copied!');
+                    setLinkCopied(true);
+                    setTimeout(() => setLinkCopied(false), 1500);
+                  }}
+                >
+                  🔗{' '}
+                  <span>
+                    Room: <span className="room-id-chip__full">#{room.roomId}</span>
+                    <span className="room-id-chip__short">#{room.roomId?.slice(0, 6)}</span>
+                  </span>
+                  <svg
+                    className="room-id-chip__icon"
+                    width="11" height="11" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" strokeWidth="2.2"
+                    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                  >
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                </button>
+                <div
+                  className="room-live-bubble"
+                  title={`${room.activeUsers.length} active collaborator${
+                    room.activeUsers.length !== 1 ? 's' : ''
+                  }`}
+                >
+                  <span className="room-live-dot" aria-hidden="true" />
+                  {room.activeUsers.length} active
+                </div>
+              </div>
+              <button
+                className="topbar-link"
+                onClick={() => setShowVideoCall(!showVideoCall)}
+                style={{
+                  background: showVideoCall ? 'rgba(239, 68, 68, 0.15)' : 'rgba(139, 92, 246, 0.15)',
+                  color: showVideoCall ? '#ff6b6b' : '#a78bfa',
+                  border: showVideoCall ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(139, 92, 246, 0.3)',
+                  padding: '3px 10px', borderRadius: '6px', fontWeight: 600, transition: 'all 0.2s',
+                }}
+              >
+                📹 {showVideoCall ? 'Leave Call' : 'Join Call'}
+              </button>
+              <button
+                className="topbar-link"
+                onClick={() => setShowVoiceCall((s) => !s)}
+                style={{
+                  background: showVoiceCall ? 'rgba(34,197,94,0.12)' : 'rgba(99,102,241,0.06)',
+                  color: showVoiceCall ? '#16a34a' : '#4f46e5',
+                  border: showVoiceCall ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(99,102,241,0.12)',
+                  padding: '3px 10px', borderRadius: '6px', fontWeight: 600, transition: 'all 0.18s',
+                }}
+              >
+                🔊 {showVoiceCall ? 'Leave Voice' : 'Join Voice'}
+              </button>
+            </>
+          )}
         </div>
 
         <div className="toolbar-right">
