@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "D:\\Debugra\\server\\logs\\.14935b1bc714f1acbb610749f3ac71856ce16e7c-audit.json",
+    "files": [
+        {
+            "date": 1781621999108,
+            "name": "D:\\Debugra\\server\\logs\\error-2026-06-16.log",
+            "hash": "567d19b49aeff7f70caeb923de26b20a204414389db307103ded0f68f026a96b"
+        }
+    ],
+    "hashType": "sha256"
+}
