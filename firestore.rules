@@ -7,14 +7,11 @@ service cloud.firestore {
     }
 
     match /rooms/{roomId} {
-      // ── READ ─────────────────────────────────────────────────────────────
       allow read: if request.auth != null && request.auth.uid in resource.data.participantIds;
 
-      // ── WRITE ────────────────────────────────────────────────────────────
       allow create: if request.auth != null
                     && !('passwordHash' in request.resource.data)
                     && !('passwordSalt' in request.resource.data);
-
       allow update: if request.auth != null 
                     && (
                       // Host/Creator can update anything (except writing password hash/salt from client)
