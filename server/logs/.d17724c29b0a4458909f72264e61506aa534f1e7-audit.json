@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "/Users/prakash/Documents/GSSOC/Debugra/server/logs/.d17724c29b0a4458909f72264e61506aa534f1e7-audit.json",
+    "files": [
+        {
+            "date": 1779982274652,
+            "name": "/Users/prakash/Documents/GSSOC/Debugra/server/logs/error-2026-05-28.log",
+            "hash": "91f991dffe978e71a679e09cf222b6865957707998092d771526911f8a4c7ab5"
+        },
+        {
+            "date": 1780669457228,
+            "name": "/Users/prakash/Documents/GSSOC/Debugra/server/logs/error-2026-06-05.log",
+            "hash": "3a870065c1046bf864d80c0423bfad2c4572df2fc2bb3227deb53fa8acb82768"
+        }
+    ],
+    "hashType": "sha256"
+}
