@@ -6,8 +6,8 @@ const AudioPeer = ({ stream }) => {
   const audioRef = useRef();
 
   useEffect(() => {
-    if (audioRef.current && stream) {
-      audioRef.current.srcObject = stream;
+    if (audioRef.current) {
+      audioRef.current.srcObject = stream || null;
     }
   }, [stream]);
 
@@ -22,8 +22,8 @@ export default function AudioChannel({ room, user }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '16px' }}>
-      {peers.map((peer, idx) => (
-        <AudioPeer key={idx} stream={peer.stream} />
+      {peers.map((peer) => (
+        <AudioPeer key={peer.peerId} stream={peer.stream} />
       ))}
 
       {!inCall ? (
