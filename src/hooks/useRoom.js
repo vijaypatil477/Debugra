@@ -1,26 +1,72 @@
 import { useState, useEffect, useCallback } from 'react';
-import { doc, setDoc, updateDoc, onSnapshot, serverTimestamp, getDoc, runTransaction } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  updateDoc,
+  onSnapshot,
+  serverTimestamp,
+  getDoc,
+  runTransaction,
+  deleteDoc,
+  collection,
+} from 'firebase/firestore';
 import { db } from '../services/firebase';
 import toast from 'react-hot-toast';
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
 
-async function hashRoomPassword(password, salt) {
-  const encoded = new TextEncoder().encode(`${salt}:${password}`);
-  const digest = await crypto.subtle.digest('SHA-256', encoded);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+async function verifyRoomPassword(roomId, password) {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  const res = await fetch(`${apiUrl}/api/rooms/verify-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roomId, password }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.error || 'Password verification failed.');
+  }
+
+  sessionStorage.setItem(
+    `${ROOM_AUTH_PREFIX}${roomId}`,
+    JSON.stringify({
+      accessToken: data.accessToken,
+      expiresAt: data.expiresAt,
+    })
+  );
+
+  return true;
 }
 
-function createRoomSalt() {
-  return crypto.randomUUID().replace(/-/g, '');
-}
+async function hasValidRoomAccess(roomId) {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const stored = sessionStorage.getItem(`${ROOM_AUTH_PREFIX}${roomId}`);
 
-function rememberRoomAccess(roomId) {
-  sessionStorage.setItem(`${ROOM_AUTH_PREFIX}${roomId}`, 'true');
-}
+  if (!stored) return false;
 
-function hasRememberedRoomAccess(roomId) {
-  return sessionStorage.getItem(`${ROOM_AUTH_PREFIX}${roomId}`) === 'true';
+  try {
+    const { accessToken, expiresAt } = JSON.parse(stored);
+    if (Date.now() >= expiresAt) {
+      sessionStorage.removeItem(`${ROOM_AUTH_PREFIX}${roomId}`);
+      return false;
+    }
+
+    const res = await fetch(`${apiUrl}/api/rooms/validate-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId, accessToken }),
+    });
+
+    if (res.ok) return true;
+  } catch {
+    // corrupted storage or network issue; fall through to remove token
+  }
+
+  sessionStorage.removeItem(`${ROOM_AUTH_PREFIX}${roomId}`);
+  return false;
 }
 
 /**
@@ -39,19 +85,69 @@ function hasRememberedRoomAccess(roomId) {
  * @param {Function} setLanguage - to apply remote language changes
  * @param {Function} setStdinValue - to apply remote stdin changes
  */
-export function useRoom({ user, code, language, stdinValue, setCode, setLanguage, setStdinValue }) {
+export function useRoom({
+  user,
+  code,
+  language,
+  stdinValue,
+  setCode,
+  setLanguage,
+  setStdinValue,
+  cursorPos,
+}) {
   const [roomId, setRoomId] = useState(null);
   const [roomData, setRoomData] = useState(null);
   const [activeUsers, setActiveUsers] = useState([]);
   const [showOnlineDropdown, setShowOnlineDropdown] = useState(false);
   const [showRequestsDropdown, setShowRequestsDropdown] = useState(false);
+  const [remoteCursors, setRemoteCursors] = useState({});
 
   // ─── Derived permissions ────────────────────────────────────────────────────
-  const myRole = roomData?.roles?.[user?.uid] || (roomData?.createdBy === user?.uid ? 'host' : 'viewer');
-  const isHost = myRole === 'host';
-  const isEditor = myRole === 'editor' || isHost;
-  const isReadOnly = !isEditor;
-  const currentEditorName = isEditor ? (user?.displayName || 'Editor') : 'Viewer';
+  const myRole = roomId
+    ? roomData?.roles?.[user?.uid] || (roomData?.createdBy === user?.uid ? 'host' : 'viewer')
+    : 'host';
+  const isHost = !roomId || myRole === 'host';
+  const isEditor = !roomId || myRole === 'editor' || isHost;
+  const isReadOnly = roomId ? !isEditor : false;
+  const currentEditorName = isEditor ? user?.displayName || 'Editor' : 'Viewer';
+
+  // ─── Sync local cursor to Firestore ──────────────────────────────────────────
+  useEffect(() => {
+    if (!roomId || !user || !isEditor || !cursorPos) return;
+    const timer = setTimeout(() => {
+      const cursorRef = doc(db, 'rooms', roomId, 'cursors', user.uid);
+      setDoc(cursorRef, {
+        uid: user.uid,
+        displayName: user.displayName || user.email?.split('@')[0] || 'Guest',
+        line: cursorPos.line,
+        col: cursorPos.col,
+        updatedAt: serverTimestamp(),
+      }).catch(() => {});
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [roomId, user, isEditor, cursorPos]);
+
+  // ─── Listen for remote cursors ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!roomId) {
+      setRemoteCursors({});
+      return;
+    }
+    const cursorsRef = collection(db, 'rooms', roomId, 'cursors');
+    const unsub = onSnapshot(cursorsRef, (snapshot) => {
+      const cursors = {};
+      snapshot.forEach((cursorDoc) => {
+        const data = cursorDoc.data();
+        if (data.uid !== user?.uid) {
+          cursors[data.uid] = data;
+        }
+      });
+      setRemoteCursors(cursors);
+    });
+    return () => {
+      unsub();
+    };
+  }, [roomId, user]);
 
   // ─── Live sync from Firestore ───────────────────────────────────────────────
   useEffect(() => {
@@ -66,7 +162,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       setActiveUsers(data.activeUsers || []);
     });
     return unsub;
-  }, [roomId, user]);
+  }, [roomId, user, setCode, setLanguage, setStdinValue]);
 
   // ─── Push local changes (debounced, editor-gated) ──────────────────────────
   useEffect(() => {
@@ -82,7 +178,7 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       }).catch(() => {});
     }, 300);
     return () => clearTimeout(timer);
-  }, [code, language, stdinValue, roomId, user, isEditor]);
+  }, [code, language, stdinValue, roomId, user, isEditor, roomData]);
 
   // ─── Sync active file (language) for presence ───────────────────────────────
   useEffect(() => {
@@ -95,28 +191,6 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
     }
   }, [roomId, user, roomData, language]);
-
-  // ─── Sync active file (language) for presence ───────────────────────────────
-  useEffect(() => {
-    if (!roomId || !user || !roomData) return;
-    const currentUsers = roomData.activeUsers || [];
-    const myIndex = currentUsers.findIndex((u) => u.uid === user.uid);
-    if (myIndex !== -1 && currentUsers[myIndex].activeFile !== language) {
-      const newUsers = [...currentUsers];
-      newUsers[myIndex] = { ...newUsers[myIndex], activeFile: language };
-      updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
-    }
-  }, [roomId, user, roomData, language]);
-
-  // ─── Auto-join from local storage ───────────────────────────────────────────
-  useEffect(() => {
-    const savedRoomId = localStorage.getItem('debugra_roomId');
-    if (user && savedRoomId && !roomId) {
-      joinRoom(savedRoomId).catch(() => {
-        localStorage.removeItem('debugra_roomId');
-      });
-    }
-  }, [user, roomId]); // Join logic uses the function below
 
   // ─── Create room ────────────────────────────────────────────────────────────
   const createRoom = useCallback(
@@ -125,27 +199,23 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
       const id = crypto.randomUUID().slice(0, 8);
       const displayName = user.displayName || user.email?.split('@')[0] || 'Guest';
       const trimmedPassword = roomPassword.trim();
-      const passwordSalt = trimmedPassword ? createRoomSalt() : null;
-      const passwordHash = trimmedPassword
-        ? await hashRoomPassword(trimmedPassword, passwordSalt)
-        : null;
+      const passwordProtected = Boolean(trimmedPassword);
 
       await setDoc(doc(db, 'rooms', id), {
         name: `Room ${id}`,
         createdBy: user.uid,
-        isPrivate: Boolean(passwordHash),
-        passwordSalt,
-        passwordHash,
+        isPrivate: passwordProtected,
+        passwordProtected,
         code,
         language,
         activeUsers: [{ uid: user.uid, displayName }],
+        participantIds: [user.uid],
         roles: { [user.uid]: 'host' },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
       setRoomId(id);
       localStorage.setItem('debugra_roomId', id);
-      rememberRoomAccess(id);
       toast.success(`Room created! ID: ${id}`);
       navigator.clipboard.writeText(id);
 
@@ -157,8 +227,8 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
           event: 'room_created',
           roomId: id,
           userName: displayName,
-          passwordProtected: Boolean(passwordHash)
-        })
+          passwordProtected,
+        }),
       }).catch(console.error);
 
       return true;
@@ -182,20 +252,19 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         const currentUsers = data.activeUsers || [];
         const isCreator = data.createdBy === user.uid;
         const isAllowed = data.allowedEditors?.includes(user.uid);
-        const needsPassword =
-          data.passwordHash && !isCreator && !isAllowed && !hasRememberedRoomAccess(newRoomId);
+        const requiresPassword =
+          Boolean(data.passwordProtected || data.isPrivate) && !isCreator && !isAllowed;
 
-        if (needsPassword) {
-          const suppliedPassword = roomPassword.trim();
-          if (!suppliedPassword) {
-            toast.error('Room passcode required');
-            return false;
-          }
+        if (requiresPassword) {
+          const alreadyAuthorized = await hasValidRoomAccess(newRoomId);
+          if (!alreadyAuthorized) {
+            const suppliedPassword = roomPassword.trim();
+            if (!suppliedPassword) {
+              toast.error('Room passcode required');
+              return false;
+            }
 
-          const suppliedHash = await hashRoomPassword(suppliedPassword, data.passwordSalt);
-          if (suppliedHash !== data.passwordHash) {
-            toast.error('Invalid room passcode');
-            return false;
+            await verifyRoomPassword(newRoomId, suppliedPassword);
           }
         }
 
@@ -203,9 +272,11 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         const newRoles = { ...(data.roles || {}) };
         if (!newRoles[user.uid]) newRoles[user.uid] = 'viewer';
 
+        const currentParticipantIds = data.participantIds || [];
         if (!currentUsers.some((u) => u.uid === user.uid)) {
           await updateDoc(roomRef, {
             activeUsers: [...currentUsers, { uid: user.uid, displayName }],
+            participantIds: [...new Set([...currentParticipantIds, user.uid])],
             roles: newRoles,
           });
         } else if (!data.roles || !data.roles[user.uid]) {
@@ -213,7 +284,6 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
         }
         setRoomId(newRoomId);
         localStorage.setItem('debugra_roomId', newRoomId);
-        rememberRoomAccess(newRoomId);
         toast.success(`Joined room: ${newRoomId}`);
 
         // Trigger Webhook via Backend API
@@ -223,18 +293,46 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
           body: JSON.stringify({
             event: 'room_joined',
             roomId: newRoomId,
-            userName: displayName
-          })
+            userName: displayName,
+          }),
         }).catch(console.error);
 
         return true;
-      } catch {
-        toast.error('Failed to join room');
+      } catch (err) {
+        toast.error(err?.message || 'Failed to join room');
         return false;
       }
     },
     [user]
   );
+
+  // ─── Auto-join from local storage ───────────────────────────────────────────
+  useEffect(() => {
+    const savedRoomId = localStorage.getItem('debugra_roomId');
+    if (user && savedRoomId && !roomId) {
+      joinRoom(savedRoomId).catch(() => {
+        localStorage.removeItem('debugra_roomId');
+      });
+    }
+  }, [user, roomId, joinRoom]);
+
+  // ─── Presence cleanup on browser tab/window close ──────────────────────────
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (roomId && user) {
+        if (roomData) {
+          const currentUsers = roomData.activeUsers || [];
+          const newUsers = currentUsers.filter((u) => u.uid !== user.uid);
+          updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+        }
+        deleteDoc(doc(db, 'rooms', roomId, 'cursors', user.uid)).catch(() => {});
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [roomId, user, roomData]);
 
   // (Legacy access control methods removed for simpler role system)
   const requestAccess = useCallback(() => {}, []);
@@ -248,9 +346,12 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     if (!roomId) return;
     try {
       localStorage.removeItem('debugra_roomId');
-      if (user && roomData) {
-        const newUsers = (roomData.activeUsers || []).filter((u) => u.uid !== user.uid);
-        await updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+      if (user) {
+        await deleteDoc(doc(db, 'rooms', roomId, 'cursors', user.uid)).catch(() => {});
+        if (roomData) {
+          const newUsers = (roomData.activeUsers || []).filter((u) => u.uid !== user.uid);
+          await updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+        }
       }
     } catch (e) {
       console.error(e);
@@ -258,159 +359,216 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     setRoomId(null);
     setRoomData(null);
     setActiveUsers([]);
+    setRemoteCursors({});
     toast.success('Left the room');
   }, [roomId, user, roomData]);
 
   // ─── Execution Voting & Results Sync ──────────────────────────────────────────
-  const startExecutionVote = useCallback(async (code, language, stdin) => {
-    if (!roomId || !user) return;
+  const startExecutionVote = useCallback(
+    async (code, language, stdin) => {
+      if (!roomId || !user) return;
 
-    // Custom fallback random UUID generator
-    const generateUUID = () => {
-      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-        return crypto.randomUUID();
+      // Custom fallback random UUID generator
+      const generateUUID = () => {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+          return crypto.randomUUID();
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+          const r = (Math.random() * 16) | 0;
+          const v = c === 'x' ? r : (r & 0x3) | 0x8;
+          return v.toString(16);
+        });
+      };
+
+      const voteId = generateUUID();
+
+      // Store full code/stdin payload in separate Firestore document to avoid document size limit (1MB limit)
+      const fullVoteRef = doc(db, 'rooms', roomId, 'votes', voteId);
+      await setDoc(fullVoteRef, {
+        code,
+        language,
+        stdin: stdin || '',
+        createdAt: serverTimestamp(),
+      });
+
+      // Store lightweight previews in main room document to minimize write amplification and size
+      const activeVote = {
+        voteId,
+        initiatorUid: user.uid,
+        initiatorName: user.displayName || 'Guest',
+        codePreview:
+          code.length > 800 ? code.slice(0, 800) + '\n... [truncated for size limits]' : code,
+        stdinPreview:
+          stdin && stdin.length > 150 ? stdin.slice(0, 150) + '... [truncated]' : stdin || '',
+        language,
+        approvals: [user.uid], // initiator pre-approves
+        rejections: [],
+        status: 'voting',
+        createdAt: new Date().toISOString(),
+      };
+
+      await updateDoc(doc(db, 'rooms', roomId), { activeVote });
+      toast.success('Started a vote for code execution!');
+    },
+    [roomId, user]
+  );
+
+  const castVote = useCallback(
+    async (voteType) => {
+      if (!roomId || !user) return;
+
+      const roomRef = doc(db, 'rooms', roomId);
+      try {
+        await runTransaction(db, async (transaction) => {
+          const roomDoc = await transaction.get(roomRef);
+          if (!roomDoc.exists()) throw new Error('Room does not exist');
+
+          const data = roomDoc.data();
+          const activeVote = data.activeVote;
+          if (!activeVote || activeVote.status !== 'voting') {
+            throw new Error('No active vote in progress');
+          }
+
+          const approvals = [...(activeVote.approvals || [])];
+          const rejections = [...(activeVote.rejections || [])];
+
+          if (voteType === 'approve') {
+            if (!approvals.includes(user.uid)) approvals.push(user.uid);
+            const rejIdx = rejections.indexOf(user.uid);
+            if (rejIdx > -1) rejections.splice(rejIdx, 1);
+          } else if (voteType === 'reject') {
+            if (!rejections.includes(user.uid)) rejections.push(user.uid);
+            const appIdx = approvals.indexOf(user.uid);
+            if (appIdx > -1) approvals.splice(appIdx, 1);
+          }
+
+          activeVote.approvals = approvals;
+          activeVote.rejections = rejections;
+
+          // Consensus threshold: strictly greater than 50% for BOTH approved and rejected (symmetry)
+          const totalUsersCount = (data.activeUsers || []).length;
+          if (approvals.length > totalUsersCount / 2) {
+            activeVote.status = 'approved';
+          } else if (rejections.length > totalUsersCount / 2) {
+            activeVote.status = 'rejected';
+          }
+
+          transaction.update(roomRef, { activeVote });
+        });
+      } catch (error) {
+        console.error('Voting transaction failed: ', error);
+        toast.error(error.message || 'Failed to cast vote');
       }
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-        const r = (Math.random() * 16) | 0;
-        const v = c === 'x' ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-      });
-    };
-
-    const voteId = generateUUID();
-
-    // Store full code/stdin payload in separate Firestore document to avoid document size limit (1MB limit)
-    const fullVoteRef = doc(db, 'rooms', roomId, 'votes', voteId);
-    await setDoc(fullVoteRef, {
-      code,
-      language,
-      stdin: stdin || '',
-      createdAt: serverTimestamp(),
-    });
-
-    // Store lightweight previews in main room document to minimize write amplification and size
-    const activeVote = {
-      voteId,
-      initiatorUid: user.uid,
-      initiatorName: user.displayName || 'Guest',
-      codePreview: code.length > 800 ? code.slice(0, 800) + '\n... [truncated for size limits]' : code,
-      stdinPreview: stdin && stdin.length > 150 ? stdin.slice(0, 150) + '... [truncated]' : (stdin || ''),
-      language,
-      approvals: [user.uid], // initiator pre-approves
-      rejections: [],
-      status: 'voting',
-      createdAt: new Date().toISOString(),
-    };
-
-    await updateDoc(doc(db, 'rooms', roomId), { activeVote });
-    toast.success('Started a vote for code execution!');
-  }, [roomId, user]);
-
-  const castVote = useCallback(async (voteType) => {
-    if (!roomId || !user) return;
-
-    const roomRef = doc(db, 'rooms', roomId);
-    try {
-      await runTransaction(db, async (transaction) => {
-        const roomDoc = await transaction.get(roomRef);
-        if (!roomDoc.exists()) throw new Error("Room does not exist");
-
-        const data = roomDoc.data();
-        const activeVote = data.activeVote;
-        if (!activeVote || activeVote.status !== 'voting') {
-          throw new Error("No active vote in progress");
-        }
-
-        const approvals = [...(activeVote.approvals || [])];
-        const rejections = [...(activeVote.rejections || [])];
-
-        if (voteType === 'approve') {
-          if (!approvals.includes(user.uid)) approvals.push(user.uid);
-          const rejIdx = rejections.indexOf(user.uid);
-          if (rejIdx > -1) rejections.splice(rejIdx, 1);
-        } else if (voteType === 'reject') {
-          if (!rejections.includes(user.uid)) rejections.push(user.uid);
-          const appIdx = approvals.indexOf(user.uid);
-          if (appIdx > -1) approvals.splice(appIdx, 1);
-        }
-
-        activeVote.approvals = approvals;
-        activeVote.rejections = rejections;
-
-        // Consensus threshold: strictly greater than 50% for BOTH approved and rejected (symmetry)
-        const totalUsersCount = (data.activeUsers || []).length;
-        if (approvals.length > totalUsersCount / 2) {
-          activeVote.status = 'approved';
-        } else if (rejections.length > totalUsersCount / 2) {
-          activeVote.status = 'rejected';
-        }
-
-        transaction.update(roomRef, { activeVote });
-      });
-    } catch (error) {
-      console.error("Voting transaction failed: ", error);
-      toast.error(error.message || "Failed to cast vote");
-    }
-  }, [roomId, user]);
+    },
+    [roomId, user]
+  );
 
   const clearVote = useCallback(async () => {
     if (!roomId) return;
-    await updateDoc(doc(db, 'rooms', roomId), { activeVote: null });
+    try {
+      const roomRef = doc(db, 'rooms', roomId);
+      const roomDoc = await getDoc(roomRef);
+      if (roomDoc.exists() && roomDoc.data().activeVote?.voteId) {
+        const voteId = roomDoc.data().activeVote.voteId;
+        await deleteDoc(doc(db, 'rooms', roomId, 'votes', voteId));
+      }
+      await updateDoc(roomRef, { activeVote: null });
+    } catch (e) {
+      console.error('Failed to clear vote: ', e);
+    }
   }, [roomId]);
 
-  const syncExecutionResult = useCallback(async (result) => {
-    if (!roomId) return;
-    const cappedResult = { ...result };
-    // Cap output payload sizes to 10k characters to prevent document size limit errors & heavy traffic
-    if (cappedResult.stdout && cappedResult.stdout.length > 10000) {
-      cappedResult.stdout = cappedResult.stdout.slice(0, 10000) + '\n... [stdout truncated due to size limits]';
-    }
-    if (cappedResult.stderr && cappedResult.stderr.length > 10000) {
-      cappedResult.stderr = cappedResult.stderr.slice(0, 10000) + '\n... [stderr truncated due to size limits]';
-    }
-    await updateDoc(doc(db, 'rooms', roomId), { executionResult: cappedResult });
-  }, [roomId]);
+  const syncExecutionResult = useCallback(
+    async (result) => {
+      if (!roomId) return;
+      const cappedResult = { ...result };
+      // Cap output payload sizes to 10k characters to prevent document size limit errors & heavy traffic
+      if (cappedResult.stdout && cappedResult.stdout.length > 10000) {
+        cappedResult.stdout =
+          cappedResult.stdout.slice(0, 10000) + '\n... [stdout truncated due to size limits]';
+      }
+      if (cappedResult.stderr && cappedResult.stderr.length > 10000) {
+        cappedResult.stderr =
+          cappedResult.stderr.slice(0, 10000) + '\n... [stderr truncated due to size limits]';
+      }
+      await updateDoc(doc(db, 'rooms', roomId), { executionResult: cappedResult });
+    },
+    [roomId]
+  );
 
   const clearExecutionResult = useCallback(async () => {
     if (!roomId) return;
     await updateDoc(doc(db, 'rooms', roomId), { executionResult: null });
   }, [roomId]);
 
-  const fetchFullVotePayload = useCallback(async (voteId) => {
-    if (!roomId) return null;
-    try {
-      const voteSnap = await getDoc(doc(db, 'rooms', roomId, 'votes', voteId));
-      if (voteSnap.exists()) {
-        return voteSnap.data();
-      }
-    } catch (e) {
-      console.error('Failed to fetch full vote payload:', e);
-    }
-    return null;
-  }, [roomId]);
-
-  const transitionVoteToExecuting = useCallback(async (voteId) => {
-    if (!roomId || !user) return false;
-    const roomRef = doc(db, 'rooms', roomId);
-    try {
-      let transitioned = false;
-      await runTransaction(db, async (transaction) => {
-        const roomDoc = await transaction.get(roomRef);
-        if (!roomDoc.exists()) return;
-        const data = roomDoc.data();
-        const activeVote = data.activeVote;
-        if (activeVote && activeVote.voteId === voteId && activeVote.status === 'approved') {
-          activeVote.status = 'executing';
-          transaction.update(roomRef, { activeVote });
-          transitioned = true;
+  const fetchFullVotePayload = useCallback(
+    async (voteId) => {
+      if (!roomId) return null;
+      try {
+        const voteSnap = await getDoc(doc(db, 'rooms', roomId, 'votes', voteId));
+        if (voteSnap.exists()) {
+          return voteSnap.data();
         }
-      });
-      return transitioned;
-    } catch (e) {
-      console.error('Failed to transition vote status:', e);
-      return false;
+      } catch (e) {
+        console.error('Failed to fetch full vote payload:', e);
+      }
+      return null;
+    },
+    [roomId]
+  );
+
+  const transitionVoteToExecuting = useCallback(
+    async (voteId) => {
+      if (!roomId || !user) return false;
+      const roomRef = doc(db, 'rooms', roomId);
+      try {
+        let transitioned = false;
+        await runTransaction(db, async (transaction) => {
+          const roomDoc = await transaction.get(roomRef);
+          if (!roomDoc.exists()) return;
+          const data = roomDoc.data();
+          const activeVote = data.activeVote;
+          if (activeVote && activeVote.voteId === voteId && activeVote.status === 'approved') {
+            activeVote.status = 'executing';
+            transaction.update(roomRef, { activeVote });
+            transitioned = true;
+          }
+        });
+        return transitioned;
+      } catch (e) {
+        console.error('Failed to transition vote status:', e);
+        return false;
+      }
+    },
+    [roomId, user]
+  );
+
+  // Fix for Distributed Deadlock: Proactively resolve vote consensus if active users drop
+  // Uses a transaction to atomically re-check vote state before writing, preventing
+  // races with castVote which also uses runTransaction.
+  useEffect(() => {
+    if (!roomId || !roomData?.activeVote) return;
+    const vote = roomData.activeVote;
+    const activeCount = roomData.activeUsers?.length || 1;
+
+    if (vote.status === 'voting' && vote.initiatorUid === user?.uid) {
+      if (vote.approvals?.length > activeCount / 2) {
+        const roomRef = doc(db, 'rooms', roomId);
+        runTransaction(db, async (transaction) => {
+          const snap = await transaction.get(roomRef);
+          if (!snap.exists()) return;
+          const current = snap.data().activeVote;
+          if (current && current.status === 'voting' && current.initiatorUid === user?.uid) {
+            const freshActiveCount = (snap.data().activeUsers || []).length;
+            if ((current.approvals || []).length > freshActiveCount / 2) {
+              current.status = 'approved';
+              transaction.update(roomRef, { activeVote: current });
+            }
+          }
+        }).catch(console.error);
+      }
     }
-  }, [roomId, user]);
+  }, [roomId, roomData?.activeVote, roomData?.activeUsers, user?.uid]);
 
   return {
     roomId,
@@ -440,6 +598,6 @@ export function useRoom({ user, code, language, stdinValue, setCode, setLanguage
     clearExecutionResult,
     fetchFullVotePayload,
     transitionVoteToExecuting,
+    remoteCursors,
   };
 }
-

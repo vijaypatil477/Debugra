@@ -13,10 +13,6 @@ const DEV_ORIGINS = [
   ...PRODUCTION_ORIGINS,
 ];
 
-/**
- * Build a minimal app with the same CORS configuration used in server.js
- * but with overridable env vars for testing.
- */
 function buildApp(options = {}) {
   const {
     isProd = false,
@@ -24,7 +20,6 @@ function buildApp(options = {}) {
     allowedOrigins = null,
   } = options;
 
-  // Simulate server.js logic
   const defaultDevOrigins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
@@ -38,7 +33,6 @@ function buildApp(options = {}) {
   ];
 
   const origins = allowedOrigins || [...new Set([...defaultDevOrigins, ...extraOrigins].filter(Boolean))];
-  const allowOriginlessRequests = allowOriginless;
 
   const app = express();
   app.use(
@@ -49,7 +43,7 @@ function buildApp(options = {}) {
         }
 
         if (!origin) {
-          if (allowOriginlessRequests) {
+          if (allowOriginless) {
             return callback(null, true);
           }
           const err = new Error('Not allowed by CORS');

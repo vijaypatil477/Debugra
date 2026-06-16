@@ -1,5 +1,6 @@
 const logger = require('./utils/logger');
 require('dotenv').config();
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -10,8 +11,10 @@ const aiRoutes = require('./routes/ai');
 const memoryRoutes = require('./routes/memory');
 const memoryTracker = require('./middleware/memoryTracker');
 const memoryProfiler = require('./services/memoryProfiler');
+const roomCleanupService = require('./services/roomCleanupService');
 const errorHandler = require('./middleware/errorHandler');
 const webhookRoutes = require('./routes/webhooks');
+const roomsRoutes = require('./routes/rooms');
 const { executeLimiter, aiLimiter } = require('./middleware/rateLimiters');
 
 const app = express();
@@ -63,6 +66,13 @@ function getBearerToken(req) {
   return scheme?.toLowerCase() === 'bearer' ? token : '';
 }
 
+function safeCompare(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const hashA = crypto.createHash('sha256').update(a).digest();
+  const hashB = crypto.createHash('sha256').update(b).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
+}
+
 function requireSecurityDiagnosticsAccess(req, res, next) {
   if (!securityDiagnosticsToken && isProd) {
     return res.status(404).json({ error: 'Security diagnostics are disabled.' });
@@ -75,7 +85,7 @@ function requireSecurityDiagnosticsAccess(req, res, next) {
   const providedToken =
     (req.get('x-security-diagnostics-token') || '').trim() || getBearerToken(req);
 
-  if (providedToken !== securityDiagnosticsToken) {
+  if (!safeCompare(providedToken, securityDiagnosticsToken)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
@@ -126,7 +136,7 @@ function buildCspDirectives() {
       'https://cdn.jsdelivr.net',
       'https://cdnjs.cloudflare.com',
     ]),
-    styleSrc: unique(["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com']),
+    styleSrc: unique(["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdn.jsdelivr.net']),
     imgSrc: ["'self'", 'data:', 'blob:', 'https://*.googleusercontent.com'],
     connectSrc: unique([
       "'self'",
@@ -138,13 +148,18 @@ function buildCspDirectives() {
       'https://securetoken.googleapis.com',
       'https://firestore.googleapis.com',
       'https://wandbox.org',
+      'https://cdn.jsdelivr.net',
+      'https://debugra.onrender.com',
+      'https://*.onrender.com',
     ]),
     fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
     objectSrc: ["'none'"],
     mediaSrc: ["'self'"],
-    frameSrc: ["'none'"],
+    frameSrc: ["'self'", 'https://*.firebaseapp.com'],
     frameAncestors: ["'none'"],
     formAction: ["'self'"],
+    workerSrc: ["'self'", 'blob:'],
+    childSrc: ["'self'", 'blob:', 'https://*.firebaseapp.com'],
   };
 
   if (isProd) {
@@ -186,6 +201,9 @@ app.use(
     xssFilter: true,
     hidePoweredBy: true,
     ieNoOpen: true,
+
+    // Allow Firebase Auth popup to communicate back via window.closed
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   })
 );
 
@@ -196,6 +214,10 @@ app.use((req, res, next) => {
     'camera=(self), microphone=(self), display-capture=(self), geolocation=(), payment=(), usb=(), interest-cohort=()'
   );
   next();
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 app.post(
@@ -222,12 +244,10 @@ app.post(
 app.use(
   cors({
     origin(origin, callback) {
-      // Allow requests from explicitly whitelisted origins.
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      // Requests without an Origin header.
       if (!origin) {
         if (allowOriginless) {
           logger.warn(
@@ -243,8 +263,6 @@ app.use(
         corsError.status = 403;
         return callback(corsError);
       }
-
-      // Block any origin not in the whitelist.
       logger.warn(`[CORS] Blocked origin: ${origin}`);
       const corsError = new Error('Not allowed by CORS');
       corsError.status = 403;
@@ -314,14 +332,11 @@ app.use(memoryTracker);
 // ──────────────────────────────────────────────
 // Routes
 // ──────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-app.use('/api/execute', executeLimiter, executeRoutes);
+app.use('/api/execute', executeRoutes);
 app.use('/api/ai', aiLimiter, aiRoutes);
 app.use('/api/admin/memory-profile', memoryRoutes);
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/rooms', roomsRoutes);
 
 // ──────────────────────────────────────────────
 // Error Handler
@@ -333,6 +348,7 @@ if (require.main === module) {
     logger.info(`🚀 Debugra server running on port ${PORT}`);
     logger.info(`🔒 Security headers: HSTS=${isProd}, CSP=on, Permissions-Policy=on`);
     memoryProfiler.start();
+    roomCleanupService.start();
   });
 }
 
