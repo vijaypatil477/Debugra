@@ -44,11 +44,13 @@
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px !important;
+  text-decoration: none !important;
 }
 .landing-btn-primary:hover {
   background: #3ab89d !important;
   transform: translateY(-1px) !important;
   box-shadow: none !important; /* no glow on button either */
+  text-decoration: none !important;
 }
 
 .landing-btn-ghost {
