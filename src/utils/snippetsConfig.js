@@ -1,4 +1,12 @@
+let registeredProviders = [];
+
 export const registerSnippets = (monaco) => {
+  // Clean up any existing providers to prevent duplicates (e.g. during HMR or multiple calls)
+  if (registeredProviders.length > 0) {
+    registeredProviders.forEach((provider) => provider.dispose());
+    registeredProviders = [];
+  }
+
   // Helper to get range for replacing the typed snippet keyword
   const getRange = (model, position) => {
     const word = model.getWordUntilPosition(position);
@@ -14,13 +22,19 @@ export const registerSnippets = (monaco) => {
   const insertSnippet = 4;
   const snippetKind = 27;
 
+  const register = (lang, provider) => {
+    const disposable = monaco.languages.registerCompletionItemProvider(lang, provider);
+    registeredProviders.push(disposable);
+  };
+
   // --- JAVA ---
-  monaco.languages.registerCompletionItemProvider('java', {
+  register('java', {
     provideCompletionItems: (model, position) => ({
       suggestions: [
         {
           label: 'sysout',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'System.out.println($1);',
           insertTextRules: insertSnippet,
           documentation: 'Print to standard output',
@@ -29,6 +43,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'syserr',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'System.err.println($1);',
           insertTextRules: insertSnippet,
           documentation: 'Print to standard error',
@@ -37,6 +52,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'printf',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'System.out.printf("$1\\n", $2);',
           insertTextRules: insertSnippet,
           documentation: 'Print formatted string',
@@ -45,6 +61,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'main',
           kind: snippetKind,
+          detail: 'Structure Snippet',
           insertText: 'public static void main(String[] args) {\n\t$1\n}',
           insertTextRules: insertSnippet,
           documentation: 'Main method',
@@ -53,6 +70,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'fori',
           kind: snippetKind,
+          detail: 'Loop Snippet',
           insertText: 'for (int i = 0; i < $1; i++) {\n\t$2\n}',
           insertTextRules: insertSnippet,
           documentation: 'For loop',
@@ -61,17 +79,18 @@ export const registerSnippets = (monaco) => {
         {
           label: 'binary_search',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
-            'int binarySearch(int[] arr, int target) {',
-            '\tint left = 0, right = arr.length - 1;',
-            '\twhile (left <= right) {',
-            '\t\tint mid = left + (right - left) / 2;',
-            '\t\tif (arr[mid] == target) return mid;',
-            '\t\tif (arr[mid] < target) left = mid + 1;',
-            '\t\telse right = mid - 1;',
+            'int ${1:binarySearch}(int[] ${2:arr}, int ${3:target}) {',
+            '\tint ${4:left} = 0, ${5:right} = ${2:arr}.length - 1;',
+            '\twhile (${4:left} <= ${5:right}) {',
+            '\t\tint ${6:mid} = ${4:left} + (${5:right} - ${4:left}) / 2;',
+            '\t\tif (${2:arr}[${6:mid}] == ${3:target}) return ${6:mid};',
+            '\t\tif (${2:arr}[${6:mid}] < ${3:target}) ${4:left} = ${6:mid} + 1;',
+            '\t\telse ${5:right} = ${6:mid} - 1;',
             '\t}',
             '\treturn -1;',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Binary Search Algorithm (Java)',
@@ -80,15 +99,16 @@ export const registerSnippets = (monaco) => {
         {
           label: 'dfs',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
-            'void dfs(int node, List<List<Integer>> adj, boolean[] visited) {',
-            '\tvisited[node] = true;',
-            '\tfor (int neighbor : adj.get(node)) {',
-            '\t\tif (!visited[neighbor]) {',
-            '\t\t\tdfs(neighbor, adj, visited);',
+            'void ${1:dfs}(int ${2:node}, List<List<Integer>> ${3:adj}, boolean[] ${4:visited}) {',
+            '\t${4:visited}[${2:node}] = true;',
+            '\tfor (int ${5:neighbor} : ${3:adj}.get(${2:node})) {',
+            '\t\tif (!${4:visited}[${5:neighbor}]) {',
+            '\t\t\t${1:dfs}(${5:neighbor}, ${3:adj}, ${4:visited});',
             '\t\t}',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Depth-First Search (DFS) Graph Traversal (Java)',
@@ -97,22 +117,23 @@ export const registerSnippets = (monaco) => {
         {
           label: 'bfs',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
-            'void bfs(int start, List<List<Integer>> adj) {',
-            '\tboolean[] visited = new boolean[adj.size()];',
-            '\tQueue<Integer> q = new LinkedList<>();',
-            '\tvisited[start] = true;',
-            '\tq.add(start);',
-            '\twhile (!q.isEmpty()) {',
-            '\t\tint curr = q.poll();',
-            '\t\tfor (int neighbor : adj.get(curr)) {',
-            '\t\t\tif (!visited[neighbor]) {',
-            '\t\t\t\tvisited[neighbor] = true;',
-            '\t\t\t\tq.add(neighbor);',
+            'void ${1:bfs}(int ${2:start}, List<List<Integer>> ${3:adj}) {',
+            '\tboolean[] ${4:visited} = new boolean[${3:adj}.size()];',
+            '\tQueue<Integer> ${5:q} = new LinkedList<>();',
+            '\t${4:visited}[${2:start}] = true;',
+            '\t${5:q}.add(${2:start});',
+            '\twhile (!${5:q}.isEmpty()) {',
+            '\t\tint ${6:curr} = ${5:q}.poll();',
+            '\t\tfor (int ${7:neighbor} : ${3:adj}.get(${6:curr})) {',
+            '\t\t\tif (!${4:visited}[${7:neighbor}]) {',
+            '\t\t\t\t${4:visited}[${7:neighbor}] = true;',
+            '\t\t\t\t${5:q}.add(${7:neighbor});',
             '\t\t\t}',
             '\t\t}',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Breadth-First Search (BFS) Graph Traversal (Java)',
@@ -121,30 +142,32 @@ export const registerSnippets = (monaco) => {
         {
           label: 'quick_sort',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
-            'int partition(int[] arr, int low, int high) {',
-            '\tint pivot = arr[high];',
-            '\tint i = low - 1;',
-            '\tfor (int j = low; j < high; j++) {',
-            '\t\tif (arr[j] < pivot) {',
-            '\t\t\ti++;',
-            '\t\t\tint temp = arr[i];',
-            '\t\t\tarr[i] = arr[j];',
-            '\t\t\tarr[j] = temp;',
+            'int ${1:partition}(int[] ${2:arr}, int ${3:low}, int ${4:high}) {',
+            '\tint ${5:pivot} = ${2:arr}[${4:high}];',
+            '\tint ${6:i} = ${3:low} - 1;',
+            '\tfor (int ${7:j} = ${3:low}; ${7:j} < ${4:high}; ${7:j}++) {',
+            '\t\tif (${2:arr}[${7:j}] < ${5:pivot}) {',
+            '\t\t\t${6:i}++;',
+            '\t\t\tint temp = ${2:arr}[${6:i}];',
+            '\t\t\t${2:arr}[${6:i}] = ${2:arr}[${7:j}];',
+            '\t\t\t${2:arr}[${7:j}] = temp;',
             '\t\t}',
             '\t}',
-            '\tint temp = arr[i + 1];',
-            '\tarr[i + 1] = arr[high];',
-            '\tarr[high] = temp;',
-            '\treturn i + 1;',
+            '\tint temp = ${2:arr}[${6:i} + 1];',
+            '\t${2:arr}[${6:i} + 1] = ${2:arr}[${4:high}];',
+            '\t${2:arr}[${4:high}] = temp;',
+            '\treturn ${6:i} + 1;',
             '}',
-            'void quickSort(int[] arr, int low, int high) {',
-            '\tif (low < high) {',
-            '\t\tint pi = partition(arr, low, high);',
-            '\t\tquickSort(arr, low, pi - 1);',
-            '\t\tquickSort(arr, pi + 1, high);',
+            '',
+            'void ${8:quickSort}(int[] ${2:arr}, int ${3:low}, int ${4:high}) {',
+            '\tif (${3:low} < ${4:high}) {',
+            '\t\tint ${9:pi} = ${1:partition}(${2:arr}, ${3:low}, ${4:high});',
+            '\t\t${8:quickSort}(${2:arr}, ${3:low}, ${9:pi} - 1);',
+            '\t\t${8:quickSort}(${2:arr}, ${9:pi} + 1, ${4:high});',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Quick Sort Algorithm (Java)',
@@ -155,12 +178,13 @@ export const registerSnippets = (monaco) => {
   });
 
   // --- C++ ---
-  monaco.languages.registerCompletionItemProvider('cpp', {
+  register('cpp', {
     provideCompletionItems: (model, position) => ({
       suggestions: [
         {
           label: 'cout',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'cout << $1 << endl;',
           insertTextRules: insertSnippet,
           documentation: 'Print to console',
@@ -169,6 +193,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'cin',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'cin >> $1;',
           insertTextRules: insertSnippet,
           documentation: 'Read from console',
@@ -177,6 +202,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'fori',
           kind: snippetKind,
+          detail: 'Loop Snippet',
           insertText: 'for (int i = 0; i < $1; i++) {\n\t$2\n}',
           insertTextRules: insertSnippet,
           documentation: 'For loop',
@@ -185,6 +211,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'main',
           kind: snippetKind,
+          detail: 'Structure Snippet',
           insertText: 'int main() {\n\t$1\n\treturn 0;\n}',
           insertTextRules: insertSnippet,
           documentation: 'Main function',
@@ -193,17 +220,18 @@ export const registerSnippets = (monaco) => {
         {
           label: 'binary_search',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
-            'int binarySearch(const vector<int>& arr, int target) {',
-            '\tint left = 0, right = arr.size() - 1;',
-            '\twhile (left <= right) {',
-            '\t\tint mid = left + (right - left) / 2;',
-            '\t\tif (arr[mid] == target) return mid;',
-            '\t\tif (arr[mid] < target) left = mid + 1;',
-            '\t\telse right = mid - 1;',
+            'int ${1:binarySearch}(const vector<int>& ${2:arr}, int ${3:target}) {',
+            '\tint ${4:left} = 0, ${5:right} = ${2:arr}.size() - 1;',
+            '\twhile (${4:left} <= ${5:right}) {',
+            '\t\tint ${6:mid} = ${4:left} + (${5:right} - ${4:left}) / 2;',
+            '\t\tif (${2:arr}[${6:mid}] == ${3:target}) return ${6:mid};',
+            '\t\tif (${2:arr}[${6:mid}] < ${3:target}) ${4:left} = ${6:mid} + 1;',
+            '\t\telse ${5:right} = ${6:mid} - 1;',
             '\t}',
             '\treturn -1;',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Binary Search Algorithm (C++)',
@@ -212,15 +240,16 @@ export const registerSnippets = (monaco) => {
         {
           label: 'dfs',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
-            'void dfs(int node, const vector<vector<int>>& adj, vector<bool>& visited) {',
-            '\tvisited[node] = true;',
-            '\tfor (int neighbor : adj[node]) {',
-            '\t\tif (!visited[neighbor]) {',
-            '\t\t\tdfs(neighbor, adj, visited);',
+            'void ${1:dfs}(int ${2:node}, const vector<vector<int>>& ${3:adj}, vector<bool>& ${4:visited}) {',
+            '\t${4:visited}[${2:node}] = true;',
+            '\tfor (int ${5:neighbor} : ${3:adj}[${2:node}]) {',
+            '\t\tif (!${4:visited}[${5:neighbor}]) {',
+            '\t\t\t${1:dfs}(${5:neighbor}, ${3:adj}, ${4:visited});',
             '\t\t}',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Depth-First Search (DFS) Graph Traversal (C++)',
@@ -229,23 +258,24 @@ export const registerSnippets = (monaco) => {
         {
           label: 'bfs',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
-            'void bfs(int start, const vector<vector<int>>& adj) {',
-            '\tvector<bool> visited(adj.size(), false);',
-            '\tqueue<int> q;',
-            '\tvisited[start] = true;',
-            '\tq.push(start);',
-            '\twhile (!q.empty()) {',
-            '\t\tint curr = q.front();',
-            '\t\tq.pop();',
-            '\t\tfor (int neighbor : adj[curr]) {',
-            '\t\t\tif (!visited[neighbor]) {',
-            '\t\t\t\tvisited[neighbor] = true;',
-            '\t\t\t\tq.push(neighbor);',
+            'void ${1:bfs}(int ${2:start}, const vector<vector<int>>& ${3:adj}) {',
+            '\tvector<bool> ${4:visited}(${3:adj}.size(), false);',
+            '\tqueue<int> ${5:q};',
+            '\t${4:visited}[${2:start}] = true;',
+            '\t${5:q}.push(${2:start});',
+            '\twhile (!${5:q}.empty()) {',
+            '\t\tint ${6:curr} = ${5:q}.front();',
+            '\t\t${5:q}.pop();',
+            '\t\tfor (int ${7:neighbor} : ${3:adj}[${6:curr}]) {',
+            '\t\t\tif (!${4:visited}[${7:neighbor}]) {',
+            '\t\t\t\t${4:visited}[${7:neighbor}] = true;',
+            '\t\t\t\t${5:q}.push(${7:neighbor});',
             '\t\t\t}',
             '\t\t}',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Breadth-First Search (BFS) Graph Traversal (C++)',
@@ -254,26 +284,28 @@ export const registerSnippets = (monaco) => {
         {
           label: 'quick_sort',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
-            'int partition(vector<int>& arr, int low, int high) {',
-            '\tint pivot = arr[high];',
-            '\tint i = low - 1;',
-            '\tfor (int j = low; j < high; j++) {',
-            '\t\tif (arr[j] < pivot) {',
-            '\t\t\ti++;',
-            '\t\t\tswap(arr[i], arr[j]);',
+            'int ${1:partition}(vector<int>& ${2:arr}, int ${3:low}, int ${4:high}) {',
+            '\tint ${5:pivot} = ${2:arr}[${4:high}];',
+            '\tint ${6:i} = ${3:low} - 1;',
+            '\tfor (int ${7:j} = ${3:low}; ${7:j} < ${4:high}; ${7:j}++) {',
+            '\t\tif (${2:arr}[${7:j}] < ${5:pivot}) {',
+            '\t\t\t${6:i}++;',
+            '\t\t\tswap(${2:arr}[${6:i}], ${2:arr}[${7:j}]);',
             '\t\t}',
             '\t}',
-            '\tswap(arr[i + 1], arr[high]);',
-            '\treturn i + 1;',
+            '\tswap(${2:arr}[${6:i} + 1], ${2:arr}[${4:high}]);',
+            '\treturn ${6:i} + 1;',
             '}',
-            'void quickSort(vector<int>& arr, int low, int high) {',
-            '\tif (low < high) {',
-            '\t\tint pi = partition(arr, low, high);',
-            '\t\tquickSort(arr, low, pi - 1);',
-            '\t\tquickSort(arr, pi + 1, high);',
+            '',
+            'void ${8:quickSort}(vector<int>& ${2:arr}, int ${3:low}, int ${4:high}) {',
+            '\tif (${3:low} < ${4:high}) {',
+            '\t\tint ${9:pi} = ${1:partition}(${2:arr}, ${3:low}, ${4:high});',
+            '\t\t${8:quickSort}(${2:arr}, ${3:low}, ${9:pi} - 1);',
+            '\t\t${8:quickSort}(${2:arr}, ${9:pi} + 1, ${4:high});',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Quick Sort Algorithm (C++)',
@@ -284,12 +316,13 @@ export const registerSnippets = (monaco) => {
   });
 
   // --- C ---
-  monaco.languages.registerCompletionItemProvider('c', {
+  register('c', {
     provideCompletionItems: (model, position) => ({
       suggestions: [
         {
           label: 'printf',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'printf("$1\\n", $2);',
           insertTextRules: insertSnippet,
           documentation: 'Print to console',
@@ -298,6 +331,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'scanf',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'scanf("%d", &$1);',
           insertTextRules: insertSnippet,
           documentation: 'Read from console',
@@ -306,6 +340,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'main',
           kind: snippetKind,
+          detail: 'Structure Snippet',
           insertText: 'int main() {\n\t$1\n\treturn 0;\n}',
           insertTextRules: insertSnippet,
           documentation: 'Main function',
@@ -322,6 +357,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'clg',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'console.log($1);',
           insertTextRules: insertSnippet,
           documentation: 'console.log',
@@ -330,6 +366,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'cerr',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'console.error($1);',
           insertTextRules: insertSnippet,
           documentation: 'console.error',
@@ -338,6 +375,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'fn',
           kind: snippetKind,
+          detail: 'Structure Snippet',
           insertText: 'function $1($2) {\n\t$3\n}',
           insertTextRules: insertSnippet,
           documentation: 'Function',
@@ -346,6 +384,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'afn',
           kind: snippetKind,
+          detail: 'Structure Snippet',
           insertText: 'const $1 = ($2) => {\n\t$3\n};',
           insertTextRules: insertSnippet,
           documentation: 'Arrow Function',
@@ -354,6 +393,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'fori',
           kind: snippetKind,
+          detail: 'Loop Snippet',
           insertText: 'for (let i = 0; i < $1; i++) {\n\t$2\n}',
           insertTextRules: insertSnippet,
           documentation: 'For loop',
@@ -362,17 +402,18 @@ export const registerSnippets = (monaco) => {
         {
           label: 'binary_search',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
-            'function binarySearch(arr, target) {',
-            '\tlet left = 0, right = arr.length - 1;',
-            '\twhile (left <= right) {',
-            '\t\tconst mid = left + Math.floor((right - left) / 2);',
-            '\t\tif (arr[mid] === target) return mid;',
-            '\t\tif (arr[mid] < target) left = mid + 1;',
-            '\t\telse right = mid - 1;',
+            'function ${1:binarySearch}(${2:arr}, ${3:target}) {',
+            '\tlet ${4:left} = 0, ${5:right} = ${2:arr}.length - 1;',
+            '\twhile (${4:left} <= ${5:right}) {',
+            '\t\tconst ${6:mid} = ${4:left} + Math.floor((${5:right} - ${4:left}) / 2);',
+            '\t\tif (${2:arr}[${6:mid}] === ${3:target}) return ${6:mid};',
+            '\t\tif (${2:arr}[${6:mid}] < ${3:target}) ${4:left} = ${6:mid} + 1;',
+            '\t\telse ${5:right} = ${6:mid} - 1;',
             '\t}',
             '\treturn -1;',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Binary Search Algorithm (JavaScript)',
@@ -381,15 +422,16 @@ export const registerSnippets = (monaco) => {
         {
           label: 'dfs',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
-            'function dfs(node, adj, visited) {',
-            '\tvisited[node] = true;',
-            '\tfor (const neighbor of adj[node]) {',
-            '\t\tif (!visited[neighbor]) {',
-            '\t\t\tdfs(neighbor, adj, visited);',
+            'function ${1:dfs}(${2:node}, ${3:adj}, ${4:visited}) {',
+            '\t${4:visited}[${2:node}] = true;',
+            '\tfor (const ${5:neighbor} of ${3:adj}[${2:node}]) {',
+            '\t\tif (!${4:visited}[${5:neighbor}]) {',
+            '\t\t\t${1:dfs}(${5:neighbor}, ${3:adj}, ${4:visited});',
             '\t\t}',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Depth-First Search (DFS) Graph Traversal (JavaScript)',
@@ -398,21 +440,22 @@ export const registerSnippets = (monaco) => {
         {
           label: 'bfs',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
-            'function bfs(start, adj) {',
-            '\tconst visited = new Array(adj.length).fill(false);',
-            '\tconst queue = [start];',
-            '\tvisited[start] = true;',
-            '\twhile (queue.length > 0) {',
-            '\t\tconst curr = queue.shift();',
-            '\t\tfor (const neighbor of adj[curr]) {',
-            '\t\t\tif (!visited[neighbor]) {',
-            '\t\t\t\tvisited[neighbor] = true;',
-            '\t\t\t\tqueue.push(neighbor);',
+            'function ${1:bfs}(${2:start}, ${3:adj}) {',
+            '\tconst ${4:visited} = new Array(${3:adj}.length).fill(false);',
+            '\tconst ${5:queue} = [${2:start}];',
+            '\t${4:visited}[${2:start}] = true;',
+            '\twhile (${5:queue}.length > 0) {',
+            '\t\tconst ${6:curr} = ${5:queue}.shift();',
+            '\t\tfor (const ${7:neighbor} of ${3:adj}[${6:curr}]) {',
+            '\t\t\tif (!${4:visited}[${7:neighbor}]) {',
+            '\t\t\t\t${4:visited}[${7:neighbor}] = true;',
+            '\t\t\t\t${5:queue}.push(${7:neighbor});',
             '\t\t\t}',
             '\t\t}',
             '\t}',
-            '}'
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Breadth-First Search (BFS) Graph Traversal (JavaScript)',
@@ -421,15 +464,28 @@ export const registerSnippets = (monaco) => {
         {
           label: 'quick_sort',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
-            'function quickSort(arr) {',
-            '\tif (arr.length <= 1) return arr;',
-            '\tconst pivot = arr[Math.floor(arr.length / 2)];',
-            '\tconst left = arr.filter(x => x < pivot);',
-            '\tconst middle = arr.filter(x => x === pivot);',
-            '\tconst right = arr.filter(x => x > pivot);',
-            '\treturn [...quickSort(left), ...middle, ...quickSort(right)];',
-            '}'
+            'function ${1:partition}(${2:arr}, ${3:low}, ${4:high}) {',
+            '\tconst ${5:pivot} = ${2:arr}[${4:high}];',
+            '\tlet ${6:i} = ${3:low} - 1;',
+            '\tfor (let ${7:j} = ${3:low}; ${7:j} < ${4:high}; ${7:j}++) {',
+            '\t\tif (${2:arr}[${7:j}] < ${5:pivot}) {',
+            '\t\t\t${6:i}++;',
+            '\t\t\t[${2:arr}[${6:i}], ${2:arr}[${7:j}]] = [${2:arr}[${7:j}], ${2:arr}[${6:i}]];',
+            '\t\t}',
+            '\t}',
+            '\t[${2:arr}[${6:i} + 1], ${2:arr}[${4:high}]] = [${2:arr}[${4:high}], ${2:arr}[${6:i} + 1]];',
+            '\treturn ${6:i} + 1;',
+            '}',
+            '',
+            'function ${8:quickSort}(${2:arr}, ${3:low}, ${4:high}) {',
+            '\tif (${3:low} < ${4:high}) {',
+            '\t\tconst ${9:pi} = ${1:partition}(${2:arr}, ${3:low}, ${4:high});',
+            '\t\t${8:quickSort}(${2:arr}, ${3:low}, ${9:pi} - 1);',
+            '\t\t${8:quickSort}(${2:arr}, ${9:pi} + 1, ${4:high});',
+            '\t}',
+            '}',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Quick Sort Algorithm (JavaScript)',
@@ -438,16 +494,17 @@ export const registerSnippets = (monaco) => {
       ],
     }),
   };
-  monaco.languages.registerCompletionItemProvider('javascript', jsSnippets);
-  monaco.languages.registerCompletionItemProvider('typescript', jsSnippets);
+  register('javascript', jsSnippets);
+  register('typescript', jsSnippets);
 
   // --- PYTHON ---
-  monaco.languages.registerCompletionItemProvider('python', {
+  register('python', {
     provideCompletionItems: (model, position) => ({
       suggestions: [
         {
           label: 'pr',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'print($1)',
           insertTextRules: insertSnippet,
           documentation: 'Print',
@@ -456,6 +513,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'def',
           kind: snippetKind,
+          detail: 'Structure Snippet',
           insertText: 'def $1($2):\n\t$3',
           insertTextRules: insertSnippet,
           documentation: 'Function definition',
@@ -464,6 +522,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'fori',
           kind: snippetKind,
+          detail: 'Loop Snippet',
           insertText: 'for i in range($1):\n\t$2',
           insertTextRules: insertSnippet,
           documentation: 'For loop',
@@ -472,6 +531,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'main',
           kind: snippetKind,
+          detail: 'Structure Snippet',
           insertText: 'if __name__ == "__main__":\n\t$1',
           insertTextRules: insertSnippet,
           documentation: 'Main block',
@@ -480,18 +540,19 @@ export const registerSnippets = (monaco) => {
         {
           label: 'binary_search',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
-            'def binary_search(arr, target):',
-            '\tleft, right = 0, len(arr) - 1',
-            '\twhile left <= right:',
-            '\t\tmid = left + (right - left) // 2',
-            '\t\tif arr[mid] == target:',
-            '\t\t\treturn mid',
-            '\t\telif arr[mid] < target:',
-            '\t\t\tleft = mid + 1',
+            'def ${1:binary_search}(${2:arr}, ${3:target}):',
+            '\t${4:left}, ${5:right} = 0, len(${2:arr}) - 1',
+            '\twhile ${4:left} <= ${5:right}:',
+            '\t\t${6:mid} = ${4:left} + (${5:right} - ${4:left}) // 2',
+            '\t\tif ${2:arr}[${6:mid}] == ${3:target}:',
+            '\t\t\treturn ${6:mid}',
+            '\t\telif ${2:arr}[${6:mid}] < ${3:target}:',
+            '\t\t\t${4:left} = ${6:mid} + 1',
             '\t\telse:',
-            '\t\t\tright = mid - 1',
-            '\treturn -1'
+            '\t\t\t${5:right} = ${6:mid} - 1',
+            '\treturn -1',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Binary Search Algorithm (Python)',
@@ -500,12 +561,13 @@ export const registerSnippets = (monaco) => {
         {
           label: 'dfs',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
-            'def dfs(node, adj, visited):',
-            '\tvisited[node] = True',
-            '\tfor neighbor in adj[node]:',
-            '\t\tif not visited[neighbor]:',
-            '\t\t\tdfs(neighbor, adj, visited)'
+            'def ${1:dfs}(${2:node}, ${3:adj}, ${4:visited}):',
+            '\t${4:visited}[${2:node}] = True',
+            '\tfor ${5:neighbor} in ${3:adj}[${2:node}]:',
+            '\t\tif not ${4:visited}[${5:neighbor}]:',
+            '\t\t\t${1:dfs}(${5:neighbor}, ${3:adj}, ${4:visited})',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Depth-First Search (DFS) Graph Traversal (Python)',
@@ -514,18 +576,20 @@ export const registerSnippets = (monaco) => {
         {
           label: 'bfs',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
             'from collections import deque',
-            'def bfs(start, adj):',
-            '\tvisited = [False] * len(adj)',
-            '\tq = deque([start])',
-            '\tvisited[start] = True',
-            '\twhile q:',
-            '\t\tcurr = q.popleft()',
-            '\t\tfor neighbor in adj[curr]:',
-            '\t\t\tif not visited[neighbor]:',
-            '\t\t\t\tvisited[neighbor] = True',
-            '\t\t\t\tq.append(neighbor)'
+            '',
+            'def ${1:bfs}(${2:start}, ${3:adj}):',
+            '\t${4:visited} = [False] * len(${3:adj})',
+            '\t${5:q} = deque([${2:start}])',
+            '\t${4:visited}[${2:start}] = True',
+            '\twhile ${5:q}:',
+            '\t\t${6:curr} = ${5:q}.popleft()',
+            '\t\tfor ${7:neighbor} in ${3:adj}[${6:curr}]:',
+            '\t\t\tif not ${4:visited}[${7:neighbor}]:',
+            '\t\t\t\t${4:visited}[${7:neighbor}] = True',
+            '\t\t\t\t${5:q}.append(${7:neighbor})',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Breadth-First Search (BFS) Graph Traversal (Python)',
@@ -534,15 +598,23 @@ export const registerSnippets = (monaco) => {
         {
           label: 'quick_sort',
           kind: snippetKind,
+          detail: 'Algorithm Snippet',
           insertText: [
-            'def quick_sort(arr):',
-            '\tif len(arr) <= 1:',
-            '\t\treturn arr',
-            '\tpivot = arr[len(arr) // 2]',
-            '\tleft = [x for x in arr if x < pivot]',
-            '\tmiddle = [x for x in arr if x == pivot]',
-            '\tright = [x for x in arr if x > pivot]',
-            '\treturn quick_sort(left) + middle + quick_sort(right)'
+            'def ${1:partition}(${2:arr}, ${3:low}, ${4:high}):',
+            '\t${5:pivot} = ${2:arr}[${4:high}]',
+            '\t${6:i} = ${3:low} - 1',
+            '\tfor ${7:j} in range(${3:low}, ${4:high}):',
+            '\t\tif ${2:arr}[${7:j}] < ${5:pivot}:',
+            '\t\t\t${6:i} += 1',
+            '\t\t\t${2:arr}[${6:i}], ${2:arr}[${7:j}] = ${2:arr}[${7:j}], ${2:arr}[${6:i}]',
+            '\t${2:arr}[${6:i} + 1], ${2:arr}[${4:high}] = ${2:arr}[${4:high}], ${2:arr}[${6:i} + 1]',
+            '\treturn ${6:i} + 1',
+            '',
+            'def ${8:quick_sort}(${2:arr}, ${3:low}, ${4:high}):',
+            '\tif ${3:low} < ${4:high}:',
+            '\t\t${9:pi} = ${1:partition}(${2:arr}, ${3:low}, ${4:high})',
+            '\t\t${8:quick_sort}(${2:arr}, ${3:low}, ${9:pi} - 1)',
+            '\t\t${8:quick_sort}(${2:arr}, ${9:pi} + 1, ${4:high})',
           ].join('\n'),
           insertTextRules: insertSnippet,
           documentation: 'Quick Sort Algorithm (Python)',
@@ -553,12 +625,13 @@ export const registerSnippets = (monaco) => {
   });
 
   // --- C# ---
-  monaco.languages.registerCompletionItemProvider('csharp', {
+  register('csharp', {
     provideCompletionItems: (model, position) => ({
       suggestions: [
         {
           label: 'cw',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'Console.WriteLine($1);',
           insertTextRules: insertSnippet,
           documentation: 'Console.WriteLine',
@@ -567,6 +640,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'cr',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'Console.ReadLine();',
           insertTextRules: insertSnippet,
           documentation: 'Console.ReadLine',
@@ -575,6 +649,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'main',
           kind: snippetKind,
+          detail: 'Structure Snippet',
           insertText: 'static void Main() {\n\t$1\n}',
           insertTextRules: insertSnippet,
           documentation: 'Main method',
@@ -585,12 +660,13 @@ export const registerSnippets = (monaco) => {
   });
 
   // --- GO ---
-  monaco.languages.registerCompletionItemProvider('go', {
+  register('go', {
     provideCompletionItems: (model, position) => ({
       suggestions: [
         {
           label: 'fp',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'fmt.Println($1)',
           insertTextRules: insertSnippet,
           documentation: 'fmt.Println',
@@ -599,6 +675,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'ff',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'fmt.Printf("$1\\n", $2)',
           insertTextRules: insertSnippet,
           documentation: 'fmt.Printf',
@@ -607,6 +684,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'fn',
           kind: snippetKind,
+          detail: 'Structure Snippet',
           insertText: 'func $1($2) {\n\t$3\n}',
           insertTextRules: insertSnippet,
           documentation: 'Function',
@@ -615,6 +693,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'main',
           kind: snippetKind,
+          detail: 'Structure Snippet',
           insertText: 'func main() {\n\t$1\n}',
           insertTextRules: insertSnippet,
           documentation: 'Main func',
@@ -625,12 +704,13 @@ export const registerSnippets = (monaco) => {
   });
 
   // --- RUST ---
-  monaco.languages.registerCompletionItemProvider('rust', {
+  register('rust', {
     provideCompletionItems: (model, position) => ({
       suggestions: [
         {
           label: 'pl',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'println!("$1");',
           insertTextRules: insertSnippet,
           documentation: 'println!',
@@ -639,6 +719,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'fn',
           kind: snippetKind,
+          detail: 'Structure Snippet',
           insertText: 'fn $1($2) {\n\t$3\n}',
           insertTextRules: insertSnippet,
           documentation: 'Function',
@@ -647,6 +728,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'main',
           kind: snippetKind,
+          detail: 'Structure Snippet',
           insertText: 'fn main() {\n\t$1\n}',
           insertTextRules: insertSnippet,
           documentation: 'Main function',
@@ -657,12 +739,13 @@ export const registerSnippets = (monaco) => {
   });
 
   // --- PHP ---
-  monaco.languages.registerCompletionItemProvider('php', {
+  register('php', {
     provideCompletionItems: (model, position) => ({
       suggestions: [
         {
           label: 'ec',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'echo $1;',
           insertTextRules: insertSnippet,
           documentation: 'echo',
@@ -671,6 +754,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'pr',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'print_r($1);',
           insertTextRules: insertSnippet,
           documentation: 'print_r',
@@ -679,6 +763,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'fn',
           kind: snippetKind,
+          detail: 'Structure Snippet',
           insertText: 'function $1($2) {\n\t$3\n}',
           insertTextRules: insertSnippet,
           documentation: 'Function',
@@ -689,12 +774,13 @@ export const registerSnippets = (monaco) => {
   });
 
   // --- RUBY ---
-  monaco.languages.registerCompletionItemProvider('ruby', {
+  register('ruby', {
     provideCompletionItems: (model, position) => ({
       suggestions: [
         {
           label: 'pu',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'puts $1',
           insertTextRules: insertSnippet,
           documentation: 'puts',
@@ -703,6 +789,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'def',
           kind: snippetKind,
+          detail: 'Structure Snippet',
           insertText: 'def $1\n\t$2\nend',
           insertTextRules: insertSnippet,
           documentation: 'Function',
@@ -713,12 +800,13 @@ export const registerSnippets = (monaco) => {
   });
 
   // --- SWIFT ---
-  monaco.languages.registerCompletionItemProvider('swift', {
+  register('swift', {
     provideCompletionItems: (model, position) => ({
       suggestions: [
         {
           label: 'pr',
           kind: snippetKind,
+          detail: 'Console Snippet',
           insertText: 'print($1)',
           insertTextRules: insertSnippet,
           documentation: 'print',
@@ -727,6 +815,7 @@ export const registerSnippets = (monaco) => {
         {
           label: 'fn',
           kind: snippetKind,
+          detail: 'Structure Snippet',
           insertText: 'func $1($2) {\n\t$3\n}',
           insertTextRules: insertSnippet,
           documentation: 'Function',
