@@ -15,12 +15,17 @@ import toast from 'react-hot-toast';
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
 
-async function verifyRoomPassword(roomId, password) {
+async function verifyRoomPassword(roomId, password, user) {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (user) {
+    headers.Authorization = `Bearer ${await user.getIdToken()}`;
+  }
 
   const res = await fetch(`${apiUrl}/api/rooms/verify-password`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ roomId, password }),
   });
 
@@ -264,7 +269,7 @@ export function useRoom({
               return false;
             }
 
-            await verifyRoomPassword(newRoomId, suppliedPassword);
+            await verifyRoomPassword(newRoomId, suppliedPassword, user);
           }
         }
 
