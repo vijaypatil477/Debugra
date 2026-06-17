@@ -192,6 +192,16 @@ export function useRoom({
     }
   }, [roomId, user, roomData, language]);
 
+  // ─── Auto-join from local storage ───────────────────────────────────────────
+  useEffect(() => {
+    const savedRoomId = localStorage.getItem('debugra_roomId');
+    if (user && savedRoomId && !roomId) {
+      joinRoom(savedRoomId).catch(() => {
+        localStorage.removeItem('debugra_roomId');
+      });
+    }
+  }, [user, roomId]); // Join logic uses the function below
+
   // ─── Create room ────────────────────────────────────────────────────────────
   const createRoom = useCallback(
     async (roomPassword = '') => {
@@ -542,7 +552,6 @@ export function useRoom({
     },
     [roomId, user]
   );
-
   // Fix for Distributed Deadlock: Proactively resolve vote consensus if active users drop
   // Uses a transaction to atomically re-check vote state before writing, preventing
   // races with castVote which also uses runTransaction.
