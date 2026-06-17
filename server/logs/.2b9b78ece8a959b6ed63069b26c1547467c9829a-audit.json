@@ -1,0 +1,25 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/Users/prakash/Debugra/server/logs/.2b9b78ece8a959b6ed63069b26c1547467c9829a-audit.json",
+    "files": [
+        {
+            "date": 1780994404939,
+            "name": "/Users/prakash/Debugra/server/logs/application-2026-06-09.log",
+            "hash": "979d5b150dc0d21f4bb40349d8914096ae84ec198e87f9135ffd79fd9d761fc5"
+        },
+        {
+            "date": 1781399931162,
+            "name": "/Users/prakash/Debugra/server/logs/application-2026-06-14.log",
+            "hash": "8e618ac84ae29dda0683074a12d03233085b93c801fe2af5859c8aa3d0e1aaa7"
+        },
+        {
+            "date": 1781679109704,
+            "name": "/Users/prakash/Debugra/server/logs/application-2026-06-17.log",
+            "hash": "cafdfe7f998f7102427b1dd110920ddaf683d4a307b0fad4650ab7b13f6f71e3"
+        }
+    ],
+    "hashType": "sha256"
+}
