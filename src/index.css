@@ -852,6 +852,15 @@ body {
   overflow: hidden;
 }
 
+#editor-container.minimap-disabled .monaco-editor .minimap,
+#editor-container.minimap-disabled .monaco-editor .decorationsOverviewRuler {
+  display: none !important;
+}
+
+#editor-container.minimap-disabled .monaco-editor .monaco-scrollable-element {
+  margin-right: 0 !important;
+}
+
 /* ============ OUTPUT PANE ============ */
 .output-pane {
   width: 420px;
