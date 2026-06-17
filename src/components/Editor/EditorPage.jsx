@@ -139,7 +139,6 @@ export default function EditorPage({ user }) {
       toast.error('Failed to copy output');
     }
   };
-
   const handleFileImport = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1272,6 +1271,117 @@ export default function EditorPage({ user }) {
               >
                 <Settings size={14} />
               </button>
+              {showSettings && (
+                <div
+                  className="audio-settings-popover custom-layout-popover"
+                  role="dialog"
+                  aria-label="Settings"
+                >
+                  <div className="audio-settings-head">
+                    <span>Settings</span>
+                    <button
+                      className="history-action-btn"
+                      aria-label="Close Settings"
+                      onClick={() => setShowSettings(false)}
+                    >
+                      <i className="bi bi-x" />
+                    </button>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-type" style={{ fontSize: '14px' }} />
+                      <span>Editor font</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.fontFamily}
+                      onChange={(e) => editor.setFontFamily(e.target.value)}
+                      aria-label="Audio settings font"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {EDITOR_FONTS.map((font) => (
+                        <option key={font.id} value={font.id}>
+                          {font.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      <i className="bi bi-palette" style={{ fontSize: '14px' }} />
+                      <span>Theme</span>
+                    </div>
+                    <select
+                      className="lang-select"
+                      value={editor.theme}
+                      onChange={(e) => editor.setTheme(e.target.value)}
+                      aria-label="Editor theme"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                    >
+                      {EDITOR_THEMES.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* ===== WALLPAPER BLUR SETTING ROW ===== */}
+                  <div className="audio-settings-row" style={{ marginTop: '12px' }}>
+                    <div className="audio-settings-label">
+                      <i className="bi bi-sliders" style={{ fontSize: '14px' }} />
+                      <span>Wallpaper Blur</span>
+                    </div>
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}
+                    >
+                      <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        step="1"
+                        value={blurIntensity}
+                        onChange={(e) => setBlurIntensity(Number(e.target.value))}
+                        style={{ flex: 1, accentColor: '#00bcd4' }}
+                      />
+                      <span style={{ fontSize: '12px', minWidth: '30px', textAlign: 'right' }}>
+                        {blurIntensity}px
+                      </span>
+                    </div>
+                  </div>
+                  <div className="audio-settings-row">
+                    <div className="audio-settings-label">
+                      {audioFeedback.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                      <span>Audio feedback</span>
+                    </div>
+                    <button
+                      className={`audio-toggle ${audioFeedback.muted ? '' : 'active'}`}
+                      aria-pressed={!audioFeedback.muted}
+                      onClick={() => audioFeedback.setMuted(!audioFeedback.muted)}
+                    >
+                      {audioFeedback.muted ? 'Muted' : 'On'}
+                    </button>
+                  </div>
+                  <label className="audio-settings-slider">
+                    <span>Volume</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={audioFeedback.volume}
+                      onChange={(e) => audioFeedback.setVolume(e.target.value)}
+                    />
+                    <span>{Math.round(audioFeedback.volume * 100)}%</span>
+                  </label>
+                  <button
+                    className="audio-test-btn"
+                    onClick={audioFeedback.testSound}
+                    disabled={audioFeedback.muted}
+                  >
+                    Test chime
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <span className="kbd-hint d-none d-lg-inline">Ctrl+Enter</span>
