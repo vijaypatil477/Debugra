@@ -154,6 +154,7 @@ function TestCasesPanel({ testCases }) {
     </div>
   );
 }
+
 export default function AIResponsePanel({
   isLoading,
   response: rawResponse,
