@@ -108,7 +108,7 @@ const handleCachedRequest = (actionFn) => async (req, res, next) => {
       input: req.body.input
     };
     const bodyHash = crypto.createHash('sha256').update(JSON.stringify(sanitizedBody)).digest('hex');
-    const cacheKey = `${req.path}_${getApiKeyFingerprint(apiKey)}_${bodyHash}`;
+    const cacheKey = `${req.path}_${bodyHash}`;
     
     // Check if we have a cached response
     const cachedResponse = aiCache.get(cacheKey);
