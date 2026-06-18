@@ -396,6 +396,26 @@ Rules:
   );
 }
 
+// 10. Code Summarization — analyze complexity and explain logic
+async function summarizeCodeAI(code, language, apiKey = '', model = DEFAULT_MODEL) {
+  return chatCompletion(
+    `You are a code analysis assistant. Given a code snippet, provide a concise summary, complexity analysis, and step-by-step breakdown. Always respond in valid JSON.`,
+    `Analyze this ${language} code:
+
+${code}
+
+Respond in this EXACT JSON format:
+{
+  "summary": "2-3 sentence plain-English explanation of what this code does",
+  "timeComplexity": "O(...)",
+  "spaceComplexity": "O(...)",
+  "steps": ["Step 1: ...", "Step 2: ...", "Step 3: ..."]
+}`,
+    apiKey,
+    model
+  );
+}
+
 module.exports = {
   explainError,
   fixCodeAI,
@@ -406,6 +426,7 @@ module.exports = {
   explainCodeSnippetAI,
   askFollowUpAI,
   analyzeComplexityAI,
+  summarizeCodeAI,
 };
 
 
