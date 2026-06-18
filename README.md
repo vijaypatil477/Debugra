@@ -30,7 +30,7 @@ A professional, real-time collaborative code editor for developers and CS studen
 - **100/100 Accessibility** — Perfect Lighthouse A11y score with ARIA labels, semantic HTML, and high-contrast visuals
 - **Smart Branding** — High-resolution SVG logos and a smart favicon that automatically adapts to the user's OS-level dark/light mode preferences
 - **Mobile Responsive** — Bootstrap-powered responsive layout with a dedicated mobile bottom navigation bar
-- **SQLite (SQL)** — SQL execution uses SQLite 3.46.1 via Wandbox — no `CREATE DATABASE` needed
+- **SQLite (SQL)** — SQL execution uses SQLite 3.46.1 via Judge0 — no `CREATE DATABASE` needed
 
 ---
 
@@ -41,7 +41,7 @@ A professional, real-time collaborative code editor for developers and CS studen
 | Frontend        | React 18, Vite, Monaco Editor                     |
 | Styling         | Vanilla CSS + Bootstrap 5 (dark VS Code theme)    |
 | Auth & Database | Firebase Auth, Cloud Firestore                    |
-| Code Execution  | Wandbox API (free, serverless)                    |
+| Code Execution  | Judge0 API                    |
 | AI Features     | Groq SDK — `llama-3.3-70b-versatile` + node-cache |
 | Backend         | Express.js (Node.js) with Rate Limiting & Helmet  |
 | Icons           | Bootstrap Icons                                   |
@@ -57,7 +57,7 @@ Debugra follows an **industry-level** component architecture — business logic 
 | Hook           | Responsibility                                            |
 | -------------- | --------------------------------------------------------- |
 | `useEditor`    | Code, language, font size, stdin, save to cloud, download |
-| `useExecution` | Run code via Wandbox, stdout/stderr, execution timing     |
+| `useExecution` | Run code via Judge0, stdout/stderr, execution timing     |
 | `useAI`        | Fix, Explain, Visualize, Generate Tests via Groq          |
 | `useRoom`      | Firebase room sync, create/join, access control, presence |
 | `useIsMobile`  | Reactive viewport detection for responsive layout         |
