@@ -49,6 +49,9 @@ router.post('/verify-password', roomPasswordLimiter, async (req, res) => {
   if (!roomId || typeof roomId !== 'string' || roomId.trim() === '') {
     return res.status(400).json({ error: 'roomId is required.' });
   }
+  if (roomId.trim().length > 128) {
+    return res.status(400).json({ error: 'roomId exceeds maximum length.' });
+  }
   if (!password || typeof password !== 'string' || password.trim() === '') {
     return res.status(400).json({ error: 'password is required.' });
   }
@@ -121,6 +124,9 @@ router.post('/validate-token', async (req, res) => {
 
   if (!roomId || !accessToken) {
     return res.status(400).json({ error: 'roomId and accessToken are required.' });
+  }
+  if (roomId.length > 128 || accessToken.length > 512) {
+    return res.status(400).json({ error: 'Invalid input length.' });
   }
 
   try {
