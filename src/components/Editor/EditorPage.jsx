@@ -2072,8 +2072,6 @@ export default function EditorPage({ user }) {
 
       {/* Premium Full-Screen Code Execution Loading Overlay */}
       <Loader isVisible={execution.isRunning} />
-      {/* Real-time Democratic Vote Popup */}
-      <VotePopup room={room} user={user} />
 
       {/* Welcome Tour for first-time users */}
       {!isMobile && (
