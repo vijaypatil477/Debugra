@@ -15,7 +15,7 @@ const roomCleanupService = require('./services/roomCleanupService');
 const errorHandler = require('./middleware/errorHandler');
 const webhookRoutes = require('./routes/webhooks');
 const roomsRoutes = require('./routes/rooms');
-const { executeLimiter, aiLimiter } = require('./middleware/rateLimiters');
+const { aiLimiter } = require('./middleware/rateLimiters');
 
 const app = express();
 app.set('trust proxy', 1);
