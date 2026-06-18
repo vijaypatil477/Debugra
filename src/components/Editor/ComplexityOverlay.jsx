@@ -35,7 +35,7 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
     const handleTab = (e) => {
       if (e.key !== 'Tab') return;
       const focusable = modal.querySelectorAll(
-        'button,a,input,textarea,select,[tabindex]:not([tabindex="-1"])'
+        'button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex]:not([tabindex="-1"])'
       );
 
       if (!focusable.length) {
