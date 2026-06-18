@@ -159,11 +159,11 @@ export const Navbar = ({ openLogin, openSignup }) => {
 
       {mobileMenu && (
         <div className="mobile-dropdown">
-          <a href="#features" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>
+          <a href="/#features" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>
             Features
           </a>
           <a
-            href="#languages"
+            href="/#languages"
             className="mobile-dropdown-link"
             onClick={() => setMobileMenu(false)}
           >
@@ -176,7 +176,7 @@ export const Navbar = ({ openLogin, openSignup }) => {
           >
             Contributors
           </Link>
-          <a href="#faq" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>
+          <a href="/#faq" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>
             FAQ
           </a>
           <button
