@@ -116,7 +116,7 @@ router.post('/verify-password', roomPasswordLimiter, async (req, res) => {
  * Body: { roomId: string, accessToken: string }
  * Response (200): { valid: true }
  */
-router.post('/validate-token', async (req, res) => {
+router.post('/validate-token', roomPasswordLimiter, async (req, res) => {
   const { roomId, accessToken } = req.body;
 
   if (!roomId || !accessToken) {
