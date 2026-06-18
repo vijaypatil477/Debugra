@@ -42,8 +42,6 @@ function createAiLimiter() {
 }
 
 module.exports = {
-  executeLimiter: createExecuteLimiter(),
   aiLimiter: createAiLimiter(),
-  createExecuteLimiter,
   createAiLimiter,
 };
