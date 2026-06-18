@@ -33,6 +33,7 @@
     "axios": "^1.15.2",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
+    "events": "^3.3.0",
     "firebase": "^12.13.0",
     "lucide-react": "^1.17.0",
     "monaco-vim": "^0.4.4",
@@ -44,6 +45,9 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.14.2",
     "simple-peer": "^9.11.1",
-    "tailwindcss": "^4.2.4"
+    "stream-browserify": "^3.0.0",
+    "tailwindcss": "^4.2.4",
+    "util": "^0.12.5",
+    "vite-plugin-node-polyfills": "^0.28.0"
   }
 }
