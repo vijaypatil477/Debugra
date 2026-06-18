@@ -1,9 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* ============ VS CODE DARK TOKENS (from ParshuPath) ============ */
 :root {
-  --bg-0: #1e1e1e;
+  --bg-0: #0a0a0f;
   --bg-1: #252526;
   --bg-2: #2d2d2d;
   --bg-3: #3c3c3c;
@@ -1758,7 +1758,7 @@ body {
 
 /* ============ LANDING PAGE ============ */
 .landing-root {
-  background: #0a0a0f;
+  background: var(--bg-0);
   height: 100vh;
   font-family: 'Inter', system-ui, sans-serif;
   color: #e2e8f0;
@@ -1851,7 +1851,7 @@ body {
   font-size: 0.85rem;
   font-weight: 600;
   background: #f97316;
-  color: #0a0a0f;
+  color: var(--bg-0);
   border: none;
   cursor: pointer;
   transition: all 0.2s;
@@ -2488,13 +2488,13 @@ input[type='password']::-ms-clear {
 
 /* ============ FEEDBACK PAGE (FIX FOR GSSOC 2026) ============ */
 .feedback-page {
-  /* FIX: Changed to height 100% to ensure the container uses all available space 
+  /* FIX: Changed to height 100% to ensure the container uses all available space
      and doesn't clip the submit button or other controls when interacting with the form */
   height: 100%;
   overflow-y: auto;
   background: var(--bg-0);
   color: var(--text-0);
-  padding: 72px 24px;
+  padding: 20px 24px;
   box-sizing: border-box;
 }
 
@@ -2614,7 +2614,7 @@ input[type='password']::-ms-clear {
 }
 
 /* FIX: Resolution for the dropdown text contrast issue.
-   Forces select options to have a dark background and light text 
+   Forces select options to have a dark background and light text
    across all browsers (Chrome, Edge, etc.), making it 100% legible. */
 .feedback-form select option {
   background: var(--bg-card);
@@ -6113,7 +6113,9 @@ details[open] .debug-stderr-summary::before {
 [data-theme='light'] .contributor-card-pro {
   background: #ffffff;
   border-color: rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03);
 }
 
 [data-theme='light'] .contributor-card-pro:hover {
@@ -6177,5 +6179,3 @@ details[open] .debug-stderr-summary::before {
   width: auto !important;
   max-width: none !important;
 }
-
-

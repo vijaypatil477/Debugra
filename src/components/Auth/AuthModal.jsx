@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -12,15 +13,15 @@ import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function AuthModal({ onClose, initialMode = 'login', mode }) {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState((mode || initialMode) === 'login');
 
-  // support older callers that pass `mode` prop
-  // If `mode` prop is provided, derive initial isLogin from it on first render.
   useEffect(() => {
     if (mode) {
       setIsLogin(mode === 'login');
     }
   }, [mode]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -34,7 +35,6 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
       {
         uid: user.uid,
         displayName: user.displayName || name || 'Anonymous',
-        // store a lowercase copy to support case-insensitive checks
         displayNameLower: (user.displayName || name || 'Anonymous').toLowerCase(),
         email: user.email,
         photoURL: user.photoURL || null,
@@ -44,15 +44,25 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
     );
   };
 
+  const redirectAfterLogin = () => {
+    navigate('/editor', {
+      replace: true,
+    });
+  };
+
   const handleGoogle = async () => {
     try {
       setLoading(true);
+
       const result = await signInWithPopup(auth, googleProvider);
+
       await saveUser(result.user);
-      toast.success('Welcome, ' + (result.user.displayName || 'Developer') + '!');
-      onClose();
+
+      toast.success(`Welcome, ${result.user.displayName || 'Developer'}!`);
+
+      redirectAfterLogin();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Google sign in failed');
     } finally {
       setLoading(false);
     }
@@ -60,45 +70,56 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       setLoading(true);
+
       let result;
+
       if (isLogin) {
         result = await signInWithEmailAndPassword(auth, email, password);
       } else {
-        // validate display name and check for duplicates (case-insensitive)
-        if (!name || !name.trim()) {
+        if (!name.trim()) {
           toast.error('Please enter a display name');
-          setLoading(false);
           return;
         }
+
         const { collection, query, where, getDocs } = await import('firebase/firestore');
-        const q = await getDocs(
+
+        const existing = await getDocs(
           query(collection(db, 'users'), where('displayNameLower', '==', name.trim().toLowerCase()))
         );
-        if (q && !q.empty) {
+
+        if (!existing.empty) {
           toast.error('This username is unavailable');
-          setLoading(false);
           return;
         }
+
         result = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(result.user, { displayName: name });
+
+        await updateProfile(result.user, {
+          displayName: name,
+        });
       }
+
       await saveUser(result.user);
+
       toast.success('Welcome!');
-      onClose();
+
+      redirectAfterLogin();
     } catch (err) {
       const code = err?.code || '';
+
       if (code === 'auth/email-already-in-use') {
-        toast.error('An account with this email already exists');
+        toast.error('Email already exists');
       } else if (code === 'auth/weak-password') {
-        toast.error('Password is too weak (min 6 characters)');
+        toast.error('Password too weak');
       } else if (code === 'auth/wrong-password') {
         toast.error('Wrong password');
       } else if (code === 'auth/user-not-found') {
-        toast.error('No account found for that email');
+        toast.error('Account not found');
       } else {
-        toast.error(err.message || 'An error occurred');
+        toast.error(err.message || 'Authentication failed');
       }
     } finally {
       setLoading(false);
@@ -107,14 +128,19 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
+
     if (!resetEmail) {
       toast.error('Enter your email');
       return;
     }
+
     try {
       setLoading(true);
+
       await sendPasswordResetEmail(auth, resetEmail);
-      toast.success('Reset link sent! Check your inbox.');
+
+      toast.success('Reset email sent');
+
       setForgotMode(false);
     } catch (err) {
       toast.error(err.message);
@@ -122,7 +148,6 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
       setLoading(false);
     }
   };
-
   const inputStyle = {
     width: '100%',
     padding: '10px 14px',
@@ -138,216 +163,78 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.7)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 100,
-        fontFamily: "'Inter', system-ui, sans-serif",
-      }}
-      onClick={onClose}
-    >
+    <>
       <div
-        onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#1a1a2e',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '16px',
-          padding: '32px',
-          width: '400px',
-          maxWidth: '90vw',
-          color: '#e2e8f0',
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.7)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 100,
+          fontFamily: "'Inter', system-ui, sans-serif",
         }}
+        onClick={onClose}
       >
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-24px' }}>
-          <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <h2
-          style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '6px', textAlign: 'center' }}
-        >
-          {forgotMode ? 'Reset Password' : !isLogin ? 'Create Account' : 'Welcome Back'}
-        </h2>
-        <p
+        <div
+          onClick={(e) => e.stopPropagation()}
           style={{
-            fontSize: '0.8rem',
-            color: '#64748b',
-            textAlign: 'center',
-            marginBottom: '24px',
+            background: '#1a1a2e',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '16px',
+            padding: '32px',
+            width: '400px',
+            maxWidth: '90vw',
+            color: '#e2e8f0',
           }}
         >
-          {forgotMode
-            ? 'Enter your email to receive a reset link'
-            : !isLogin
-              ? 'Sign up to save code & collaborate'
-              : 'Sign in to access saved code'}
-        </p>
-
-        {forgotMode ? (
-          /* ─── Forgot Password Form ─── */
-          <form onSubmit={handleForgotPassword}>
-            <input
-              value={resetEmail}
-              onChange={(e) => setResetEmail(e.target.value)}
-              placeholder="Email address"
-              type="email"
-              required
-              style={{ ...inputStyle, marginBottom: '16px' }}
-            />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-24px' }}>
             <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '10px',
-                borderRadius: '10px',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                background: '#4ec9b0',
-                color: '#09090b',
-                border: 'none',
-                cursor: 'pointer',
-                boxSizing: 'border-box',
-              }}
+              onClick={onClose}
+              aria-label="Close modal"
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
             >
-              {loading ? 'Sending...' : 'Send Reset Link'}
+              <X size={20} />
             </button>
-            <p
-              style={{
-                textAlign: 'center',
-                marginTop: '16px',
-                fontSize: '0.78rem',
-                color: '#64748b',
-              }}
-            >
-              Remember your password?{' '}
-              <button
-                onClick={() => setForgotMode(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#4ec9b0',
-                  cursor: 'pointer',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  textDecoration: 'underline',
-                  padding: 0,
-                }}
-              >
-                Back to Sign In
-              </button>
-            </p>
-          </form>
-        ) : (
-          /* ─── Login / Signup Form ─── */
-          <>
-            {/* Google */}
-            <button
-              onClick={handleGoogle}
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '10px',
-                borderRadius: '10px',
-                fontSize: '0.85rem',
-                fontWeight: 500,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: '#e2e8f0',
-                cursor: 'pointer',
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                boxSizing: 'border-box',
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
-              Continue with Google
-            </button>
+          </div>
+          <h2
+            style={{
+              fontSize: '1.3rem',
+              fontWeight: 700,
+              marginBottom: '6px',
+              textAlign: 'center',
+            }}
+          >
+            {forgotMode ? 'Reset Password' : !isLogin ? 'Create Account' : 'Welcome Back'}
+          </h2>
+          <p
+            style={{
+              fontSize: '0.8rem',
+              color: '#64748b',
+              textAlign: 'center',
+              marginBottom: '24px',
+            }}
+          >
+            {forgotMode
+              ? 'Enter your email to receive a reset link'
+              : !isLogin
+                ? 'Sign up to save code & collaborate'
+                : 'Sign in to access saved code'}
+          </p>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '16px 0' }}>
-              <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-              <span style={{ fontSize: '0.72rem', color: '#475569' }}>or use email</span>
-              <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              {!isLogin && (
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Full Name"
-                  style={{ ...inputStyle, marginBottom: '10px' }}
-                  required
-                />
-              )}
+          {forgotMode ? (
+            /* ─── Forgot Password Form ─── */
+            <form onSubmit={handleForgotPassword}>
               <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                placeholder="Email address"
                 type="email"
                 required
-                style={{ ...inputStyle, marginBottom: '10px' }}
+                style={{ ...inputStyle, marginBottom: '16px' }}
               />
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                type="password"
-                required
-                minLength={6}
-                style={{ ...inputStyle, marginBottom: isLogin ? '8px' : '16px' }}
-              />
-              {isLogin && (
-                <p style={{ textAlign: 'right', marginBottom: '12px' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForgotMode(true);
-                      setResetEmail(email);
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#4ec9b0',
-                      cursor: 'pointer',
-                      fontSize: '0.72rem',
-                      fontWeight: 500,
-                      padding: 0,
-                    }}
-                  >
-                    Forgot password?
-                  </button>
-                </p>
-              )}
               <button
                 type="submit"
                 disabled={loading}
@@ -364,41 +251,188 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                   boxSizing: 'border-box',
                 }}
               >
-                {loading ? 'Please wait...' : !isLogin ? 'Create Account' : 'Sign In'}
+                {loading ? 'Sending...' : 'Send Reset Link'}
               </button>
-            </form>
-
-            <p
-              style={{
-                textAlign: 'center',
-                marginTop: '16px',
-                fontSize: '0.78rem',
-                color: '#64748b',
-              }}
-            >
-              {!isLogin ? 'Already have an account? ' : "Don't have an account? "}
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  setIsLogin(!isLogin);
-                }}
+              <p
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#4ec9b0',
-                  cursor: 'pointer',
+                  textAlign: 'center',
+                  marginTop: '16px',
                   fontSize: '0.78rem',
-                  fontWeight: 600,
-                  textDecoration: 'underline',
-                  padding: 0,
+                  color: '#64748b',
                 }}
               >
-                {!isLogin ? 'Sign In' : 'Sign Up'}
+                Remember your password?{' '}
+                <button
+                  type="button"
+                  onClick={() => setForgotMode(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#4ec9b0',
+                    cursor: 'pointer',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    textDecoration: 'underline',
+                    padding: 0,
+                  }}
+                >
+                  Back to Sign In
+                </button>
+              </p>
+            </form>
+          ) : (
+            /* ─── Login / Signup Form ─── */
+            <>
+              {/* Google */}
+              <button
+                onClick={handleGoogle}
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '10px',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  color: '#e2e8f0',
+                  cursor: 'pointer',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24">
+                  <path
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+                    fill="#4285F4"
+                  />
+                  <path
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    fill="#34A853"
+                  />
+                  <path
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    fill="#FBBC05"
+                  />
+                  <path
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    fill="#EA4335"
+                  />
+                </svg>
+                Continue with Google
               </button>
-            </p>
-          </>
-        )}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '16px 0' }}>
+                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
+                <span style={{ fontSize: '0.72rem', color: '#475569' }}>or use email</span>
+                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
+              </div>
+
+              <form onSubmit={handleSubmit}>
+                {!isLogin && (
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Full Name"
+                    style={{ ...inputStyle, marginBottom: '10px' }}
+                    required
+                  />
+                )}
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email"
+                  type="email"
+                  required
+                  style={{ ...inputStyle, marginBottom: '10px' }}
+                />
+                <input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  type="password"
+                  required
+                  minLength={6}
+                  style={{ ...inputStyle, marginBottom: isLogin ? '8px' : '16px' }}
+                />
+                {isLogin && (
+                  <p style={{ textAlign: 'right', marginBottom: '12px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForgotMode(true);
+                        setResetEmail(email);
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#4ec9b0',
+                        cursor: 'pointer',
+                        fontSize: '0.72rem',
+                        fontWeight: 500,
+                        padding: 0,
+                      }}
+                    >
+                      Forgot password?
+                    </button>
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '10px',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    background: '#4ec9b0',
+                    color: '#09090b',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {loading ? 'Please wait...' : !isLogin ? 'Create Account' : 'Sign In'}
+                </button>
+              </form>
+
+              <p
+                style={{
+                  textAlign: 'center',
+                  marginTop: '16px',
+                  fontSize: '0.78rem',
+                  color: '#64748b',
+                }}
+              >
+                {!isLogin ? 'Already have an account? ' : "Don't have an account? "}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsLogin(!isLogin);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#4ec9b0',
+                    cursor: 'pointer',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    textDecoration: 'underline',
+                    padding: 0,
+                  }}
+                >
+                  {!isLogin ? 'Sign In' : 'Sign Up'}
+                </button>
+              </p>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
