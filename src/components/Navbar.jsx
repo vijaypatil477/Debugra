@@ -48,6 +48,7 @@ export const Navbar = ({ openLogin, openSignup }) => {
           </button>
           <button
             onClick={toggleTheme}
+            aria-label="Toggle theme"
             className="landing-btn-outline p-0 d-flex align-items-center justify-content-center"
             title="Toggle theme"
             style={{ width: '36px', height: '36px', borderRadius: '8px' }}
@@ -89,6 +90,7 @@ export const Navbar = ({ openLogin, openSignup }) => {
         <div className="d-flex align-items-center gap-2 mobile-only">
           <button
             onClick={toggleTheme}
+            aria-label="Toggle theme"
             className="landing-btn-outline p-0 d-flex align-items-center justify-content-center"
             title="Toggle theme"
             style={{ width: '36px', height: '36px', borderRadius: '8px' }}
