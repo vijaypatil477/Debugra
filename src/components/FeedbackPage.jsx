@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useTheme } from '../context/ThemeContext';
+import { Navbar } from './Navbar';
 
 const initialForm = {
   name: '',
@@ -33,7 +34,9 @@ export default function FeedbackPage() {
     event.currentTarget.reset();
   };
 
-  return (
+  return (<>
+
+      <Navbar/>
     <div className="feedback-page">
       <div className="feedback-shell">
         <div className="feedback-copy">
@@ -46,10 +49,10 @@ export default function FeedbackPage() {
               marginBottom: '1rem',
             }}
           >
-            <Link to="/" className="feedback-back-link" style={{ marginBottom: 0 }}>
+            {/* <Link to="/" className="feedback-back-link" style={{ marginBottom: 0 }}>
               ← Back to home
-            </Link>
-            <button
+            </Link> */}
+            {/* <button
               type="button"
               onClick={toggleTheme}
               className="feedback-theme-toggle"
@@ -86,7 +89,7 @@ export default function FeedbackPage() {
                   <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" strokeLinecap="round" />
                 </svg>
               )}
-            </button>
+            </button> */}
           </div>
           <p className="section-eyebrow" style={{ fontSize: '1.1rem', letterSpacing: '0.15em' }}>
             FEEDBACK
@@ -177,5 +180,6 @@ export default function FeedbackPage() {
         </form>
       </div>
     </div>
+  </>
   );
 }

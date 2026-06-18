@@ -2488,13 +2488,13 @@ input[type='password']::-ms-clear {
 
 /* ============ FEEDBACK PAGE (FIX FOR GSSOC 2026) ============ */
 .feedback-page {
-  /* FIX: Changed to height 100% to ensure the container uses all available space 
+  /* FIX: Changed to height 100% to ensure the container uses all available space
      and doesn't clip the submit button or other controls when interacting with the form */
   height: 100%;
   overflow-y: auto;
-  background: var(--bg-0);
+  background: #0a0a0f;
   color: var(--text-0);
-  padding: 72px 24px;
+  padding: 20px 24px;
   box-sizing: border-box;
 }
 
@@ -2614,7 +2614,7 @@ input[type='password']::-ms-clear {
 }
 
 /* FIX: Resolution for the dropdown text contrast issue.
-   Forces select options to have a dark background and light text 
+   Forces select options to have a dark background and light text
    across all browsers (Chrome, Edge, etc.), making it 100% legible. */
 .feedback-form select option {
   background: var(--bg-card);
