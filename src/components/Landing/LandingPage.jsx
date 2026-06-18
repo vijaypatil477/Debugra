@@ -1,17 +1,9 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
-import {
-  signInWithPopup,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  updateProfile,
-} from 'firebase/auth';
-import { auth, googleProvider } from '../../services/firebase';
 import toast from 'react-hot-toast';
 import './LandingPage.css';
-import { Link } from 'react-router-dom';
-import { useTheme } from '../../context/ThemeContext';
+import { Navbar } from '../Navbar';
+import AuthModal from '../Auth/AuthModal';
 
 // ─── Inline SVG Icons ─────────────────────────────────────────────────────────
 const IconBolt = () => (
@@ -314,7 +306,8 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const featuresCarouselRef = useRef(null);
-  const { theme, toggleTheme } = useTheme();
+  const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
 
   // Scroll to hash on page load/navigation change
   useEffect(() => {
@@ -328,13 +321,6 @@ export default function LandingPage() {
       }
     }
   }, [location.hash]);
-  const [showLogin, setShowLogin] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [mobileMenu, setMobileMenu] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
   const [canScrollFeaturesLeft, setCanScrollFeaturesLeft] = useState(false);
   const [canScrollFeaturesRight, setCanScrollFeaturesRight] = useState(false);
@@ -377,13 +363,6 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Reset confirm-password state whenever the user toggles login ↔ sign-up
-  useEffect(() => {
-    setConfirmPassword('');
-    setShowConfirmPassword(false);
-    setShowPassword(false);
-  }, [isSignUp]);
-
   const scrollFeaturesCarousel = (direction) => {
     const carousel = featuresCarouselRef.current;
     if (!carousel) return;
@@ -403,248 +382,20 @@ export default function LandingPage() {
       scrollFeaturesCarousel(1);
     }
   };
-  const [showPassword, setShowPassword] = useState(false);
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
-
-  const handleGoogle = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-      toast.success('Welcome!');
-      navigate('/editor');
-    } catch (err) {
-      toast.error(err.message);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (isSignUp && password !== confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-    setLoading(true);
-    try {
-      if (isSignUp) {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        if (name) await updateProfile(cred.user, { displayName: name });
-        toast.success('Account created!');
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-        toast.success('Welcome back!');
-      }
-      navigate('/editor');
-    } catch (err) {
-      toast.error(err.message);
-    }
-    setLoading(false);
-  };
 
   return (
     <div className="landing-root">
-      {/* ===== NAVBAR ===== */}
-      <nav className="landing-nav">
-        <Link to="/" className="landing-nav-left text-decoration-none">
-          <img
-            src={theme === 'light' ? '/icon-light.svg' : '/icon-dark.svg'}
-            height="26"
-            alt="Debugra Logo"
-          />
-          <span className="landing-logo">Debugra</span>
-          <span className="landing-version-badge">v1.0</span>
-        </Link>
-        <div className="landing-nav-right desktop-only">
-          <a href="#features" className="landing-nav-link">
-            Features
-          </a>
-          <a href="#languages" className="landing-nav-link">
-            Languages
-          </a>
-          <Link to="/contributors" className="landing-nav-link">
-            Contributors
-          </Link>
-          <a href="#faq" className="landing-nav-link">
-            FAQ
-          </a>
-          <button
-            onClick={() => navigate('/feedback')}
-            className="landing-nav-link nav-link-button"
-          >
-            Feedback
-          </button>
-          <button onClick={() => setShowLogin(true)} className="landing-btn-outline">
-            Log In
-          </button>
-          <button
-            onClick={() => {
-              setIsSignUp(true);
-              setShowLogin(true);
-            }}
-            className="landing-btn-primary"
-          >
-            Sign Up Free
-          </button>
-          <button
-            onClick={toggleTheme}
-            className="landing-btn-outline p-0 d-flex align-items-center justify-content-center"
-            title="Toggle theme"
-            style={{ width: '36px', height: '36px', borderRadius: '8px' }}
-          >
-            {theme === 'light' ? (
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
-            ) : (
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="12" cy="12" r="5" />
-                <line x1="12" y1="1" x2="12" y2="3" strokeLinecap="round" />
-                <line x1="12" y1="21" x2="12" y2="23" strokeLinecap="round" />
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" strokeLinecap="round" />
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" strokeLinecap="round" />
-                <line x1="1" y1="12" x2="3" y2="12" strokeLinecap="round" />
-                <line x1="21" y1="12" x2="23" y2="12" strokeLinecap="round" />
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" strokeLinecap="round" />
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" strokeLinecap="round" />
-              </svg>
-            )}
-          </button>
-        </div>
-
-        <div className="d-flex align-items-center gap-2 mobile-only">
-          <button
-            onClick={toggleTheme}
-            className="landing-btn-outline p-0 d-flex align-items-center justify-content-center"
-            title="Toggle theme"
-            style={{ width: '36px', height: '36px', borderRadius: '8px' }}
-          >
-            {theme === 'light' ? (
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
-            ) : (
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="12" cy="12" r="5" />
-                <line x1="12" y1="1" x2="12" y2="3" strokeLinecap="round" />
-                <line x1="12" y1="21" x2="12" y2="23" strokeLinecap="round" />
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" strokeLinecap="round" />
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" strokeLinecap="round" />
-                <line x1="1" y1="12" x2="3" y2="12" strokeLinecap="round" />
-                <line x1="21" y1="12" x2="23" y2="12" strokeLinecap="round" />
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" strokeLinecap="round" />
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" strokeLinecap="round" />
-              </svg>
-            )}
-          </button>
-          <button
-            className="mobile-menu-btn"
-            aria-label="Toggle mobile menu"
-            aria-expanded={mobileMenu}
-            onClick={() => setMobileMenu(!mobileMenu)}
-          >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              {mobileMenu ? (
-                <>
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </>
-              ) : (
-                <>
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <line x1="3" y1="12" x2="21" y2="12" />
-                  <line x1="3" y1="18" x2="21" y2="18" />
-                </>
-              )}
-            </svg>
-          </button>
-        </div>
-      </nav>
-
-      {mobileMenu && (
-        <div className="mobile-dropdown">
-          <a href="#features" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>
-            Features
-          </a>
-          <a
-            href="#languages"
-            className="mobile-dropdown-link"
-            onClick={() => setMobileMenu(false)}
-          >
-            Languages
-          </a>
-          <Link to="/contributors" className="landing-nav-link">
-            Contributors
-          </Link>
-          <a href="#faq" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>
-            FAQ
-          </a>
-          <button
-            className="mobile-dropdown-link"
-            onClick={() => {
-              setMobileMenu(false);
-              navigate('/feedback');
-            }}
-          >
-            Feedback
-          </button>
-          <button
-            onClick={() => {
-              setShowLogin(true);
-              setMobileMenu(false);
-            }}
-            className="mobile-dropdown-link"
-          >
-            Log In
-          </button>
-          <button
-            onClick={() => {
-              setIsSignUp(true);
-              setShowLogin(true);
-              setMobileMenu(false);
-            }}
-            className="landing-btn-primary"
-            style={{ width: '100%', marginTop: '8px' }}
-          >
-            Sign Up Free
-          </button>
-        </div>
-      )}
+      <Navbar
+        openLogin={() => {
+          setAuthMode('login');
+          setShowAuth(true);
+        }}
+        openSignup={() => {
+          setAuthMode('signup');
+          setShowAuth(true);
+        }}
+      />
 
       {/* ===== HERO ===== */}
       <section className="landing-hero">
