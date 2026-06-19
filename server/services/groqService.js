@@ -15,7 +15,7 @@ function sanitizePromptInput(input) {
 function sanitizeApiKey(apiKey) {
   if (typeof apiKey !== 'string') return apiKey;
   // Remove invisible control characters and trim whitespace
-  return apiKey.replace(/[\x00-\x1F\x7F-\x9F]/g, '').trim();
+  return apiKey.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').trim();
 }
 
 function validateApiKey(apiKey) {
