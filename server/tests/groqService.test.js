@@ -94,9 +94,9 @@ describe('groqService Security Audit', () => {
 
     it('should throw 500 with custom message if no client key is provided and server key is missing', () => {
       delete process.env.GROQ_API_KEY;
-      expect(() => getGroqClient('')).toThrow('Server misconfiguration: Groq API key is missing or invalid in environment variables.');
+      expect(() => getGroqClient(undefined)).toThrow('Server misconfiguration: Groq API key is missing or invalid in environment variables.');
       try {
-        getGroqClient('');
+        getGroqClient(undefined);
       } catch (err) {
         expect(err.status).toBe(500);
       }
