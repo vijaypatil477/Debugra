@@ -1,3 +1,4 @@
+/* eslint-env node */
 const Groq = require('groq-sdk');
 
 const MODELS = {
