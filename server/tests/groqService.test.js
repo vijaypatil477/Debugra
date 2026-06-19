@@ -1,3 +1,4 @@
+/* eslint-env jest, node */
 const { sanitizeApiKey, validateApiKey } = require('../services/groqService');
 
 describe('groqService Security Audit', () => {
