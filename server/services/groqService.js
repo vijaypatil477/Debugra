@@ -1,3 +1,4 @@
+/* eslint-env node */
 const Groq = require('groq-sdk');
 
 const MODELS = {
@@ -12,10 +13,55 @@ function sanitizePromptInput(input) {
   return input.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function getGroqClient(apiKey) {
-  return new Groq({ apiKey: apiKey || process.env.GROQ_API_KEY || 'missing_key' });
+function sanitizeApiKey(apiKey) {
+  if (typeof apiKey !== 'string') return apiKey;
+  // Remove invisible control characters and trim whitespace
+  return apiKey.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').trim();
 }
-async function chatCompletion(systemPrompt, userPrompt, apiKey = '', model = DEFAULT_MODEL) {
+
+function validateApiKey(apiKey) {
+  const throwErr = (msg) => {
+    const err = new Error(msg);
+    err.status = 400;
+    throw err;
+  };
+
+  if (apiKey === undefined || apiKey === null || apiKey === '') {
+    throwErr('API key is required');
+  }
+  if (typeof apiKey !== 'string') {
+    throwErr('Invalid API key format');
+  }
+  if (apiKey.trim() === '') {
+    throwErr('API key is required');
+  }
+  if (apiKey.length < 20 || apiKey.length > 100) {
+    throwErr('Invalid API key format');
+  }
+  // Validate that the key only contains safe characters
+  if (!/^[a-zA-Z0-9_-]+$/.test(apiKey)) {
+    throwErr('API key contains unsupported characters');
+  }
+}
+
+function getGroqClient(apiKey) {
+  const isClientKey = apiKey !== undefined;
+  let keyToUse = apiKey ?? process.env.GROQ_API_KEY;
+  keyToUse = sanitizeApiKey(keyToUse);
+  
+  try {
+    validateApiKey(keyToUse);
+  } catch (err) {
+    if (!isClientKey) {
+      err.status = 500;
+      err.message = 'Server misconfiguration: Groq API key is missing or invalid in environment variables.';
+    }
+    throw err;
+  }
+  
+  return new Groq({ apiKey: keyToUse });
+}
+async function chatCompletion(systemPrompt, userPrompt, apiKey = undefined, model = DEFAULT_MODEL) {
   const response = await getGroqClient(apiKey).chat.completions.create({
     model: MODELS[model] ? model : DEFAULT_MODEL,
     messages: [
@@ -106,7 +152,7 @@ async function chatCompletion(systemPrompt, userPrompt, apiKey = '', model = DEF
   return { content: aiMessage, usage: tokenUsage };
 }
 
-async function chatCompletionText(systemPrompt, userPrompt, apiKey = '', model = DEFAULT_MODEL) {
+async function chatCompletionText(systemPrompt, userPrompt, apiKey = undefined, model = DEFAULT_MODEL) {
   const response = await getGroqClient(apiKey).chat.completions.create({
     model: MODELS[model] ? model : DEFAULT_MODEL,
     messages: [
@@ -129,7 +175,7 @@ async function chatCompletionText(systemPrompt, userPrompt, apiKey = '', model =
 
 
 // 1. Error Explanation
-async function explainError(code, error, language, apiKey = '', model = DEFAULT_MODEL) {
+async function explainError(code, error, language, apiKey = undefined, model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are a coding mentor. Analyze errors and explain them simply. Always respond in valid JSON.`,
     `The user wrote code in <language>${language}</language> and got this error:
@@ -155,7 +201,7 @@ Respond in this EXACT JSON format:
 }
 
 // 2. Code Fix
-async function fixCodeAI(code, error, language, apiKey = '', model = DEFAULT_MODEL) {
+async function fixCodeAI(code, error, language, apiKey = undefined, model = DEFAULT_MODEL) {
   const response = await chatCompletionText(
     `You are a code repair expert. Fix this code while keeping the user's logic intact. Return ONLY the corrected code. Do NOT wrap it in markdown. Do not say "Here is the code". CRITICAL: Do NOT output any <think> tags, do NOT explain your reasoning. Just output the raw code.`,
     `Fix this <language>${language}</language> code:
@@ -199,7 +245,7 @@ ${error || 'No specific error, but optimize and fix any issues.'}
 }
 
 // 3. Logic Explanation
-async function explainLogicAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+async function explainLogicAI(code, language, apiKey = undefined,model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are a CS tutor. Explain code step-by-step. Always respond in valid JSON.`,
     `Explain this <language>${language}</language> code step-by-step:
@@ -221,7 +267,7 @@ Respond in JSON:
 }
 
 // 4. Test Case Generation
-async function generateTestsAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+async function generateTestsAI(code, language, apiKey = undefined,model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are a QA engineer. Generate test cases. Always respond in valid JSON.`,
     `Generate test cases for this <language>${language}</language> function:
@@ -245,7 +291,7 @@ Respond in JSON:
 }
 
 // 5. Security and refactoring audit
-async function auditCodeAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+async function auditCodeAI(code, language, apiKey = undefined,model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are a senior application security reviewer and refactoring coach. Audit code for exploitable security risks, reliability hazards, memory/resource leaks, and unsafe architecture. Always respond in valid JSON.`,
     `Audit this <language>${language}</language> code:
@@ -283,7 +329,7 @@ Rules:
 }
 
 // 6. Execution Visualization
-async function visualizeAI(code, language, input = '', apiKey = '',model = DEFAULT_MODEL) {
+async function visualizeAI(code, language, input = '', apiKey = undefined,model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are a code tracer. Trace through code step by step showing variable states. Always respond in valid JSON.`,
     `Trace through this <language>${language}</language> code step by step. Show variable states after each line.
@@ -309,7 +355,7 @@ Respond in JSON:
 }
 
 // 7. AI Code Explainer — explains a selected code snippet in plain language
-async function explainCodeSnippetAI(code, language, apiKey = '',model = DEFAULT_MODEL) {
+async function explainCodeSnippetAI(code, language, apiKey = undefined,model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are an expert programming tutor. When a user highlights a snippet of code, explain what it does in simple, beginner-friendly language. Always respond in valid JSON.`,
     `Explain this <language>${language}</language> code snippet in simple terms:
@@ -331,7 +377,7 @@ Respond in this EXACT JSON format:
 }
 
 // 8. AI Code Explainer — follow-up Q&A on previously explained code
-async function askFollowUpAI(code, language, question, previousExplanation, apiKey = '',model = DEFAULT_MODEL) {
+async function askFollowUpAI(code, language, question, previousExplanation, apiKey = undefined,model = DEFAULT_MODEL) {
   return chatCompletion(
     `You are an expert programming tutor engaged in an interactive Q&A session. The user previously highlighted code and received an explanation. Now they have a follow-up question. Answer clearly and concisely. Always respond in valid JSON.`,
     `The user is asking about this <language>${language}</language> code:
@@ -359,7 +405,7 @@ Respond in this EXACT JSON format:
 }
 
 // 9. Complexity Analysis — Time & Space Big-O
-async function analyzeComplexityAI(code, language, apiKey = '') {
+async function analyzeComplexityAI(code, language, apiKey = undefined) {
   return chatCompletion(
     `You are an expert algorithms professor and competitive programmer. Analyze code for time and space complexity using Big-O notation. Be precise and accurate. Always respond in valid JSON.`,
     `Analyze the time and space complexity of this ${language} code:
@@ -406,6 +452,9 @@ module.exports = {
   explainCodeSnippetAI,
   askFollowUpAI,
   analyzeComplexityAI,
+  sanitizeApiKey,
+  validateApiKey,
+  getGroqClient,
 };
 
 
