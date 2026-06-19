@@ -12,8 +12,42 @@ function sanitizePromptInput(input) {
   return input.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+function sanitizeApiKey(apiKey) {
+  if (typeof apiKey !== 'string') return apiKey;
+  // Remove invisible control characters and trim whitespace
+  return apiKey.replace(/[\x00-\x1F\x7F-\x9F]/g, '').trim();
+}
+
+function validateApiKey(apiKey) {
+  const throwErr = (msg) => {
+    const err = new Error(msg);
+    err.status = 400;
+    throw err;
+  };
+
+  if (apiKey === undefined || apiKey === null || apiKey === '') {
+    throwErr('API key is required');
+  }
+  if (typeof apiKey !== 'string') {
+    throwErr('Invalid API key format');
+  }
+  if (apiKey.trim() === '') {
+    throwErr('API key is required');
+  }
+  if (apiKey.length < 20 || apiKey.length > 100) {
+    throwErr('Invalid API key format');
+  }
+  // Validate that the key only contains safe characters
+  if (!/^[a-zA-Z0-9_-]+$/.test(apiKey)) {
+    throwErr('API key contains unsupported characters');
+  }
+}
+
 function getGroqClient(apiKey) {
-  return new Groq({ apiKey: apiKey || process.env.GROQ_API_KEY || 'missing_key' });
+  let keyToUse = apiKey || process.env.GROQ_API_KEY;
+  keyToUse = sanitizeApiKey(keyToUse);
+  validateApiKey(keyToUse);
+  return new Groq({ apiKey: keyToUse });
 }
 async function chatCompletion(systemPrompt, userPrompt, apiKey = '', model = DEFAULT_MODEL) {
   const response = await getGroqClient(apiKey).chat.completions.create({
@@ -406,6 +440,8 @@ module.exports = {
   explainCodeSnippetAI,
   askFollowUpAI,
   analyzeComplexityAI,
+  sanitizeApiKey,
+  validateApiKey,
 };
 
 
