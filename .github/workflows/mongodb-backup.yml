@@ -32,6 +32,7 @@ jobs:
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
         run: |
+          echo "::add-mask::$MONGO_URI"
           TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
           BACKUP_NAME="debugra_backup_$TIMESTAMP.archive"
           mongodump --uri="$MONGO_URI" --archive="backups/$BACKUP_NAME" --gzip
