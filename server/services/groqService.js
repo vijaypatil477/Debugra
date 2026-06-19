@@ -44,9 +44,20 @@ function validateApiKey(apiKey) {
 }
 
 function getGroqClient(apiKey) {
+  const isClientKey = Boolean(apiKey);
   let keyToUse = apiKey || process.env.GROQ_API_KEY;
   keyToUse = sanitizeApiKey(keyToUse);
-  validateApiKey(keyToUse);
+  
+  try {
+    validateApiKey(keyToUse);
+  } catch (err) {
+    if (!isClientKey) {
+      err.status = 500;
+      err.message = 'Server misconfiguration: Groq API key is missing or invalid in environment variables.';
+    }
+    throw err;
+  }
+  
   return new Groq({ apiKey: keyToUse });
 }
 async function chatCompletion(systemPrompt, userPrompt, apiKey = '', model = DEFAULT_MODEL) {
@@ -442,6 +453,7 @@ module.exports = {
   analyzeComplexityAI,
   sanitizeApiKey,
   validateApiKey,
+  getGroqClient,
 };
 
 

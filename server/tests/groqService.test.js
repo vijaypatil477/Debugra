@@ -69,4 +69,37 @@ describe('groqService Security Audit', () => {
       expect(() => validateApiKey(spaceKey)).toThrow('API key contains unsupported characters');
     });
   });
+
+  describe('getGroqClient', () => {
+    const { getGroqClient } = require('../services/groqService');
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      jest.resetModules();
+      process.env = { ...originalEnv };
+    });
+
+    afterAll(() => {
+      process.env = originalEnv;
+    });
+
+    it('should throw 400 if client key is provided but invalid', () => {
+      expect(() => getGroqClient('invalid_key')).toThrow('Invalid API key format');
+      try {
+        getGroqClient('invalid_key');
+      } catch (err) {
+        expect(err.status).toBe(400);
+      }
+    });
+
+    it('should throw 500 with custom message if no client key is provided and server key is missing', () => {
+      delete process.env.GROQ_API_KEY;
+      expect(() => getGroqClient('')).toThrow('Server misconfiguration: Groq API key is missing or invalid in environment variables.');
+      try {
+        getGroqClient('');
+      } catch (err) {
+        expect(err.status).toBe(500);
+      }
+    });
+  });
 });
