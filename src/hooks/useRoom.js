@@ -12,37 +12,32 @@ import {
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import toast from 'react-hot-toast';
+import api from '../services/api';
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
 
 async function verifyRoomPassword(roomId, password) {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  try {
+    const { data } = await api.post('/api/rooms/verify-password', {
+      roomId,
+      password,
+    });
 
-  const res = await fetch(`${apiUrl}/api/rooms/verify-password`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roomId, password }),
-  });
+    sessionStorage.setItem(
+      `${ROOM_AUTH_PREFIX}${roomId}`,
+      JSON.stringify({
+        accessToken: data.accessToken,
+        expiresAt: data.expiresAt,
+      })
+    );
 
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.error || 'Password verification failed.');
+    return true;
+  } catch (error) {
+    throw new Error(error.message || 'Password verification failed.');
   }
-
-  sessionStorage.setItem(
-    `${ROOM_AUTH_PREFIX}${roomId}`,
-    JSON.stringify({
-      accessToken: data.accessToken,
-      expiresAt: data.expiresAt,
-    })
-  );
-
-  return true;
 }
 
 async function hasValidRoomAccess(roomId) {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
   const stored = sessionStorage.getItem(`${ROOM_AUTH_PREFIX}${roomId}`);
 
   if (!stored) return false;
@@ -54,13 +49,12 @@ async function hasValidRoomAccess(roomId) {
       return false;
     }
 
-    const res = await fetch(`${apiUrl}/api/rooms/validate-token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomId, accessToken }),
+    await api.post('/api/rooms/validate-token', {
+      roomId,
+      accessToken,
     });
 
-    if (res.ok) return true;
+    return true;
   } catch {
     // corrupted storage or network issue; fall through to remove token
   }
