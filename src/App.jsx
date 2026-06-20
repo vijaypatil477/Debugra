@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './services/firebase';
 import { Toaster } from 'react-hot-toast';
@@ -7,6 +7,7 @@ import LandingPage from './components/Landing/LandingPage';
 import EditorPage from './components/Editor/EditorPage';
 import VideoCall from './components/Editor/VideoCall';
 import OfflineBanner from './components/Editor/OfflineBanner';
+import ContributorsPage from './components/Landing/ContributorsPage';
 import Footer from './components/Footer.jsx';
 import FeedbackPage from './components/FeedbackPage';
 import { ThemeProvider } from './context/ThemeContext';

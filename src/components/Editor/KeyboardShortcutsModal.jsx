@@ -3,6 +3,14 @@ import { createPortal } from 'react-dom';
 
 const SHORTCUT_GROUPS = [
   {
+    title: 'AI Features',
+    items: [
+      { label: 'AI Fix', combos: [['Ctrl', 'Shift', 'F']] },
+      { label: 'AI Explain', combos: [['Ctrl', 'Shift', 'E']] },
+      { label: 'Generate Tests', combos: [['Ctrl', 'Shift', 'T']] },
+    ],
+  },
+  {
     title: 'Editing',
     items: [
       { label: 'Toggle line comment', combos: [['Ctrl', '/']] },
@@ -33,7 +41,6 @@ const SHORTCUT_GROUPS = [
     items: [
       { label: 'Find', combos: [['Ctrl', 'F']] },
       { label: 'Replace', combos: [['Ctrl', 'H']] },
-      { label: 'Find in files', combos: [['Ctrl', 'Shift', 'F']] },
     ],
   },
   {
