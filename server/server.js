@@ -6,6 +6,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const { rateLimit } = require('express-rate-limit');
+const morgan = require('morgan');
 const executeRoutes = require('./routes/execute');
 const aiRoutes = require('./routes/ai');
 const memoryRoutes = require('./routes/memory');
@@ -315,6 +316,15 @@ app.use('/api', globalLimiter);
 app.use(compression());
 app.use(express.json({ limit: '1mb' }));
 app.use(memoryTracker);
+
+// ──────────────────────────────────────────────
+// HTTP Request Logging
+// ──────────────────────────────────────────────
+app.use(
+  morgan(isProd ? 'combined' : 'dev', {
+    stream: { write: (message) => logger.info(message.trim()) },
+  })
+);
 
 // ──────────────────────────────────────────────
 // Routes
