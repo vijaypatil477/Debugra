@@ -104,3 +104,9 @@ export const aiAnalyzeComplexity = async (code, language) => {
 };
 
 export default api;
+
+
+export const aiGenerateDocs = async (code, language, model) => {
+  const response = await api.post('/ai/generate-docs', { code, language, model });
+  return response.data;
+};
