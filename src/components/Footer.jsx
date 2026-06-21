@@ -6,13 +6,12 @@ const Footer = () => {
   return (
     <footer className="w-full bg-[#1e1e1e] text-[#cccccc] border-t border-[#333333] font-sans text-sm select-none">
       {/* Main Footer Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8 md:py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto px-4 py-8 md:py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
         {/* Branding Section */}
-        <div className="space-y-3 md:col-span-1">
+        <div className="space-y-3 sm:col-span-2 lg:col-span-1">
           <div className="flex items-center space-x-2 text-[#569cd6]">
-            {/* Native Terminal Icon SVG */}
             <svg
-              className="w-5 h-5"
+              className="w-5 h-5 shrink-0"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -20,8 +19,8 @@ const Footer = () => {
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <polyline points="4 17 10 11 4 5"></polyline>
-              <line x1="12" y1="19" x2="20" y2="19"></line>
+              <polyline points="4 17 10 11 4 5" />
+              <line x1="12" y1="19" x2="20" y2="19" />
             </svg>
             <span className="font-mono font-bold text-lg tracking-wider text-white">Debugra</span>
           </div>
@@ -34,11 +33,11 @@ const Footer = () => {
         {/* Quick Navigation */}
         <div className="space-y-3">
           <h4 className="text-white font-semibold uppercase tracking-wider text-xs">Navigation</h4>
-          <ul className="space-y-2 text-xs">
+          <ul className="space-y-2.5 text-xs">
             <li>
               <a
                 href="/#features"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-white hover:underline transition-colors"
               >
                 Features
               </a>
@@ -46,7 +45,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#docs"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-white hover:underline transition-colors"
               >
                 Documentation
               </a>
@@ -54,7 +53,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#playground"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-white hover:underline transition-colors"
               >
                 Playground
               </a>
@@ -62,7 +61,7 @@ const Footer = () => {
             <li>
               <Link
                 to="/feedback"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-white hover:underline transition-colors"
               >
                 Feedback
               </Link>
@@ -73,11 +72,11 @@ const Footer = () => {
         {/* Resources / OSS */}
         <div className="space-y-3">
           <h4 className="text-white font-semibold uppercase tracking-wider text-xs">Resources</h4>
-          <ul className="space-y-2 text-xs">
+          <ul className="space-y-2.5 text-xs">
             <li>
               <a
                 href="/#changelog"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-white hover:underline transition-colors"
               >
                 Changelog
               </a>
@@ -85,7 +84,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#contributing"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-white hover:underline transition-colors"
               >
                 Contributing
               </a>
@@ -93,7 +92,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#license"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-white hover:underline transition-colors"
               >
                 MIT License
               </a>
@@ -101,7 +100,7 @@ const Footer = () => {
             <li>
               <Link
                 to="/feedback"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-white hover:underline transition-colors"
               >
                 Contact Team
               </Link>
@@ -112,14 +111,12 @@ const Footer = () => {
         {/* Social / Connect */}
         <div className="space-y-3">
           <h4 className="text-white font-semibold uppercase tracking-wider text-xs">Connect</h4>
-          <div className="flex space-x-3 text-[#a1a1aa]">
-            {/* GitHub SVG */}
+          <div className="flex gap-3 text-[#a1a1aa]">
             <a
               href="https://github.com/omkhandare55/Debugra"
               target="_blank"
               rel="noreferrer"
-              className="hover:text-white transition-colors inline-flex items-center justify-center"
-              style={{ minWidth: '44px', minHeight: '44px' }}
+              className="hover:text-white transition-colors inline-flex items-center justify-center p-2 -ml-2 rounded-md hover:bg-white/5"
               aria-label="GitHub"
             >
               <svg
@@ -135,13 +132,11 @@ const Footer = () => {
                 <path d="M9 18c-4.51 2-5-2-7-2"></path>
               </svg>
             </a>
-            {/* Twitter SVG */}
             <a
               href="https://twitter.com"
               target="_blank"
               rel="noreferrer"
-              className="hover:text-[#1da1f2] transition-colors inline-flex items-center justify-center"
-              style={{ minWidth: '44px', minHeight: '44px' }}
+              className="hover:text-[#1da1f2] transition-colors inline-flex items-center justify-center p-2 rounded-md hover:bg-white/5"
               aria-label="Twitter"
             >
               <svg
@@ -156,13 +151,11 @@ const Footer = () => {
                 <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
               </svg>
             </a>
-            {/* LinkedIn SVG */}
             <a
               href="https://linkedin.com"
               target="_blank"
               rel="noreferrer"
-              className="hover:text-[#0077b5] transition-colors inline-flex items-center justify-center"
-              style={{ minWidth: '44px', minHeight: '44px' }}
+              className="hover:text-[#0077b5] transition-colors inline-flex items-center justify-center p-2 rounded-md hover:bg-white/5"
               aria-label="LinkedIn"
             >
               <svg
@@ -185,26 +178,23 @@ const Footer = () => {
 
       {/* Bottom Bar: Copyright & OSS Acknowledgment */}
       <div className="bg-[#181818] border-t border-[#2d2d2d] py-4 px-4">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#a1a1aa]">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#a1a1aa]">
           <div>
             &copy; {currentYear} <span className="text-[#c586c0]">Debugra</span>. All rights
             reserved.
           </div>
 
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center gap-1.5">
             <span>Built with</span>
-            {/* Heart SVG */}
             <svg
-              className="w-3 h-3 text-[#f44336] fill-[#f44336]"
+              className="w-3 h-3 text-[#f44336]"
               viewBox="0 0 24 24"
               fill="currentColor"
-              stroke="currentColor"
-              strokeWidth="2"
             >
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
             <span>and proudly</span>
-            <a href="#open-source" className="text-[#4fc1ff] hover:underline ml-1 font-mono">
+            <a href="#open-source" className="text-[#4fc1ff] hover:underline ml-0.5 font-mono">
               open-source
             </a>
           </div>
