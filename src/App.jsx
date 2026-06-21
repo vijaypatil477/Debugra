@@ -8,6 +8,7 @@ import EditorPage from './components/Editor/EditorPage';
 import VideoCall from './components/Editor/VideoCall';
 import OfflineBanner from './components/Editor/OfflineBanner';
 import ContributorsPage from './components/Landing/ContributorsPage';
+import NotFoundPage from './components/NotFoundPage';
 import Footer from './components/Footer.jsx';
 import FeedbackPage from './components/FeedbackPage';
 import { ThemeProvider } from './context/ThemeContext';
@@ -54,6 +55,7 @@ function AppContent({ user }) {
           />
 
           <Route path="/contributors" element={<ContributorsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
 

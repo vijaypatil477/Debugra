@@ -980,36 +980,20 @@ export default function LandingPage() {
 
         <div className="feedback-form-card">
           <h3 style={{ marginBottom: '16px' }}>Share Your Feedback</h3>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              toast.success('Thank you for your feedback!');
-            }}
+          <p style={{ color: 'var(--text-mid)', fontSize: '0.88rem', marginBottom: '20px', lineHeight: 1.6 }}>
+            We&apos;d love to hear your thoughts. Use our dedicated feedback form to share suggestions, report bugs,
+            or tell us about your experience.
+          </p>
+          <Link
+            to="/feedback"
+            className="landing-btn-primary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}
           >
-            <input type="text" placeholder="Your Name" aria-label="Your Name" className="modal-input" required />
-
-            <select className="modal-input" aria-label="Select Rating" required>
-              <option value="">Select Rating</option>
-              <option value="5">★★★★★ (5)</option>
-              <option value="4">★★★★☆ (4)</option>
-              <option value="3">★★★☆☆ (3)</option>
-              <option value="2">★★☆☆☆ (2)</option>
-              <option value="1">★☆☆☆☆ (1)</option>
-            </select>
-
-            <textarea
-              placeholder="Tell us about your experience..."
-              aria-label="Your feedback"
-              className="modal-input"
-              rows="4"
-              required
-            />
-
-            <button type="submit" className="landing-btn-primary" style={{ width: 'fit-content' }}>
-              Submit Feedback
-            </button>
-          </form>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            Go to Feedback Page
+          </Link>
         </div>
       </section>
       {/* ===== CTA ===== */}
