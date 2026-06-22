@@ -30,7 +30,7 @@ export default function MobileBottomNav({
       </button>
 
       {/* Floating run button */}
-      <button className="mobile-nav-run" onClick={onRun} disabled={isRunning}>
+      <button className="mobile-nav-run" onClick={onRun} disabled={isRunning || isReadOnly}>
         {isRunning ? <span className="spinner" /> : <i className="bi bi-play-fill" />}
       </button>
 
