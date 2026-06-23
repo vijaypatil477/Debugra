@@ -42,7 +42,7 @@ export default function Footer() {
 
   const handleSubscribe = async (e) => {
     e.preventDefault();
-    if (!email) {
+    if (!email.trim()) {
       toast.error('Please enter your email');
       return;
     }
@@ -76,6 +76,7 @@ export default function Footer() {
             <a
               href="https://github.com/omkhandare55/Debugra"
               title="GitHub"
+              aria-label="GitHub"
               className="footer-social-link"
               target="_blank"
               rel="noopener noreferrer"
@@ -85,6 +86,7 @@ export default function Footer() {
             <a
               href="https://x.com"
               title="Twitter"
+              aria-label="Twitter"
               className="footer-social-link"
               target="_blank"
               rel="noopener noreferrer"
@@ -94,6 +96,7 @@ export default function Footer() {
             <a
               href="https://linkedin.com"
               title="LinkedIn"
+              aria-label="LinkedIn"
               className="footer-social-link"
               target="_blank"
               rel="noopener noreferrer"

@@ -9,7 +9,6 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider } from '../../services/firebase';
 import toast from 'react-hot-toast';
-import Footer from './Footer';
 import './LandingPage.css';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
@@ -1056,9 +1055,6 @@ export default function LandingPage() {
           </p>
         </div>
       </section>
-
-      {/* ===== FOOTER ===== */}
-      <Footer />
 
       {/* ===== LOGIN MODAL ===== */}
       {showLogin && (
