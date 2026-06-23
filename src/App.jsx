@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './services/firebase';
 import { Toaster } from 'react-hot-toast';
+
 import LandingPage from './components/Landing/LandingPage';
 import EditorPage from './components/Editor/EditorPage';
 import VideoCall from './components/Editor/VideoCall';
@@ -63,6 +64,8 @@ function AppContent({ user }) {
   );
 }
 
+import ScrollButtons from './components/common/ScrollButtons';
+
 export default function App() {
   const [user, setUser] = useState(null);
 
@@ -74,8 +77,13 @@ export default function App() {
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
+
       if (!user && params.get('testUser') === '1') {
-        setUser({ uid: 'test-user', displayName: 'Playwright Tester', email: 'pw@test' });
+        setUser({
+          uid: 'test-user',
+          displayName: 'Playwright Tester',
+          email: 'pw@test',
+        });
       }
     } catch (e) {
       // ignore in non-browser environments
