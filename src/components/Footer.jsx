@@ -3,12 +3,19 @@ import { Link } from 'react-router-dom';
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
+
   return (
     <footer className="w-full bg-[#1e1e1e] text-[#cccccc] border-t border-[#333333] font-sans text-sm select-none">
       {/* Main Footer Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8 md:py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
-        {/* Branding Section */}
-        <div className="space-y-3 md:col-span-1">
+      <div className="max-w-7xl mx-auto px-4 py-8 md:py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-6">
+        {/* Branding Section - spans more on smaller screens */}
+        <div className="space-y-3 md:col-span-2 lg:col-span-1">
           <div className="flex items-center space-x-2 text-[#569cd6]">
             {/* Native Terminal Icon SVG */}
             <svg
@@ -25,7 +32,7 @@ const Footer = () => {
             </svg>
             <span className="font-mono font-bold text-lg tracking-wider text-white">Debugra</span>
           </div>
-          <p className="text-[#a1a1aa] text-xs leading-relaxed">
+          <p className="text-[#a1a1aa] text-xs leading-relaxed pr-4">
             A modern, browser-based developer experience designed to streamline debugging and
             accelerate your workflow.
           </p>
@@ -33,12 +40,14 @@ const Footer = () => {
 
         {/* Quick Navigation */}
         <div className="space-y-3">
-          <h4 className="text-white font-semibold uppercase tracking-wider text-xs">Navigation</h4>
+          <h4 className="text-white font-semibold uppercase tracking-wider text-xs mb-2">
+            Navigation
+          </h4>
           <ul className="space-y-2 text-xs">
             <li>
               <a
                 href="/#features"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-all duration-200 hover:translate-x-0.5"
               >
                 Features
               </a>
@@ -46,7 +55,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#docs"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-all duration-200 hover:translate-x-0.5"
               >
                 Documentation
               </a>
@@ -54,7 +63,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#playground"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-all duration-200 hover:translate-x-0.5"
               >
                 Playground
               </a>
@@ -62,7 +71,7 @@ const Footer = () => {
             <li>
               <Link
                 to="/feedback"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-all duration-200 hover:translate-x-0.5"
               >
                 Feedback
               </Link>
@@ -70,14 +79,16 @@ const Footer = () => {
           </ul>
         </div>
 
-        {/* Resources / OSS */}
+        {/* Resources */}
         <div className="space-y-3">
-          <h4 className="text-white font-semibold uppercase tracking-wider text-xs">Resources</h4>
+          <h4 className="text-white font-semibold uppercase tracking-wider text-xs mb-2">
+            Resources
+          </h4>
           <ul className="space-y-2 text-xs">
             <li>
               <a
                 href="/#changelog"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-all duration-200 hover:translate-x-0.5"
               >
                 Changelog
               </a>
@@ -85,42 +96,75 @@ const Footer = () => {
             <li>
               <a
                 href="/#contributing"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-all duration-200 hover:translate-x-0.5"
               >
-                Contributing
+                License
               </a>
-            </li>
-            <li>
-              <a
-                href="/#license"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
-              >
-                MIT License
-              </a>
-            </li>
-            <li>
-              <Link
-                to="/feedback"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
-              >
-                Contact Team
-              </Link>
             </li>
           </ul>
         </div>
 
-        {/* Social / Connect */}
+        {/* Community - New Section */}
         <div className="space-y-3">
-          <h4 className="text-white font-semibold uppercase tracking-wider text-xs">Connect</h4>
-          <div className="flex space-x-3 text-[#a1a1aa]">
-            {/* GitHub SVG */}
+          <h4 className="text-white font-semibold uppercase tracking-wider text-xs mb-2">
+            Community
+          </h4>
+          <ul className="space-y-2 text-xs">
+            <li>
+              <a
+                href="/#contributing"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-all duration-200 hover:translate-x-0.5"
+              >
+                Contributing Guide
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://github.com/debugra/debugra/discussions"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-all duration-200 hover:translate-x-0.5"
+              >
+                GitHub Discussions
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://github.com/debugra/debugra/issues"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-all duration-200 hover:translate-x-0.5"
+              >
+                Issue Tracker
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://discord.gg/debugra"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-all duration-200 hover:translate-x-0.5"
+              >
+                Discord Server
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        {/* Connect / Social */}
+        <div className="space-y-3">
+          <h4 className="text-white font-semibold uppercase tracking-wider text-xs mb-2">
+            Connect
+          </h4>
+          <div className="flex space-x-4 text-[#a1a1aa]">
+            {/* GitHub */}
             <a
-              href="https://github.com"
+              href="https://github.com/debugra/debugra"
               target="_blank"
               rel="noreferrer"
-              className="hover:text-white transition-colors inline-flex items-center justify-center"
-              style={{ minWidth: '44px', minHeight: '44px' }}
-              aria-label="GitHub"
+              className="hover:text-white transition-all duration-200 hover:scale-110 focus-visible:ring-2 focus-visible:ring-[#4fc1ff] focus-visible:outline-none rounded p-1"
+              aria-label="GitHub Repository"
+              title="GitHub Repository"
             >
               <svg
                 className="w-5 h-5"
@@ -135,14 +179,15 @@ const Footer = () => {
                 <path d="M9 18c-4.51 2-5-2-7-2"></path>
               </svg>
             </a>
-            {/* Twitter SVG */}
+
+            {/* X / Twitter */}
             <a
-              href="https://twitter.com"
+              href="https://twitter.com/debugra"
               target="_blank"
               rel="noreferrer"
-              className="hover:text-[#1da1f2] transition-colors inline-flex items-center justify-center"
-              style={{ minWidth: '44px', minHeight: '44px' }}
-              aria-label="Twitter"
+              className="hover:text-[#1da1f2] transition-all duration-200 hover:scale-110 focus-visible:ring-2 focus-visible:ring-[#4fc1ff] focus-visible:outline-none rounded p-1"
+              aria-label="Follow us on X"
+              title="Follow us on X"
             >
               <svg
                 className="w-5 h-5"
@@ -156,14 +201,15 @@ const Footer = () => {
                 <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
               </svg>
             </a>
-            {/* LinkedIn SVG */}
+
+            {/* LinkedIn */}
             <a
-              href="https://linkedin.com"
+              href="https://linkedin.com/company/debugra"
               target="_blank"
               rel="noreferrer"
-              className="hover:text-[#0077b5] transition-colors inline-flex items-center justify-center"
-              style={{ minWidth: '44px', minHeight: '44px' }}
+              className="hover:text-[#0077b5] transition-all duration-200 hover:scale-110 focus-visible:ring-2 focus-visible:ring-[#4fc1ff] focus-visible:outline-none rounded p-1"
               aria-label="LinkedIn"
+              title="LinkedIn"
             >
               <svg
                 className="w-5 h-5"
@@ -183,30 +229,54 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* Bottom Bar: Copyright & OSS Acknowledgment */}
-      <div className="bg-[#181818] border-t border-[#2d2d2d] py-4 px-4">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#a1a1aa]">
-          <div>
-            &copy; {currentYear} <span className="text-[#c586c0]">Debugra</span>. All rights
-            reserved.
+      {/* Bottom Bar: Copyright, Legal & Back to Top */}
+      <div className="bg-[#181818] border-t border-[#2d2d2d] py-5 px-4">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#a1a1aa]">
+          <div className="flex flex-col sm:flex-row items-center gap-x-6 gap-y-2">
+            <div>
+              &copy; {currentYear} <span className="text-[#c586c0]">Debugra</span>. All rights
+              reserved.
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[10px] sm:text-xs">
+              <a href="/privacy" className="hover:text-[#4fc1ff] hover:underline transition-colors">
+                Privacy Policy
+              </a>
+              <a href="/terms" className="hover:text-[#4fc1ff] hover:underline transition-colors">
+                Terms of Service
+              </a>
+              <a href="/cookies" className="hover:text-[#4fc1ff] hover:underline transition-colors">
+                Cookie Policy
+              </a>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-1">
-            <span>Built with</span>
-            {/* Heart SVG */}
-            <svg
-              className="w-3 h-3 text-[#f44336] fill-[#f44336]"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              stroke="currentColor"
-              strokeWidth="2"
+          <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-1">
+              <span>Built with</span>
+              {/* Heart SVG */}
+              <svg
+                className="w-3 h-3 text-[#f44336] fill-[#f44336]"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              </svg>
+              <span>and proudly</span>
+              <a href="#open-source" className="text-[#4fc1ff] hover:underline font-mono">
+                open-source
+              </a>
+            </div>
+
+            <button
+              onClick={scrollToTop}
+              className="flex items-center gap-1 text-[#4fc1ff] hover:text-white transition-all duration-200 hover:scale-105 focus-visible:ring-2 focus-visible:ring-[#4fc1ff] focus-visible:outline-none rounded px-3 py-1 text-xs font-medium border border-transparent hover:border-[#4fc1ff]/30"
+              aria-label="Back to top"
             >
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-            </svg>
-            <span>and proudly</span>
-            <a href="#open-source" className="text-[#4fc1ff] hover:underline ml-1 font-mono">
-              open-source
-            </a>
+              ↑ Back to Top
+            </button>
           </div>
         </div>
       </div>
