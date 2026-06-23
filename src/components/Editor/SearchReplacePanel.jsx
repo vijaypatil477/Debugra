@@ -199,7 +199,7 @@ export default function SearchReplacePanel({ editorRef, onClose }) {
           />
           {searchValue && (
             <span className="sr-match-count" aria-live="polite">
-              {matchCount === 0 ? 'No results' : `${currentMatchIdx + 1} of ${matchCount}`}
+              {matchCount === 0 ? 'No matches found' : `${currentMatchIdx + 1} of ${matchCount}`}
             </span>
           )}
           <div className="sr-toggles" role="group" aria-label="Search options">
