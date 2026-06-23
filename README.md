@@ -140,9 +140,48 @@ npm install
 cd ..
 ```
 
-### 3. Configure environment variables
+### 3. Firebase Configuration
 
-**Frontend** — create `.env` in root:
+Debugra uses Firebase for authentication and real-time collaboration data. You need a Firebase project to run the app locally.
+
+**Step 1 — Create a Firebase project**
+
+1. Go to the [Firebase Console](https://console.firebase.google.com) and click **Create a project** (or select an existing one).
+2. Disable Google Analytics (or enable — optional, not used by Debugra).
+3. Once created, click **Authentication** in the left sidebar → **Get started** → enable at least **Email/Password** (and optionally **Google**).
+4. Click **Firestore Database** → **Create database** → choose a location → **Start in test mode** (you can lock it down later).
+
+**Step 2 — Get your Firebase config**
+
+1. In the Firebase Console, click **Project Overview** → **Project Settings** (gear icon) → **General**.
+2. Under **Your apps**, click the **Web** icon (`</>`).
+3. Register the app (nickname: `Debugra`) → copy the `firebaseConfig` values shown.
+4. Open `.env.example` from the project root, copy its contents to a new `.env` file, and fill in the six `VITE_FIREBASE_*` values from the snippet.
+
+The frontend `.env` should look like this after setup:
+
+```env
+VITE_FIREBASE_API_KEY=AIzaSyD-...
+VITE_FIREBASE_AUTH_DOMAIN=my-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=my-project
+VITE_FIREBASE_STORAGE_BUCKET=my-project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+VITE_FIREBASE_APP_ID=1:123456789:web:abc123
+VITE_API_URL=http://localhost:3001
+```
+
+> 💡 The `firebaseConfig` snippet from Firebase Console already uses these exact variable names — you can paste it straight in.
+
+**Step 3 — Add localhost as an authorized domain (optional but recommended)**
+
+1. In Firebase Console → **Authentication** → **Settings** → **Authorized domains**.
+2. Click **Add domain** → enter `localhost`.
+
+This prevents sign-in errors during local development.
+
+### 4. Configure environment variables
+
+**Frontend** — if you haven't already, create `.env` in root following the guide above, or paste this template:
 
 ```env
 VITE_FIREBASE_API_KEY=your_firebase_api_key
@@ -171,7 +210,7 @@ DEBUGRA_ADMIN_TOKEN=choose_a_long_random_admin_token
 `CORS_ORIGINS` accepts a comma-separated list of trusted frontend origins. `CSP_REPORT_URI` enables browser CSP violation reports through `/api/security/csp-report`.
 `DEBUGRA_ADMIN_TOKEN` is required for `/api/admin/memory-profile` diagnostic endpoints. Send it as either `Authorization: Bearer <token>` or `x-admin-token: <token>`.
 
-### 4. Start development servers
+### 5. Start development servers
 
 #### Option A: Using NPM
 
