@@ -8,6 +8,7 @@ export const DEFAULT_FONT_SIZE = 14;
 export const DEFAULT_EDITOR_FONT = 'JetBrains Mono';
 export const MIN_FONT_SIZE = 10;
 export const MAX_FONT_SIZE = 28;
+export const AUTO_SAVE_DEBOUNCE_MS = 2000;
 
 // ─── Editor Fonts ───────────────────────────────────────────────────────────
 export const EDITOR_FONTS = [

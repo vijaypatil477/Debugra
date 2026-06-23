@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('debugra_hasCompletedTour', 'true');
+  });
+});
+
 test('updates advanced editor settings instantly', async ({ page }) => {
   await page.goto('/editor');
 
@@ -95,4 +101,23 @@ test('hides the editor divider when minimap is disabled', async ({ page }) => {
   expect(minimapStyle.minimapDisplay).toBe('none');
   expect(minimapStyle.rulerDisplay).toBe('none');
   expect(minimapStyle.minimapWidth).toBe('0px');
+});
+
+test('enables multi-cursor and column selection options', async ({ page }) => {
+  await page.goto('/editor');
+
+  const editorOptions = await page.evaluate(() => {
+    const editor = window.__DEBUGRA_EDITOR__;
+    if (!editor) return null;
+
+    const options = editor.getRawOptions();
+    return {
+      multiCursorModifier: options.multiCursorModifier,
+      columnSelection: options.columnSelection,
+    };
+  });
+
+  expect(editorOptions).not.toBeNull();
+  expect(editorOptions.multiCursorModifier).toBe('alt');
+  expect(editorOptions.columnSelection).toBe(true);
 });
