@@ -6,7 +6,7 @@ const Footer = () => {
   return (
     <footer className="w-full bg-[#1e1e1e] text-[#cccccc] border-t border-[#333333] font-sans text-sm select-none">
       {/* Main Footer Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8 md:py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto px-4 py-8 md:py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
         {/* Branding Section */}
         <div className="space-y-3 md:col-span-1">
           <div className="flex items-center space-x-2 text-[#569cd6]">
