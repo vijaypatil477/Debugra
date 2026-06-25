@@ -338,6 +338,7 @@ export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(0);
   const [canScrollFeaturesLeft, setCanScrollFeaturesLeft] = useState(false);
   const [canScrollFeaturesRight, setCanScrollFeaturesRight] = useState(false);
+  const [isFeaturesHovered, setIsFeaturesHovered] = useState(false);
 
   const updateFeaturesCarouselState = () => {
     const carousel = featuresCarouselRef.current;
@@ -369,6 +370,28 @@ export default function LandingPage() {
       window.removeEventListener('resize', updateFeaturesCarouselState);
     };
   }, []);
+
+  // Auto-scroll features carousel every 4 seconds unless hovered, focused, or touched
+  useEffect(() => {
+    if (isFeaturesHovered) return undefined;
+
+    const interval = setInterval(() => {
+      const carousel = featuresCarouselRef.current;
+      if (!carousel) return;
+
+      const { scrollLeft, scrollWidth, clientWidth } = carousel;
+      const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
+
+      if (scrollLeft >= maxScrollLeft - 10) {
+        carousel.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        const scrollAmount = Math.max(280, Math.floor(clientWidth * 0.82));
+        carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [isFeaturesHovered]);
 
   // Back-to-top visibility — show after scrolling 400 px
   useEffect(() => {
@@ -815,7 +838,15 @@ export default function LandingPage() {
           </h2>
         </div>
 
-        <div className="features-carousel-shell">
+        <div
+          className="features-carousel-shell"
+          onMouseEnter={() => setIsFeaturesHovered(true)}
+          onMouseLeave={() => setIsFeaturesHovered(false)}
+          onFocus={() => setIsFeaturesHovered(true)}
+          onBlur={() => setIsFeaturesHovered(false)}
+          onTouchStart={() => setIsFeaturesHovered(true)}
+          onTouchEnd={() => setIsFeaturesHovered(false)}
+        >
           <button
             type="button"
             className="features-carousel-nav features-carousel-nav-left"
@@ -987,7 +1018,13 @@ export default function LandingPage() {
               toast.success('Thank you for your feedback!');
             }}
           >
-            <input type="text" placeholder="Your Name" aria-label="Your Name" className="modal-input" required />
+            <input
+              type="text"
+              placeholder="Your Name"
+              aria-label="Your Name"
+              className="modal-input"
+              required
+            />
 
             <select className="modal-input" aria-label="Select Rating" required>
               <option value="">Select Rating</option>
@@ -1083,7 +1120,11 @@ export default function LandingPage() {
         <div className="modal-backdrop" onClick={() => setShowLogin(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             {/* CLOSE BUTTON - ADD HERE */}
-            <button className="modal-close-btn" aria-label="Close dialog" onClick={() => setShowLogin(false)}>
+            <button
+              className="modal-close-btn"
+              aria-label="Close dialog"
+              onClick={() => setShowLogin(false)}
+            >
               ✕
             </button>
 
