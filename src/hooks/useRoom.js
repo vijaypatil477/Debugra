@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   doc,
   setDoc,
@@ -14,6 +14,70 @@ import { db } from '../services/firebase';
 import toast from 'react-hot-toast';
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
+const CURSOR_SYNC_MS = 450;
+const SMALL_ROOM_SYNC_MS = 300;
+const LARGE_ROOM_SYNC_MS = 700;
+const LARGE_FILE_CHAR_THRESHOLD = 50000;
+
+function getRoomSyncDelay(code) {
+  return code.length > LARGE_FILE_CHAR_THRESHOLD ? LARGE_ROOM_SYNC_MS : SMALL_ROOM_SYNC_MS;
+}
+
+function sameCursor(a, b) {
+  return Boolean(a && b && a.line === b.line && a.col === b.col);
+}
+
+function sameActiveUsers(a = [], b = []) {
+  if (a.length !== b.length) return false;
+  return a.every(
+    (user, index) =>
+      user.uid === b[index]?.uid &&
+      user.displayName === b[index]?.displayName &&
+      user.activeFile === b[index]?.activeFile
+  );
+}
+
+function sameRemoteCursors(a = {}, b = {}) {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+
+  return aKeys.every((uid) => {
+    const current = a[uid];
+    const next = b[uid];
+    return (
+      next &&
+      current.line === next.line &&
+      current.col === next.col &&
+      current.displayName === next.displayName
+    );
+  });
+}
+
+function buildRoomUpdatePayload(current, lastSynced, editorUid) {
+  const payload = {};
+
+  if (current.code !== lastSynced.code) {
+    payload.code = current.code;
+  }
+
+  if (current.language !== lastSynced.language) {
+    payload.language = current.language;
+  }
+
+  if (current.stdin !== lastSynced.stdin) {
+    payload.stdin = current.stdin;
+  }
+
+  const changed = 'code' in payload || 'language' in payload || 'stdin' in payload;
+
+  if (changed) {
+    payload.updatedAt = serverTimestamp();
+    payload._lastEditor = editorUid;
+  }
+
+  return { payload, changed };
+}
 
 async function verifyRoomPassword(roomId, password) {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -101,6 +165,17 @@ export function useRoom({
   const [showOnlineDropdown, setShowOnlineDropdown] = useState(false);
   const [showRequestsDropdown, setShowRequestsDropdown] = useState(false);
   const [remoteCursors, setRemoteCursors] = useState({});
+  const lastSyncedRef = useRef({
+    code: null,
+    language: null,
+    stdin: null,
+  });
+  const lastRemoteSnapshotRef = useRef({
+    code: null,
+    language: null,
+    stdin: null,
+  });
+  const lastCursorRef = useRef(null);
 
   // ─── Derived permissions ────────────────────────────────────────────────────
   const myRole = roomId
@@ -114,6 +189,8 @@ export function useRoom({
   // ─── Sync local cursor to Firestore ──────────────────────────────────────────
   useEffect(() => {
     if (!roomId || !user || !isEditor || !cursorPos) return;
+    if (sameCursor(cursorPos, lastCursorRef.current)) return;
+
     const timer = setTimeout(() => {
       const cursorRef = doc(db, 'rooms', roomId, 'cursors', user.uid);
       setDoc(cursorRef, {
@@ -122,8 +199,12 @@ export function useRoom({
         line: cursorPos.line,
         col: cursorPos.col,
         updatedAt: serverTimestamp(),
-      }).catch(() => {});
-    }, 450);
+      })
+        .then(() => {
+          lastCursorRef.current = cursorPos;
+        })
+        .catch(() => {});
+    }, CURSOR_SYNC_MS);
     return () => clearTimeout(timer);
   }, [roomId, user, isEditor, cursorPos]);
 
@@ -142,7 +223,7 @@ export function useRoom({
           cursors[data.uid] = data;
         }
       });
-      setRemoteCursors(cursors);
+      setRemoteCursors((current) => (sameRemoteCursors(current, cursors) ? current : cursors));
     });
     return () => {
       unsub();
@@ -156,27 +237,65 @@ export function useRoom({
       if (!snap.exists()) return;
       const data = snap.data();
       setRoomData(data);
-      if (data.code !== undefined && data._lastEditor !== user?.uid) setCode(data.code);
-      if (data.language) setLanguage(data.language);
-      if (data.stdin !== undefined && data._lastEditor !== user?.uid) setStdinValue(data.stdin);
-      setActiveUsers(data.activeUsers || []);
+
+      const applyRemoteValue = (field, value, localValue, setter) => {
+        if (value === undefined) return;
+
+        const isNewRemoteSnapshot = value !== lastRemoteSnapshotRef.current[field];
+        lastRemoteSnapshotRef.current[field] = value;
+        lastSyncedRef.current[field] = value;
+
+        if (value !== localValue && isNewRemoteSnapshot && data._lastEditor !== user?.uid) {
+          setter(value);
+        }
+      };
+
+      applyRemoteValue('code', data.code, code, setCode);
+      applyRemoteValue('language', data.language, language, setLanguage);
+      applyRemoteValue('stdin', data.stdin, stdinValue, setStdinValue);
+
+      const nextActiveUsers = data.activeUsers || [];
+      setActiveUsers((current) =>
+        sameActiveUsers(current, nextActiveUsers) ? current : nextActiveUsers
+      );
     });
     return unsub;
-  }, [roomId, user, setCode, setLanguage, setStdinValue]);
+  }, [roomId, user, code, language, stdinValue, setCode, setLanguage, setStdinValue]);
 
   // ─── Push local changes (debounced, editor-gated) ──────────────────────────
   useEffect(() => {
     if (!roomId || !user || !roomData) return;
     if (!isEditor) return;
-    const timer = setTimeout(() => {
-      updateDoc(doc(db, 'rooms', roomId), {
-        code,
-        language,
-        stdin: stdinValue,
-        _lastEditor: user.uid,
-        updatedAt: serverTimestamp(),
-      }).catch(() => {});
-    }, 300);
+    const current = {
+      code,
+      language,
+      stdin: stdinValue,
+    };
+
+    if (
+      current.code === lastSyncedRef.current.code &&
+      current.language === lastSyncedRef.current.language &&
+      current.stdin === lastSyncedRef.current.stdin
+    ) {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      const { payload, changed } = buildRoomUpdatePayload(
+        current,
+        lastSyncedRef.current,
+        user.uid
+      );
+
+      if (!changed) return;
+
+      try {
+        await updateDoc(doc(db, 'rooms', roomId), payload);
+        lastSyncedRef.current = current;
+      } catch (err) {
+        console.error('Failed syncing room', err);
+      }
+    }, getRoomSyncDelay(code));
     return () => clearTimeout(timer);
   }, [code, language, stdinValue, roomId, user, isEditor, roomData]);
 
