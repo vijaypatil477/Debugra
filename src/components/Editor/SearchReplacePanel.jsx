@@ -197,10 +197,13 @@ export default function SearchReplacePanel({ editorRef, onClose }) {
             aria-label="Search"
             spellCheck={false}
           />
-          {searchValue && (
+          {searchValue && matchCount > 0 && (
             <span className="sr-match-count" aria-live="polite">
-              {matchCount === 0 ? 'No results' : `${currentMatchIdx + 1} of ${matchCount}`}
+              {`${currentMatchIdx + 1} of ${matchCount}`}
             </span>
+          )}
+          {searchValue && matchCount === 0 && (
+            <span className="sr-match-count" aria-live="polite">No matches</span>
           )}
           <div className="sr-toggles" role="group" aria-label="Search options">
             <button
@@ -286,6 +289,20 @@ export default function SearchReplacePanel({ editorRef, onClose }) {
           </button>
         </div>
       </div>
+
+      {/* Empty state */}
+      {searchValue.trim() && matchCount === 0 && !regexError && (
+        <div className="sr-empty-state">
+          <svg className="sr-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+            <path d="M8 11h6" />
+            <path d="M11 8v6" />
+          </svg>
+          <span className="sr-empty-title">No matches found</span>
+          <span className="sr-empty-hint">Try adjusting your search terms or options</span>
+        </div>
+      )}
     </div>
   );
 }
