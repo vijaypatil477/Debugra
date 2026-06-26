@@ -209,6 +209,35 @@
   border-radius: 2px;
 }
 
+/* ── Empty state ── */
+.sr-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 8px;
+  color: var(--text-1);
+  user-select: none;
+}
+
+.sr-empty-icon {
+  width: 32px;
+  height: 32px;
+  opacity: 0.4;
+}
+
+.sr-empty-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-0);
+}
+
+.sr-empty-hint {
+  font-size: 0.7rem;
+  color: var(--text-2);
+  text-align: center;
+}
+
 /* ── Mobile: shrink panel ── */
 @media (max-width: 480px) {
   .sr-panel {
