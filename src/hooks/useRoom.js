@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   doc,
   setDoc,
@@ -14,6 +14,9 @@ import { db } from '../services/firebase';
 import toast from 'react-hot-toast';
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
+const ROOM_SYNC_DELAY = 300;
+const CURSOR_SYNC_DELAY = 2000;
+const PRESENCE_BATCH_DELAY = 2000;
 
 async function verifyRoomPassword(roomId, password) {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -103,18 +106,44 @@ export function useRoom({
   const [remoteCursors, setRemoteCursors] = useState({});
 
   // ─── Derived permissions ────────────────────────────────────────────────────
-  const myRole = roomId
-    ? roomData?.roles?.[user?.uid] || (roomData?.createdBy === user?.uid ? 'host' : 'viewer')
-    : 'host';
-  const isHost = !roomId || myRole === 'host';
-  const isEditor = !roomId || myRole === 'editor' || isHost;
-  const isReadOnly = roomId ? !isEditor : false;
-  const currentEditorName = isEditor ? user?.displayName || 'Editor' : 'Viewer';
+  const { myRole, isHost, isEditor, isReadOnly, currentEditorName } = useMemo(() => {
+    const role = roomId
+      ? roomData?.roles?.[user?.uid] ||
+      (roomData?.createdBy === user?.uid ? "host" : "viewer")
+      : "host";
+
+    const hostStatus = !roomId || role === "host";
+    const editorStatus = !roomId || role === "editor" || hostStatus;
+
+    return {
+      myRole: role,
+      isHost: hostStatus,
+      isEditor: editorStatus,
+      isReadOnly: roomId ? !editorStatus : false,
+      currentEditorName: editorStatus
+        ? user?.displayName || "Editor"
+        : "Viewer",
+    };
+  }, [roomId, roomData, user]);
 
   // ─── Sync local cursor to Firestore ──────────────────────────────────────────
+  const prevCursorRef = useRef({ line: null, col: null });
+
   useEffect(() => {
     if (!roomId || !user || !isEditor || !cursorPos) return;
+
+    // 5. Skip duplicate cursor updates
+    if (
+      prevCursorRef.current.line === cursorPos.line &&
+      prevCursorRef.current.col === cursorPos.col
+    ) {
+      return;
+    }
+
+    // 4. Batch cursor writes
     const timer = setTimeout(() => {
+      prevCursorRef.current = { line: cursorPos.line, col: cursorPos.col };
+
       const cursorRef = doc(db, 'rooms', roomId, 'cursors', user.uid);
       setDoc(cursorRef, {
         uid: user.uid,
@@ -122,12 +151,15 @@ export function useRoom({
         line: cursorPos.line,
         col: cursorPos.col,
         updatedAt: serverTimestamp(),
-      }).catch(() => {});
-    }, 450);
+      }).catch(() => { });
+    }, CURSOR_SYNC_DELAY);
+
     return () => clearTimeout(timer);
   }, [roomId, user, isEditor, cursorPos]);
 
   // ─── Listen for remote cursors ──────────────────────────────────────────────
+  const prevRemoteCursorsRef = useRef({});
+
   useEffect(() => {
     if (!roomId) {
       setRemoteCursors({});
@@ -142,27 +174,65 @@ export function useRoom({
           cursors[data.uid] = data;
         }
       });
-      setRemoteCursors(cursors);
+
+      // 6. Skip remote cursor state updates if nothing changed
+      if (JSON.stringify(prevRemoteCursorsRef.current) !== JSON.stringify(cursors)) {
+        prevRemoteCursorsRef.current = cursors;
+        setRemoteCursors(cursors);
+      }
     });
-    return () => {
-      unsub();
-    };
+    return () => unsub();
   }, [roomId, user]);
 
   // ─── Live sync from Firestore ───────────────────────────────────────────────
+  const prevRoomRef = useRef(null);
+  const prevActiveUsersRef = useRef([]);
+
   useEffect(() => {
     if (!roomId) return;
     const unsub = onSnapshot(doc(db, 'rooms', roomId), (snap) => {
       if (!snap.exists()) return;
       const data = snap.data();
-      setRoomData(data);
-      if (data.code !== undefined && data._lastEditor !== user?.uid) setCode(data.code);
-      if (data.language) setLanguage(data.language);
-      if (data.stdin !== undefined && data._lastEditor !== user?.uid) setStdinValue(data.stdin);
-      setActiveUsers(data.activeUsers || []);
+
+      // 2. Skip duplicate snapshot updates
+      if (JSON.stringify(prevRoomRef.current) !== JSON.stringify(data)) {
+        prevRoomRef.current = data;
+        setRoomData(data);
+      }
+
+      // 3. Don't call setters unnecessarily
+      if (
+        data.code !== undefined &&
+        data.code !== code &&
+        data._lastEditor !== user?.uid
+      ) {
+        setCode(data.code);
+      }
+
+      if (
+        data.language !== undefined &&
+        data.language !== language &&
+        data._lastEditor !== user?.uid
+      ) {
+        setLanguage(data.language);
+      }
+
+      if (
+        data.stdin !== undefined &&
+        data.stdin !== stdinValue &&
+        data._lastEditor !== user?.uid
+      ) {
+        setStdinValue(data.stdin);
+      }
+
+      const incomingUsers = data.activeUsers || [];
+      if (JSON.stringify(prevActiveUsersRef.current) !== JSON.stringify(incomingUsers)) {
+        prevActiveUsersRef.current = incomingUsers;
+        setActiveUsers(incomingUsers);
+      }
     });
     return unsub;
-  }, [roomId, user, setCode, setLanguage, setStdinValue]);
+  }, [roomId, user, code, language, stdinValue, setCode, setLanguage, setStdinValue]);
 
   // ─── Push local changes (debounced, editor-gated) ──────────────────────────
   useEffect(() => {
@@ -175,8 +245,8 @@ export function useRoom({
         stdin: stdinValue,
         _lastEditor: user.uid,
         updatedAt: serverTimestamp(),
-      }).catch(() => {});
-    }, 300);
+      }).catch(() => { });
+    }, ROOM_SYNC_DELAY); // Applied extracted constant
     return () => clearTimeout(timer);
   }, [code, language, stdinValue, roomId, user, isEditor, roomData]);
 
@@ -185,10 +255,18 @@ export function useRoom({
     if (!roomId || !user || !roomData) return;
     const currentUsers = roomData.activeUsers || [];
     const myIndex = currentUsers.findIndex((u) => u.uid === user.uid);
+
+    // 9. Only rebuild if activeFile actually changed
     if (myIndex !== -1 && currentUsers[myIndex].activeFile !== language) {
-      const newUsers = [...currentUsers];
-      newUsers[myIndex] = { ...newUsers[myIndex], activeFile: language };
-      updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+
+      // 8. Batch presence updates
+      const timer = setTimeout(() => {
+        const newUsers = [...currentUsers];
+        newUsers[myIndex] = { ...newUsers[myIndex], activeFile: language };
+        updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => { });
+      }, PRESENCE_BATCH_DELAY);
+
+      return () => clearTimeout(timer);
     }
   }, [roomId, user, roomData, language]);
 
@@ -323,9 +401,9 @@ export function useRoom({
         if (roomData) {
           const currentUsers = roomData.activeUsers || [];
           const newUsers = currentUsers.filter((u) => u.uid !== user.uid);
-          updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+          updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => { });
         }
-        deleteDoc(doc(db, 'rooms', roomId, 'cursors', user.uid)).catch(() => {});
+        deleteDoc(doc(db, 'rooms', roomId, 'cursors', user.uid)).catch(() => { });
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -335,22 +413,22 @@ export function useRoom({
   }, [roomId, user, roomData]);
 
   // (Legacy access control methods removed for simpler role system)
-  const requestAccess = useCallback(() => {}, []);
-  const approveAccess = useCallback(() => {}, []);
-  const denyAccess = useCallback(() => {}, []);
-  const revokeAccess = useCallback(() => {}, []);
-  const takeControl = useCallback(() => {}, []);
-  const releaseControl = useCallback(() => {}, []);
+  const requestAccess = useCallback(() => { }, []);
+  const approveAccess = useCallback(() => { }, []);
+  const denyAccess = useCallback(() => { }, []);
+  const revokeAccess = useCallback(() => { }, []);
+  const takeControl = useCallback(() => { }, []);
+  const releaseControl = useCallback(() => { }, []);
 
   const leaveRoom = useCallback(async () => {
     if (!roomId) return;
     try {
       localStorage.removeItem('debugra_roomId');
       if (user) {
-        await deleteDoc(doc(db, 'rooms', roomId, 'cursors', user.uid)).catch(() => {});
+        await deleteDoc(doc(db, 'rooms', roomId, 'cursors', user.uid)).catch(() => { });
         if (roomData) {
           const newUsers = (roomData.activeUsers || []).filter((u) => u.uid !== user.uid);
-          await updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
+          await updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => { });
         }
       }
     } catch (e) {
