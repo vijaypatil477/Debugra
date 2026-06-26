@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { createMonacoVimController } from '../../utils/monacoVim';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
@@ -72,6 +72,8 @@ const REVIEWS = [
     review: 'Clean interface and smooth collaboration features.',
   },
 ];
+const REMOTE_CURSOR_DECORATION_MS = 500;
+
 export default function EditorPage({ user }) {
   const isTestRoom =
     typeof window !== 'undefined' &&
@@ -216,6 +218,8 @@ export default function EditorPage({ user }) {
     setStdinValue: editor.setStdinValue,
     cursorPos: editor.cursorPos,
   });
+  const collaborationMode = Boolean(room.roomId || isTestRoom);
+  const effectiveShowMinimap = collaborationMode ? false : showMinimap;
 
   const execution = useExecution({
     language: editor.language,
@@ -537,7 +541,7 @@ export default function EditorPage({ user }) {
 
     editorRef.current.updateOptions({
       minimap: {
-        enabled: showMinimap,
+        enabled: effectiveShowMinimap,
         side: minimapSide,
         showSlider: 'always',
         renderCharacters: false,
@@ -551,7 +555,7 @@ export default function EditorPage({ user }) {
     if (model) {
       model.updateOptions({ tabSize: editor.tabSize, insertSpaces: true });
     }
-  }, [editor.tabSize, showMinimap, editor.rulerColumn, minimapSide]);
+  }, [editor.tabSize, effectiveShowMinimap, editor.rulerColumn, minimapSide]);
 
   // ─── Monaco layout refresh after console collapse/restore animation ──────
   useEffect(() => {
@@ -578,71 +582,71 @@ export default function EditorPage({ user }) {
     const monaco = monacoRef.current;
     if (!editorInstance || !monaco || !room.remoteCursors) return;
 
-    const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
-    const getUserColor = (uid) => {
-      let hash = 0;
-      for (let i = 0; i < uid.length; i++) {
-        hash = uid.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      const index = Math.abs(hash) % colors.length;
-      return colors[index];
-    };
-
-    const newDecorations = [];
-    Object.values(room.remoteCursors).forEach((c) => {
-      if (!c.line || !c.col) return;
-      const userColor = getUserColor(c.uid);
-      const className = `remote-cursor-${c.uid}`;
-
-      let styleEl = document.getElementById(`style-${c.uid}`);
-      if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.id = `style-${c.uid}`;
-        document.head.appendChild(styleEl);
-      }
-      const escapedDisplayName = escapeForCssContent(c.displayName);
-      styleEl.innerHTML = `
-        .${className} {
-          border-left: 2px solid ${userColor} !important;
-          margin-left: -1px;
-          position: relative;
+    const timer = window.setTimeout(() => {
+      const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+      const getUserColor = (uid) => {
+        let hash = 0;
+        for (let i = 0; i < uid.length; i++) {
+          hash = uid.charCodeAt(i) + ((hash << 5) - hash);
         }
-        .${className}::after {
-          content: '${escapedDisplayName}';
-          position: absolute;
-          bottom: 100%;
-          left: 0;
-          background: ${userColor};
-          color: #ffffff;
-          font-size: 10px;
-          padding: 1px 4px;
-          border-radius: 3px;
-          white-space: nowrap;
-          opacity: 0;
-          transition: opacity 0.2s ease-in-out;
-          pointer-events: none;
-          z-index: 10;
-        }
-        .${className}:hover::after {
-          opacity: 1;
-        }
-      `;
+        const index = Math.abs(hash) % colors.length;
+        return colors[index];
+      };
 
-      newDecorations.push({
-        range: new monaco.Range(c.line, c.col, c.line, c.col),
-        options: {
-          className: className,
-          hoverMessage: { value: `**${c.displayName}** is here` },
-        },
+      const newDecorations = [];
+      Object.values(room.remoteCursors).forEach((c) => {
+        if (!c.line || !c.col) return;
+        const userColor = getUserColor(c.uid);
+        const className = `remote-cursor-${c.uid}`;
+
+        let styleEl = document.getElementById(`style-${c.uid}`);
+        if (!styleEl) {
+          styleEl = document.createElement('style');
+          styleEl.id = `style-${c.uid}`;
+          document.head.appendChild(styleEl);
+        }
+        const escapedDisplayName = escapeForCssContent(c.displayName);
+        styleEl.innerHTML = `
+          .${className} {
+            border-left: 2px solid ${userColor} !important;
+            margin-left: -1px;
+            position: relative;
+          }
+          .${className}::after {
+            content: '${escapedDisplayName}';
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            background: ${userColor};
+            color: #ffffff;
+            font-size: 10px;
+            padding: 1px 4px;
+            border-radius: 3px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+            pointer-events: none;
+            z-index: 10;
+          }
+          .${className}:hover::after {
+            opacity: 1;
+          }
+        `;
+
+        newDecorations.push({
+          range: new monaco.Range(c.line, c.col, c.line, c.col),
+          options: {
+            className: className,
+            hoverMessage: { value: `**${c.displayName}** is here` },
+          },
+        });
       });
-    });
 
-    remoteCursorDecorationsRef.current = editorInstance.deltaDecorations(
-      remoteCursorDecorationsRef.current,
-      newDecorations
-    );
+      remoteCursorDecorationsRef.current = editorInstance.deltaDecorations(
+        remoteCursorDecorationsRef.current,
+        newDecorations
+      );
 
-    return () => {
       const activeUids = new Set(Object.keys(room.remoteCursors || {}));
       const styleElements = document.querySelectorAll('[id^="style-"]');
       styleElements.forEach((el) => {
@@ -651,7 +655,9 @@ export default function EditorPage({ user }) {
           el.remove();
         }
       });
-    };
+    }, REMOTE_CURSOR_DECORATION_MS);
+
+    return () => window.clearTimeout(timer);
   }, [room.remoteCursors]);
 
   // Cleanup all cursor style elements on unmount
@@ -686,6 +692,75 @@ export default function EditorPage({ user }) {
 
   const langConfig = LANGUAGES[editor.language];
   const editorFileName = LANG_FILE_NAMES[editor.language] || 'main.txt';
+  const editorOptions = useMemo(
+    () => ({
+      readOnly: room.isReadOnly,
+      fontSize: editor.fontSize,
+      fontFamily: getEditorFontFamily(editor.fontFamily),
+      minimap: {
+        enabled: effectiveShowMinimap,
+        side: minimapSide,
+        showSlider: 'always',
+        renderCharacters: false,
+      },
+      detectIndentation: false,
+      padding: { top: 12 },
+      scrollBeyondLastLine: false,
+      lineNumbers: 'on',
+      renderLineHighlight: room.isReadOnly ? 'none' : 'line',
+      automaticLayout: true,
+      tabSize: editor.tabSize,
+      rulers: [{ column: editor.rulerColumn }],
+      insertSpaces: true,
+      wordWrap: 'on',
+      smoothScrolling: !collaborationMode,
+      cursorBlinking: room.isReadOnly ? 'solid' : 'smooth',
+      cursorSmoothCaretAnimation: collaborationMode ? 'off' : 'on',
+      matchBrackets: collaborationMode ? 'never' : 'always',
+      renderIndentGuides: !collaborationMode,
+      bracketPairColorization: { enabled: !collaborationMode },
+      guides: {
+        indentation: !collaborationMode,
+        highlightActiveIndentation: collaborationMode ? false : 'always',
+        bracketPairs: !collaborationMode,
+        bracketPairsHorizontal: !collaborationMode,
+        highlightActiveBracketPair: !collaborationMode,
+      },
+      folding: !collaborationMode,
+      stickyScroll: { enabled: !collaborationMode },
+      codeLens: !collaborationMode,
+      occurrencesHighlight: collaborationMode ? 'off' : 'singleFile',
+      selectionHighlight: !collaborationMode,
+      wordBasedSuggestions: collaborationMode ? 'off' : 'currentDocument',
+      'semanticHighlighting.enabled': !collaborationMode,
+      suggestOnTriggerCharacters: !collaborationMode,
+      quickSuggestions: !collaborationMode,
+      formatOnPaste: !collaborationMode,
+      multiCursorModifier: 'alt',
+      columnSelection: true,
+    }),
+    [
+      collaborationMode,
+      effectiveShowMinimap,
+      editor.fontFamily,
+      editor.fontSize,
+      editor.rulerColumn,
+      editor.tabSize,
+      minimapSide,
+      room.isReadOnly,
+    ]
+  );
+  const handleEditorChange = useCallback(
+    (value) => {
+      if (room.isReadOnly) return;
+
+      const nextCode = value || '';
+      if (nextCode !== editor.code) {
+        editor.setCode(nextCode);
+      }
+    },
+    [editor.code, editor.setCode, room.isReadOnly]
+  );
 
   return (
     <div
@@ -1488,7 +1563,7 @@ export default function EditorPage({ user }) {
           {/* Monaco Editor */}
           <div
             id="editor-container"
-            className={showMinimap ? '' : 'minimap-disabled'}
+            className={effectiveShowMinimap ? '' : 'minimap-disabled'}
             style={{ flex: 1, minHeight: 0, opacity: room.isReadOnly ? 0.8 : 1 }}
           >
             {room.isReadOnly && (
@@ -1511,51 +1586,11 @@ export default function EditorPage({ user }) {
               height="100%"
               language={langConfig.monacoLang}
               value={editor.code}
-              onChange={(val) => {
-                if (!room.isReadOnly) editor.setCode(val || '');
-              }}
+              onChange={handleEditorChange}
               beforeMount={handleEditorWillMount}
               onMount={handleEditorMount}
               theme={editor.theme}
-              options={{
-                readOnly: room.isReadOnly,
-                fontSize: editor.fontSize,
-                fontFamily: getEditorFontFamily(editor.fontFamily),
-                minimap: {
-                  enabled: showMinimap,
-                  side: minimapSide,
-                  showSlider: 'always',
-                  renderCharacters: false,
-                },
-                detectIndentation: false,
-                padding: { top: 12 },
-                scrollBeyondLastLine: false,
-                lineNumbers: 'on',
-                renderLineHighlight: room.isReadOnly ? 'none' : 'line',
-                automaticLayout: true,
-                tabSize: editor.tabSize,
-                rulers: [{ column: editor.rulerColumn }],
-                insertSpaces: true,
-                wordWrap: 'on',
-                smoothScrolling: true,
-                cursorBlinking: room.isReadOnly ? 'solid' : 'smooth',
-                cursorSmoothCaretAnimation: 'on',
-                matchBrackets: 'always',
-                renderIndentGuides: true,
-                bracketPairColorization: { enabled: true },
-                guides: {
-                  indentation: true,
-                  highlightActiveIndentation: 'always',
-                  bracketPairs: true,
-                  bracketPairsHorizontal: true,
-                  highlightActiveBracketPair: true,
-                },
-                suggestOnTriggerCharacters: true,
-                quickSuggestions: true,
-                formatOnPaste: true,
-                multiCursorModifier: 'alt',
-                columnSelection: true,
-              }}
+              options={editorOptions}
             />
             {showSearchReplace && (
               <SearchReplacePanel
