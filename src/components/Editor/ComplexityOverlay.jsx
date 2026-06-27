@@ -26,9 +26,34 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
 
   // Trap focus inside the overlay
   useEffect(() => {
-    if (isOpen && overlayRef.current) {
-      overlayRef.current.focus();
+    if (!isOpen || !overlayRef.current) return;
+    const card = overlayRef.current;
+    card.focus();
+
+    const focusableSelector =
+      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    function handleTab(e) {
+      if (e.key !== 'Tab') return;
+      const focusable = [...card.querySelectorAll(focusableSelector)];
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     }
+
+    document.addEventListener('keydown', handleTab);
+    return () => document.removeEventListener('keydown', handleTab);
   }, [isOpen]);
 
   if (!isOpen) return null;

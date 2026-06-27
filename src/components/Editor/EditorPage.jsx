@@ -112,6 +112,7 @@ export default function EditorPage({ user }) {
   const [consoleCollapsed, setConsoleCollapsed] = useState(false);
   const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const resizingRef = useRef(false);
   const toggleConsoleCollapsed = () => {
     setConsoleCollapsed((prev) => !prev);
@@ -174,6 +175,16 @@ export default function EditorPage({ user }) {
     reader.readAsText(file);
   };
 
+  const handleResetTemplate = () => {
+    const langKey = editor.language;
+    const template = LANGUAGES[langKey]?.template;
+    if (template) {
+      editor.loadCode(template, editor.language);
+      toast.success(`Reset to default ${LANGUAGES[langKey].name} template`);
+    }
+    setShowResetConfirm(false);
+  };
+
   const editor = useEditor({
     user,
     onNeedAuth: () => {
@@ -187,6 +198,13 @@ export default function EditorPage({ user }) {
   const setVimEnabled = editor.setVimEnabled;
 
   const { theme: globalTheme, toggleTheme: toggleGlobalTheme } = useTheme();
+
+  // Compute Monaco theme from globalTheme + user editor theme preference
+  const computedMonacoTheme = globalTheme === 'light'
+    ? 'vs'
+    : editor.theme === 'vs'
+      ? 'debugra-dark'
+      : editor.theme;
 
   // Synchronize Monaco editor theme with global light/dark theme toggle
   useEffect(() => {
@@ -1218,6 +1236,19 @@ export default function EditorPage({ user }) {
             </button>
             <button
               className="toolbar-icon-btn"
+              aria-label="Reset to default template"
+              onClick={() => setShowResetConfirm(true)}
+              title="Reset to default template"
+              disabled={room.isReadOnly}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="23 4 23 10 17 10" />
+                <polyline points="1 20 1 14 7 14" />
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+              </svg>
+            </button>
+            <button
+              className="toolbar-icon-btn"
               aria-label="Save to Cloud"
               onClick={editor.saveToCloud}
               title="Save to cloud"
@@ -1516,7 +1547,7 @@ export default function EditorPage({ user }) {
               }}
               beforeMount={handleEditorWillMount}
               onMount={handleEditorMount}
-              theme={editor.theme}
+              theme={computedMonacoTheme}
               options={{
                 readOnly: room.isReadOnly,
                 fontSize: editor.fontSize,
@@ -2048,6 +2079,22 @@ export default function EditorPage({ user }) {
           ai.fix();
         }}
       />
+
+      {/* Reset Template Confirmation */}
+      {showResetConfirm && (
+        <div className="modal-backdrop" onClick={() => setShowResetConfirm(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <h3 style={{ marginBottom: '12px' }}>Reset to default {LANGUAGES[editor.language]?.name} template?</h3>
+            <p style={{ color: 'var(--text-2)', fontSize: '0.85rem', marginBottom: '20px' }}>
+              This will replace your current code with the default template. Font size, language, and room connection will not be affected.
+            </p>
+            <div className="d-flex gap-2 justify-content-end">
+              <button className="landing-btn-outline" onClick={() => setShowResetConfirm(false)}>Cancel</button>
+              <button className="landing-btn-primary" onClick={handleResetTemplate}>Reset</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Complexity Overlay */}
       <ComplexityOverlay
