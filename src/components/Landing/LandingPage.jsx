@@ -978,39 +978,13 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="feedback-form-card">
-          <h3 style={{ marginBottom: '16px' }}>Share Your Feedback</h3>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              toast.success('Thank you for your feedback!');
-            }}
-          >
-            <input type="text" placeholder="Your Name" aria-label="Your Name" className="modal-input" required />
-
-            <select className="modal-input" aria-label="Select Rating" required>
-              <option value="">Select Rating</option>
-              <option value="5">★★★★★ (5)</option>
-              <option value="4">★★★★☆ (4)</option>
-              <option value="3">★★★☆☆ (3)</option>
-              <option value="2">★★☆☆☆ (2)</option>
-              <option value="1">★☆☆☆☆ (1)</option>
-            </select>
-
-            <textarea
-              placeholder="Tell us about your experience..."
-              aria-label="Your feedback"
-              className="modal-input"
-              rows="4"
-              required
-            />
-
-            <button type="submit" className="landing-btn-primary" style={{ width: 'fit-content' }}>
-              Submit Feedback
-            </button>
-          </form>
-        </div>
+        <button
+          onClick={() => navigate('/feedback')}
+          className="landing-btn-primary"
+          style={{ marginTop: '24px' }}
+        >
+          Give Feedback
+        </button>
       </section>
       {/* ===== CTA ===== */}
       <section className="landing-cta-section">
@@ -1193,6 +1167,14 @@ export default function LandingPage() {
                   </button>
                 </div>
               )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="landing-btn-primary landing-btn-lg"
+                style={{ width: '100%', marginTop: '12px' }}
+              >
+                {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
+              </button>
             </form>
 
             <p className="modal-toggle">
