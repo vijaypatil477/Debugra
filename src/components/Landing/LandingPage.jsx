@@ -1,17 +1,10 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
-import {
-  signInWithPopup,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  updateProfile,
-} from 'firebase/auth';
-import { auth, googleProvider } from '../../services/firebase';
 import toast from 'react-hot-toast';
 import './LandingPage.css';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
+import AuthModal from '../Auth/AuthModal';
 
 // ─── Inline SVG Icons ─────────────────────────────────────────────────────────
 const IconBolt = () => (
@@ -330,10 +323,6 @@ export default function LandingPage() {
   }, [location.hash]);
   const [showLogin, setShowLogin] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
   const [canScrollFeaturesLeft, setCanScrollFeaturesLeft] = useState(false);
@@ -377,13 +366,6 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Reset confirm-password state whenever the user toggles login ↔ sign-up
-  useEffect(() => {
-    setConfirmPassword('');
-    setShowConfirmPassword(false);
-    setShowPassword(false);
-  }, [isSignUp]);
-
   const scrollFeaturesCarousel = (direction) => {
     const carousel = featuresCarouselRef.current;
     if (!carousel) return;
@@ -403,43 +385,7 @@ export default function LandingPage() {
       scrollFeaturesCarousel(1);
     }
   };
-  const [showPassword, setShowPassword] = useState(false);
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
-
-  const handleGoogle = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-      toast.success('Welcome!');
-      navigate('/editor');
-    } catch (err) {
-      toast.error(err.message);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (isSignUp && password !== confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-    setLoading(true);
-    try {
-      if (isSignUp) {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        if (name) await updateProfile(cred.user, { displayName: name });
-        toast.success('Account created!');
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-        toast.success('Welcome back!');
-      }
-      navigate('/editor');
-    } catch (err) {
-      toast.error(err.message);
-    }
-    setLoading(false);
-  };
 
   return (
     <div className="landing-root">
@@ -1054,137 +1000,13 @@ export default function LandingPage() {
 
       {/* ===== LOGIN MODAL ===== */}
       {showLogin && (
-        <div className="modal-backdrop" onClick={() => setShowLogin(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            {/* CLOSE BUTTON - ADD HERE */}
-            <button className="modal-close-btn" aria-label="Close dialog" onClick={() => setShowLogin(false)}>
-              ✕
-            </button>
-
-            <h2 className="modal-title">{isSignUp ? 'Create Account' : 'Welcome Back'}</h2>
-            <p className="modal-subtitle">
-              {isSignUp ? 'Sign up to save code & collaborate' : 'Sign in to access saved code'}
-            </p>
-
-            <button onClick={handleGoogle} className="google-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
-              Continue with Google
-            </button>
-
-            <div className="modal-divider">
-              <div className="modal-divider-line" />
-              <span>or use email</span>
-              <div className="modal-divider-line" />
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              {isSignUp && (
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  aria-label="Full Name"
-                  placeholder="Full Name"
-                  className="modal-input"
-                  required
-                />
-              )}
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                aria-label="Email address"
-                placeholder="Email"
-                type="email"
-                className="modal-input"
-                required
-              />
-              <div className="password-wrapper">
-                <input
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  aria-label="Password"
-                  placeholder="Password"
-                  type={showPassword ? 'text' : 'password'}
-                  className="modal-input"
-                  required
-                  minLength={6}
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {/* Icon shows current state: EyeOff = hidden, Eye = visible (#513) */}
-                  {showPassword ? (
-                    <Eye size={18} strokeWidth={2} />
-                  ) : (
-                    <EyeOff size={18} strokeWidth={2} />
-                  )}
-                </button>
-              </div>
-              {isSignUp && (
-                <div className="password-wrapper">
-                  <input
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    aria-label="Confirm Password"
-                    placeholder="Confirm Password"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    className="modal-input"
-                    required
-                    minLength={6}
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    aria-label={
-                      showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'
-                    }
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    {showConfirmPassword ? (
-                      <Eye size={18} strokeWidth={2} />
-                    ) : (
-                      <EyeOff size={18} strokeWidth={2} />
-                    )}
-                  </button>
-                </div>
-              )}
-              <button
-                type="submit"
-                disabled={loading}
-                className="landing-btn-primary landing-btn-lg"
-                style={{ width: '100%', marginTop: '12px' }}
-              >
-                {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
-              </button>
-            </form>
-
-            <p className="modal-toggle">
-              {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
-              <button onClick={() => setIsSignUp(!isSignUp)} className="modal-toggle-btn">
-                {isSignUp ? 'Sign In' : 'Sign Up'}
-              </button>
-            </p>
-          </div>
-        </div>
+        <AuthModal
+          initialMode={isSignUp ? 'signup' : 'login'}
+          onClose={() => {
+            setShowLogin(false);
+            setIsSignUp(false);
+          }}
+        />
       )}
     </div>
   );

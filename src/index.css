@@ -2651,6 +2651,154 @@ input[type='password']::-ms-clear {
   filter: brightness(1.1);
 }
 
+.feedback-input--error {
+  border-color: #f87171 !important;
+}
+
+.feedback-error-msg {
+  display: block;
+  color: #f87171;
+  font-size: 0.72rem;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.feedback-textarea {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  outline: none;
+  resize: vertical;
+  min-height: 140px;
+}
+
+.feedback-textarea:focus {
+  border-color: var(--success);
+}
+
+.feedback-char-count {
+  text-align: right;
+  font-size: 0.72rem;
+  color: var(--text-2);
+  margin-top: 4px;
+}
+
+.feedback-char-over {
+  color: #f87171;
+  font-weight: 700;
+}
+
+.feedback-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px 16px;
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-2);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.feedback-dropzone:hover,
+.feedback-dropzone--active {
+  border-color: var(--success);
+  background: var(--brand-dim);
+  color: var(--text-0);
+}
+
+.feedback-dropzone-hint {
+  font-size: 0.7rem;
+  color: var(--text-2);
+  opacity: 0.7;
+}
+
+.feedback-preview {
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-primary);
+}
+
+.feedback-preview-img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 4px;
+  display: block;
+  margin-bottom: 8px;
+  object-fit: contain;
+}
+
+.feedback-preview-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.feedback-preview-name {
+  font-size: 0.75rem;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feedback-preview-remove {
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: #f87171;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.feedback-preview-remove:hover {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: #f87171;
+}
+
+.feedback-info-panel {
+  margin-top: 24px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  font-size: 0.82rem;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.feedback-info-panel h3 {
+  color: var(--text-0);
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.feedback-info-panel ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.feedback-info-panel li {
+  margin-bottom: 4px;
+}
+
 @media (max-width: 800px) {
   .feedback-page {
     padding: 48px 16px;

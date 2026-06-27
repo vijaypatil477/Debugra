@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import {
   clearSecureApiKey,
@@ -10,6 +10,13 @@ import {
 } from '../../services/secureApiKeyStore';
 
 export default function ApiKeyModal({ onClose, onStatusChange }) {
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
   const [apiKey, setApiKey] = useState('');
   const [passphrase, setPassphrase] = useState('');
   const [isSaving, setIsSaving] = useState(false);

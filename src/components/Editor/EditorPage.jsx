@@ -199,6 +199,13 @@ export default function EditorPage({ user }) {
 
   const { theme: globalTheme, toggleTheme: toggleGlobalTheme } = useTheme();
 
+  // Compute Monaco theme from globalTheme + user editor theme preference
+  const computedMonacoTheme = globalTheme === 'light'
+    ? 'vs'
+    : editor.theme === 'vs'
+      ? 'debugra-dark'
+      : editor.theme;
+
   // Synchronize Monaco editor theme with global light/dark theme toggle
   useEffect(() => {
     if (globalTheme === 'light') {
@@ -1540,7 +1547,7 @@ export default function EditorPage({ user }) {
               }}
               beforeMount={handleEditorWillMount}
               onMount={handleEditorMount}
-              theme={editor.theme}
+              theme={computedMonacoTheme}
               options={{
                 readOnly: room.isReadOnly,
                 fontSize: editor.fontSize,
