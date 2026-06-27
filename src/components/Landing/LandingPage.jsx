@@ -932,7 +932,12 @@ export default function LandingPage() {
           {FAQ_ITEMS.map((item, index) => {
             const isOpen = openFaq === index;
             return (
-              <div key={item.question} className={`faq-item ${isOpen ? 'is-open' : ''}`}>
+              <div
+                key={item.question}
+                className={`faq-item ${isOpen ? 'is-open' : ''}`}
+                onMouseEnter={() => setOpenFaq(index)}
+                onMouseLeave={() => setOpenFaq(-1)}
+              >
                 <button
                   type="button"
                   className="faq-question"
