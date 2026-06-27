@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import './VotePopup.css';
 
 /**
@@ -36,6 +36,32 @@ export default function VotePopup({ room, user }) {
     };
   }, [activeVote]);
 
+  // Focus trap refs and handlers
+  const containerRef = useRef(null);
+  const previousFocusRef = useRef(null);
+
+  const getFocusableElements = useCallback(() => {
+    if (!containerRef.current) return [];
+    const selectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    return Array.from(containerRef.current.querySelectorAll(selectors));
+  }, []);
+
+  // Save previous focus and trap focus inside modal
+  useEffect(() => {
+    if (!activeVote) return;
+    previousFocusRef.current = document.activeElement;
+    const timer = setTimeout(() => {
+      const focusable = getFocusableElements();
+      if (focusable.length > 0) focusable[0].focus();
+    }, 50);
+    return () => {
+      clearTimeout(timer);
+      if (previousFocusRef.current && typeof previousFocusRef.current.focus === 'function') {
+        previousFocusRef.current.focus();
+      }
+    };
+  }, [activeVote, getFocusableElements]);
+
   // Escape key handler for closing the vote (initiator only)
   useEffect(() => {
     if (!activeVote || !isInitiator) return;
@@ -50,11 +76,36 @@ export default function VotePopup({ room, user }) {
     };
   }, [activeVote, isInitiator, clearVote]);
 
+  // Tab trap inside the modal
+  useEffect(() => {
+    if (!activeVote) return;
+    const handleTabTrap = (e) => {
+      if (e.key !== 'Tab') return;
+      const focusable = getFocusableElements();
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleTabTrap);
+    return () => window.removeEventListener('keydown', handleTabTrap);
+  }, [activeVote, getFocusableElements]);
+
   if (!activeVote) return null;
 
   return (
     <div className="vp-overlay">
-      <div className="vp-container" role="dialog" aria-modal="true" aria-labelledby="vp-title">
+      <div className="vp-container" role="dialog" aria-modal="true" aria-labelledby="vp-title" ref={containerRef}>
         {/* Header */}
         <div className="vp-header">
           <div className="vp-header-title" id="vp-title">

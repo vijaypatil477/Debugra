@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -8,14 +8,12 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../../services/firebase';
-import { X } from 'lucide-react';
+import { X, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function AuthModal({ onClose, initialMode = 'login', mode }) {
   const [isLogin, setIsLogin] = useState((mode || initialMode) === 'login');
 
-  // support older callers that pass `mode` prop
-  // If `mode` prop is provided, derive initial isLogin from it on first render.
   useEffect(() => {
     if (mode) {
       setIsLogin(mode === 'login');
@@ -27,6 +25,9 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
   const [loading, setLoading] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [touched, setTouched] = useState({});
 
   const saveUser = async (user) => {
     await setDoc(
@@ -34,7 +35,6 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
       {
         uid: user.uid,
         displayName: user.displayName || name || 'Anonymous',
-        // store a lowercase copy to support case-insensitive checks
         displayNameLower: (user.displayName || name || 'Anonymous').toLowerCase(),
         email: user.email,
         photoURL: user.photoURL || null,
@@ -60,18 +60,29 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setTouched({ name: true, email: true, password: true });
+    if (!email) {
+      toast.error('Please enter your email');
+      return;
+    }
+    if (!password || password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    if (!isLogin && !name.trim()) {
+      toast.error('Please enter a display name');
+      return;
+    }
+    if (!isLogin && !acceptTerms) {
+      toast.error('Please accept the Terms & Privacy Policy');
+      return;
+    }
     try {
       setLoading(true);
       let result;
       if (isLogin) {
         result = await signInWithEmailAndPassword(auth, email, password);
       } else {
-        // validate display name and check for duplicates (case-insensitive)
-        if (!name || !name.trim()) {
-          toast.error('Please enter a display name');
-          setLoading(false);
-          return;
-        }
         const { collection, query, where, getDocs } = await import('firebase/firestore');
         const q = await getDocs(
           query(collection(db, 'users'), where('displayNameLower', '==', name.trim().toLowerCase()))
@@ -135,6 +146,35 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
     fontFamily: "'Inter', sans-serif",
     display: 'block',
     boxSizing: 'border-box',
+    transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s',
+  };
+
+  const inputFocusStyle = {
+    borderColor: '#4ec9b0',
+    boxShadow: '0 0 0 3px rgba(78,201,176,0.15)',
+    background: 'rgba(255,255,255,0.06)',
+  };
+
+  const [focusedField, setFocusedField] = useState(null);
+
+  const getInputStyle = (fieldName) => ({
+    ...inputStyle,
+    ...(focusedField === fieldName ? inputFocusStyle : {}),
+  });
+
+  const btnPrimaryStyle = {
+    width: '100%',
+    padding: '10px',
+    borderRadius: '10px',
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    background: loading ? 'rgba(78,201,176,0.5)' : '#4ec9b0',
+    color: '#09090b',
+    border: 'none',
+    cursor: loading ? 'not-allowed' : 'pointer',
+    boxSizing: 'border-box',
+    transition: 'all 0.2s, transform 0.1s',
+    transform: 'scale(1)',
   };
 
   return (
@@ -149,6 +189,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
         justifyContent: 'center',
         zIndex: 100,
         fontFamily: "'Inter', system-ui, sans-serif",
+        animation: 'authFadeIn 0.2s ease',
       }}
       onClick={onClose}
     >
@@ -162,12 +203,23 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
           width: '400px',
           maxWidth: '90vw',
           color: '#e2e8f0',
+          animation: 'authSlideUp 0.25s ease',
         }}
       >
+        <style>{`
+          @keyframes authFadeIn { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes authSlideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+          .auth-input:focus { border-color: #4ec9b0 !important; box-shadow: 0 0 0 3px rgba(78,201,176,0.15) !important; background: rgba(255,255,255,0.06) !important; }
+          .auth-btn-primary:hover:not(:disabled) { background: #3db896 !important; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(78,201,176,0.3); }
+          .auth-btn-primary:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+          .auth-btn-google:hover:not(:disabled) { background: rgba(255,255,255,0.1) !important; border-color: rgba(255,255,255,0.2) !important; }
+        `}</style>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-24px' }}>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', borderRadius: '6px', transition: 'color 0.2s' }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#e2e8f0'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
           >
             <X size={20} />
           </button>
@@ -180,7 +232,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
         <p
           style={{
             fontSize: '0.8rem',
-            color: '#64748b',
+            color: '#8897aa',
             textAlign: 'center',
             marginBottom: '24px',
           }}
@@ -193,7 +245,6 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
         </p>
 
         {forgotMode ? (
-          /* ─── Forgot Password Form ─── */
           <form onSubmit={handleForgotPassword}>
             <input
               value={resetEmail}
@@ -201,23 +252,16 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
               placeholder="Email address"
               type="email"
               required
+              className="auth-input"
               style={{ ...inputStyle, marginBottom: '16px' }}
+              onFocus={() => setFocusedField('resetEmail')}
+              onBlur={() => setFocusedField(null)}
             />
             <button
               type="submit"
               disabled={loading}
-              style={{
-                width: '100%',
-                padding: '10px',
-                borderRadius: '10px',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                background: '#4ec9b0',
-                color: '#09090b',
-                border: 'none',
-                cursor: 'pointer',
-                boxSizing: 'border-box',
-              }}
+              className="auth-btn-primary"
+              style={btnPrimaryStyle}
             >
               {loading ? 'Sending...' : 'Send Reset Link'}
             </button>
@@ -226,7 +270,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                 textAlign: 'center',
                 marginTop: '16px',
                 fontSize: '0.78rem',
-                color: '#64748b',
+                color: '#8897aa',
               }}
             >
               Remember your password?{' '}
@@ -248,12 +292,11 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
             </p>
           </form>
         ) : (
-          /* ─── Login / Signup Form ─── */
           <>
-            {/* Google */}
             <button
               onClick={handleGoogle}
               disabled={loading}
+              className="auth-btn-google"
               style={{
                 width: '100%',
                 padding: '10px',
@@ -263,13 +306,14 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                 background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.1)',
                 color: '#e2e8f0',
-                cursor: 'pointer',
+                cursor: loading ? 'not-allowed' : 'pointer',
                 marginBottom: '16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
                 boxSizing: 'border-box',
+                transition: 'all 0.2s',
               }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24">
@@ -295,7 +339,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '16px 0' }}>
               <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-              <span style={{ fontSize: '0.72rem', color: '#475569' }}>or use email</span>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>or use email</span>
               <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
             </div>
 
@@ -305,7 +349,10 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Full Name"
-                  style={{ ...inputStyle, marginBottom: '10px' }}
+                  className="auth-input"
+                  style={{ ...getInputStyle('name'), marginBottom: '10px' }}
+                  onFocus={() => setFocusedField('name')}
+                  onBlur={() => { setFocusedField(null); setTouched(prev => ({ ...prev, name: true })); }}
                   required
                 />
               )}
@@ -315,17 +362,53 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                 placeholder="Email"
                 type="email"
                 required
-                style={{ ...inputStyle, marginBottom: '10px' }}
+                className="auth-input"
+                style={{ ...getInputStyle('email'), marginBottom: '10px' }}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => { setFocusedField(null); setTouched(prev => ({ ...prev, email: true })); }}
               />
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                type="password"
-                required
-                minLength={6}
-                style={{ ...inputStyle, marginBottom: isLogin ? '8px' : '16px' }}
-              />
+              <div style={{ position: 'relative', marginBottom: isLogin ? '8px' : '12px' }}>
+                <input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  minLength={6}
+                  className="auth-input"
+                  style={{
+                    ...getInputStyle('password'),
+                    paddingRight: '40px',
+                  }}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => { setFocusedField(null); setTouched(prev => ({ ...prev, password: true })); }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'color 0.2s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#e2e8f0'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               {isLogin && (
                 <p style={{ textAlign: 'right', marginBottom: '12px' }}>
                   <button
@@ -342,29 +425,62 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                       fontSize: '0.72rem',
                       fontWeight: 500,
                       padding: 0,
+                      transition: 'color 0.2s',
                     }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#6edcb9'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = '#4ec9b0'}
                   >
                     Forgot password?
                   </button>
                 </p>
               )}
+              {!isLogin && (
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.72rem',
+                    color: '#8897aa',
+                    marginBottom: '14px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={acceptTerms}
+                    onChange={(e) => setAcceptTerms(e.target.checked)}
+                    style={{
+                      accentColor: '#4ec9b0',
+                      width: '14px',
+                      height: '14px',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  I accept the{' '}
+                  <a href="#" style={{ color: '#4ec9b0', textDecoration: 'underline' }}>
+                    Terms
+                  </a>{' '}
+                  &{' '}
+                  <a href="#" style={{ color: '#4ec9b0', textDecoration: 'underline' }}>
+                    Privacy Policy
+                  </a>
+                </label>
+              )}
               <button
                 type="submit"
                 disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '10px',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  background: '#4ec9b0',
-                  color: '#09090b',
-                  border: 'none',
-                  cursor: 'pointer',
-                  boxSizing: 'border-box',
-                }}
+                className="auth-btn-primary"
+                style={btnPrimaryStyle}
               >
-                {loading ? 'Please wait...' : !isLogin ? 'Create Account' : 'Sign In'}
+                {loading ? (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <span className="auth-spinner" style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid rgba(9,9,11,0.2)', borderTopColor: '#09090b', borderRadius: '50%', animation: 'authSpin 0.6s linear infinite' }} />
+                    {!isLogin ? 'Creating Account...' : 'Signing In...'}
+                  </span>
+                ) : (
+                  !isLogin ? 'Create Account' : 'Sign In'
+                )}
               </button>
             </form>
 
@@ -373,7 +489,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                 textAlign: 'center',
                 marginTop: '16px',
                 fontSize: '0.78rem',
-                color: '#64748b',
+                color: '#8897aa',
               }}
             >
               {!isLogin ? 'Already have an account? ' : "Don't have an account? "}
@@ -391,11 +507,18 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                   fontWeight: 600,
                   textDecoration: 'underline',
                   padding: 0,
+                  transition: 'color 0.2s',
                 }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#6edcb9'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#4ec9b0'}
               >
                 {!isLogin ? 'Sign In' : 'Sign Up'}
               </button>
             </p>
+
+            <style>{`
+              @keyframes authSpin { to { transform: rotate(360deg); } }
+            `}</style>
           </>
         )}
       </div>
