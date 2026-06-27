@@ -153,7 +153,15 @@ export function useRoom({
   useEffect(() => {
     if (!roomId) return;
     const unsub = onSnapshot(doc(db, 'rooms', roomId), (snap) => {
-      if (!snap.exists()) return;
+      if (!snap.exists()) {
+        toast.error('The room was ended by the host.');
+        localStorage.removeItem('debugra_roomId');
+        setRoomId(null);
+        setRoomData(null);
+        setActiveUsers([]);
+        setRemoteCursors({});
+        return;
+      }
       const data = snap.data();
       setRoomData(data);
       if (data.code !== undefined && data._lastEditor !== user?.uid) setCode(data.code);
