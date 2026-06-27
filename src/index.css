@@ -856,14 +856,17 @@ body {
 }
 
 .ai-btn.fix {
-  background: transparent;
+  background: #8b5cf6;
   color: #ffffff;
-  border: 1px solid #ffffff;
+  border: 1px solid #8b5cf6;
+  font-weight: 700;
 }
 
 .ai-btn.fix:hover {
-  background: #ffffff;
-  color: #000000;
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
 }
 
 .ai-btn.api-key-toggle.locked {
