@@ -151,6 +151,35 @@ const IconTerminal = () => (
   </svg>
 );
 
+// ─── Workflow Step Icons ──────────────────────────────────────────────────────
+const IconStepSession = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <line x1="19" y1="8" x2="19" y2="14" />
+    <line x1="16" y1="11" x2="22" y2="11" />
+  </svg>
+);
+const IconStepCode = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="16 18 22 12 16 6" />
+    <polyline points="8 6 2 12 8 18" />
+    <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" />
+  </svg>
+);
+const IconStepAI = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" fill="currentColor" />
+  </svg>
+);
+const IconStepShip = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4.5 16.5c-1.5 1.25-2.5 3.5-2.5 3.5s2.25-1 3.5-2.5L17.5 5.5 18.5 2l-3.5 1L4.5 16.5z" />
+    <path d="M12 15l-3-3m6 6l-3-3" />
+  </svg>
+);
+
 // ─── Feature Data ─────────────────────────────────────────────────────────────
 const FEATURES = [
   {
@@ -250,7 +279,7 @@ const LANGUAGES = [
 const STATS = [
   { value: '18+', label: 'Languages' },
   { value: '5', label: 'AI Features' },
-  { value: '∞', label: 'Free Forever' },
+  { value: '', label: 'Free Forever' },
   { value: '0', label: 'Setup Required' },
 ];
 const FAQ_ITEMS = [
@@ -702,6 +731,98 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ===== HOW IT WORKS ===== */}
+      <section id="how-it-works" className="landing-section container">
+        <div className="section-header">
+          <p className="section-eyebrow">Onboarding</p>
+          <h2 className="section-title">
+            How Debugra Works
+            <br />
+            <span className="hero-gradient-text">In 4 Simple Steps.</span>
+          </h2>
+          <p className="section-subtitle">
+            From zero configuration to shared real-time debugging environments in under a minute.
+          </p>
+        </div>
+
+        <div className="row g-4 mt-2">
+          {/* Step 1 */}
+          <div className="col-12 col-md-6 col-lg-3">
+            <div className="feature-card h-100" style={{ '--card-accent': '#8b5cf6', padding: '24px' }}>
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <div className="feature-card-icon" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.12)' }}>
+                  <IconStepSession />
+                </div>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, opacity: 0.15, fontFamily: 'monospace' }}>01</span>
+              </div>
+              <h3 className="feature-card-title" style={{ fontSize: '1.1rem', marginBottom: '10px' }}>Create or Join</h3>
+              <p className="feature-card-desc" style={{ fontSize: '0.82rem', margin: 0 }}>
+                Start a clean coding workspace instantly or join an active room. Invite teammates using a secure, shareable session link.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div className="col-12 col-md-6 col-lg-3">
+            <div className="feature-card h-100" style={{ '--card-accent': '#10b981', padding: '24px' }}>
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <div className="feature-card-icon" style={{ color: '#10b981', background: 'rgba(16,185,129,0.12)' }}>
+                  <IconStepCode />
+                </div>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, opacity: 0.15, fontFamily: 'monospace' }}>02</span>
+              </div>
+              <h3 className="feature-card-title" style={{ fontSize: '1.1rem', marginBottom: '10px' }}>Write & Execute</h3>
+              <p className="feature-card-desc" style={{ fontSize: '0.82rem', margin: 0 }}>
+                Collaborate in real time using our core engine. Choose from over 18 languages to write and run code compiled instantly.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div className="col-12 col-md-6 col-lg-3">
+            <div className="feature-card h-100" style={{ '--card-accent': '#f97316', padding: '24px' }}>
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <div className="feature-card-icon" style={{ color: '#f97316', background: 'rgba(249,115,22,0.12)' }}>
+                  <IconStepAI />
+                </div>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, opacity: 0.15, fontFamily: 'monospace' }}>03</span>
+              </div>
+              <h3 className="feature-card-title" style={{ fontSize: '1.1rem', marginBottom: '10px' }}>AI Debugging</h3>
+              <p className="feature-card-desc" style={{ fontSize: '0.82rem', margin: 0 }}>
+                Get dynamic, smart error reviews instantly. Trace and visualize execution configurations to isolate breaking parameters faster.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 4 */}
+          <div className="col-12 col-md-6 col-lg-3">
+            <div className="feature-card h-100" style={{ '--card-accent': '#3b82f6', padding: '24px' }}>
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <div className="feature-card-icon" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}>
+                  <IconStepShip />
+                </div>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, opacity: 0.15, fontFamily: 'monospace' }}>04</span>
+              </div>
+              <h3 className="feature-card-title" style={{ fontSize: '1.1rem', marginBottom: '10px' }}>Iterate & Ship</h3>
+              <p className="feature-card-desc" style={{ fontSize: '0.82rem', margin: 0 }}>
+                Review runtime logic tracks together with live workspace persistence. Save, download, and iterate seamless code outputs.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Section Call To Action */}
+        <div className="text-center mt-5">
+          <button 
+            onClick={() => navigate('/editor')} 
+            className="landing-btn-primary landing-btn-lg"
+            style={{ padding: '12px 32px', fontSize: '0.9rem' }}
+          >
+            Try Debugra Now
+          </button>
+        </div>
+      </section>
+
       {/* ===== FEATURES BENTO GRID ===== */}
       <section id="features" className="landing-section container">
         <div className="section-header">
@@ -1008,7 +1129,6 @@ export default function LandingPage() {
                   </button>
                 </div>
               )}
-              {/* FIXED EXPLICIT BUTTON BLOCK INJECTION */}
               <button
                 type="submit"
                 disabled={loading}
