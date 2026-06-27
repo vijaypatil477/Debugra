@@ -1193,6 +1193,14 @@ export default function LandingPage() {
                   </button>
                 </div>
               )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="landing-btn-primary landing-btn-lg"
+                style={{ width: '100%', marginTop: '12px' }}
+              >
+                {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
+              </button>
             </form>
 
             <p className="modal-toggle">

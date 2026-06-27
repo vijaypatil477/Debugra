@@ -6256,6 +6256,149 @@ details[open] .debug-stderr-summary::before {
   50% { opacity: 0.8; }
 }
 
+/* ============================================================
+   #656/#704 — LIGHT THEME CONTRAST & UI ENHANCEMENTS
+   ============================================================ */
+
+[data-theme='light'] .hero-subtitle {
+  color: #52525b;
+}
+
+[data-theme='light'] .section-subtitle {
+  color: #52525b;
+}
+
+[data-theme='light'] .feature-desc {
+  color: #52525b;
+}
+
+[data-theme='light'] .hero-note {
+  color: #71717a;
+}
+
+[data-theme='light'] .footer-tagline,
+[data-theme='light'] .footer-heading,
+[data-theme='light'] .footer-link-label,
+[data-theme='light'] .footer-link-desc,
+[data-theme='light'] .footer-bottom p {
+  color: #52525b;
+}
+
+[data-theme='light'] .landing-hero {
+  background: radial-gradient(ellipse at 50% 0%, rgba(14, 112, 91, 0.06) 0%, transparent 60%);
+}
+
+[data-theme='light'] .landing-btn-primary {
+  background: linear-gradient(135deg, #0e705b, #0a5a49) !important;
+  transition: all 0.3s ease !important;
+}
+
+[data-theme='light'] .landing-btn-primary:hover {
+  background: linear-gradient(135deg, #0a5a49, #084438) !important;
+  box-shadow: 0 4px 16px rgba(14, 112, 91, 0.3) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ============================================================
+   #737 — SMOOTH ANIMATIONS & MICRO-INTERACTIONS
+   ============================================================ */
+
+.landing-section {
+  animation: section-fade-in 0.6s ease forwards;
+}
+
+@keyframes section-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.feature-card:nth-child(1) { animation-delay: 0.05s; }
+.feature-card:nth-child(2) { animation-delay: 0.1s; }
+.feature-card:nth-child(3) { animation-delay: 0.15s; }
+.feature-card:nth-child(4) { animation-delay: 0.2s; }
+.feature-card:nth-child(5) { animation-delay: 0.25s; }
+.feature-card:nth-child(6) { animation-delay: 0.3s; }
+
+.landing-nav-link,
+.landing-btn-primary,
+.landing-btn-outline,
+.landing-btn-ghost,
+.feature-card,
+.review-card,
+.faq-item,
+.lang-chip,
+.lang-tag {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.landing-btn-outline:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.feature-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12) !important;
+}
+
+.review-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.landing-btn-primary:active,
+.landing-btn-outline:active,
+.landing-btn-ghost:active {
+  transform: scale(0.97);
+}
+
+.landing-root {
+  animation: page-enter 0.4s ease;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================================================
+   #801 — EDITOR THEME CUSTOM PROPERTIES
+   ============================================================ */
+
+:root {
+  --editor-theme-name: 'dark';
+  --editor-line-highlight: rgba(255, 255, 255, 0.04);
+  --editor-selection: rgba(0, 120, 212, 0.3);
+  --editor-cursor: #0078d4;
+  --editor-gutter: #858585;
+  --editor-line-number: #858585;
+  --editor-indent-guide: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='light'] {
+  --editor-line-highlight: rgba(0, 0, 0, 0.04);
+  --editor-selection: rgba(0, 120, 212, 0.2);
+  --editor-cursor: #0078d4;
+  --editor-gutter: #5f5f5f;
+  --editor-line-number: #5f5f5f;
+  --editor-indent-guide: rgba(0, 0, 0, 0.1);
+}
+
 /* Page Transition Animations */
 .page-enter {
   animation: page-fade-in 0.3s ease forwards;
