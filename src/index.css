@@ -30,6 +30,8 @@
   --text-primary: #d4d4d4;
   --text-secondary: #9d9d9d;
   --text-muted: #959595;
+  --text-hi: #e2e8f0;
+  --text-mid: #94a3b8;
   --success: #4ec9b0;
   --warning: #dcdcaa;
   --error: #f44747;
@@ -108,7 +110,11 @@
 }
 
 [data-theme='light'] .landing-logo {
-  color: var(--text-hi);
+  color: #1f1f23;
+}
+
+[data-theme='light'] .landing-nav-left:hover .landing-logo {
+  color: #0e705b;
 }
 
 [data-theme='light'] .landing-version-badge {
@@ -136,11 +142,13 @@
 [data-theme='light'] .landing-btn-outline {
   color: #1f1f23;
   border: 1px solid rgba(0, 0, 0, 0.15);
+  font-weight: 600;
 }
 
 [data-theme='light'] .landing-btn-outline:hover {
-  border-color: rgba(0, 0, 0, 0.35);
-  background: rgba(0, 0, 0, 0.04);
+  border-color: #0e705b;
+  background: rgba(14, 112, 91, 0.06);
+  color: #0e705b;
 }
 
 [data-theme='light'] .feature-card {
@@ -167,6 +175,48 @@
   color: #0e705b !important;
 }
 
+[data-theme='light'] .editor-preview {
+  --bg-0: #f5f5f5;
+  --bg-1: #ffffff;
+  --bg-2: #f0f0f0;
+  --bg-3: #e5e5e5;
+  --bg-active: #e8e8e8;
+  --border: #d4d4d4;
+  --text-0: #1e1e1e;
+  --text-1: #666666;
+  --text-2: #888888;
+  --accent: #0078d4;
+  --warning: #7f6000;
+
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='light'] .preview-chrome,
+[data-theme='light'] .preview-toolbar {
+  background: #ffffff;
+  border-bottom-color: #e0e0e0;
+}
+
+[data-theme='light'] .preview-code {
+  background: #fafafa;
+  color: #1e1e1e;
+}
+
+[data-theme='light'] .preview-output {
+  background: #fafafa;
+  color: #333333;
+}
+
+[data-theme='light'] .preview-tag {
+  color: #666666;
+  background: #f0f0f0;
+  border-color: #e0e0e0;
+}
+
+[data-theme='light'] .editor-preview .preview-dot:nth-child(1) { background: #ff5f56; }
+[data-theme='light'] .editor-preview .preview-dot:nth-child(2) { background: #ffbd2e; }
+[data-theme='light'] .editor-preview .preview-dot:nth-child(3) { background: #27c93f; }
+
 [data-theme='light'] .review-card {
   background: #ffffff;
   border-color: rgba(0, 0, 0, 0.08);
@@ -182,6 +232,16 @@
 [data-theme='light'] .faq-item.is-open {
   background: #fdfdfd;
   border-color: rgba(0, 0, 0, 0.16);
+}
+
+[data-theme='light'] .faq-toggle {
+  background: rgba(14, 112, 91, 0.08);
+  border-color: rgba(14, 112, 91, 0.2);
+  color: #0e705b;
+}
+
+[data-theme='light'] .faq-answer p {
+  color: #3f3f46;
 }
 
 [data-theme='light'] .features-carousel-nav {
@@ -2272,6 +2332,10 @@ body {
   border-radius: 50%;
 }
 
+.editor-preview .preview-dot:nth-child(1) { background: #ff5f57; }
+.editor-preview .preview-dot:nth-child(2) { background: #febc2e; }
+.editor-preview .preview-dot:nth-child(3) { background: #28c840; }
+
 .preview-toolbar {
   display: flex;
   align-items: center;
@@ -2488,9 +2552,8 @@ input[type='password']::-ms-clear {
 
 /* ============ FEEDBACK PAGE (FIX FOR GSSOC 2026) ============ */
 .feedback-page {
-  /* FIX: Changed to height 100% to ensure the container uses all available space 
-     and doesn't clip the submit button or other controls when interacting with the form */
-  height: 100%;
+  min-height: 100vh;
+  height: auto;
   overflow-y: auto;
   background: var(--bg-0);
   color: var(--text-0);
@@ -2499,12 +2562,11 @@ input[type='password']::-ms-clear {
 }
 
 .feedback-shell {
-  width: min(1080px, 100%);
+  width: min(960px, 100%);
   margin: 0 auto;
   display: grid;
-  /* Maintains the original 2-column layout from Captura.PNG */
-  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
-  gap: 40px;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
   align-items: start;
 }
 
@@ -2584,7 +2646,7 @@ input[type='password']::-ms-clear {
 .feedback-field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
 .feedback-form label {
@@ -2637,28 +2699,41 @@ input[type='password']::-ms-clear {
   align-items: center;
   justify-content: center;
   min-height: 42px;
-  padding: 0 18px;
+  padding: 0 24px;
   border: 0;
   border-radius: 6px;
   background: var(--success);
   color: var(--bg-0);
   font-weight: 800;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: filter 0.2s ease;
+  margin-top: 8px;
+  width: 100%;
 }
 
 .feedback-submit:hover {
   filter: brightness(1.1);
 }
 
+@media (min-width: 600px) {
+  .feedback-submit {
+    width: auto;
+  }
+}
+
 @media (max-width: 800px) {
   .feedback-page {
-    padding: 48px 16px;
+    padding: 32px 16px;
   }
 
   .feedback-shell,
   .feedback-field-grid {
     grid-template-columns: 1fr;
+  }
+
+  .feedback-shell {
+    gap: 32px;
   }
 }
 
@@ -6177,5 +6252,4 @@ details[open] .debug-stderr-summary::before {
   width: auto !important;
   max-width: none !important;
 }
-
 

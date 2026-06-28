@@ -705,9 +705,9 @@ export default function LandingPage() {
           <div className="col-12 col-xl-10">
             <div className="editor-preview">
               <div className="preview-chrome">
-                <div className="preview-dot" style={{ background: '#ff5f57' }} />
-                <div className="preview-dot" style={{ background: '#febc2e' }} />
-                <div className="preview-dot" style={{ background: '#28c840' }} />
+                <div className="preview-dot" />
+                <div className="preview-dot" />
+                <div className="preview-dot" />
                 <span className="preview-chrome-label">debugra.tech — main.py — Python 3</span>
               </div>
               <div className="preview-toolbar flex-wrap gap-2">
