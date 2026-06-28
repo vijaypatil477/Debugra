@@ -30,15 +30,22 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const saveUser = async (user, { reserveUsername = false, displayName } = {}) => {
     const userRef = doc(db, 'users', user.uid);
-    const resolvedName = (displayName || user.displayName || name || 'Anonymous').trim();
+    const existingUserSnap = await getDoc(userRef);
+    const existingData = existingUserSnap.exists() ? existingUserSnap.data() : null;
+    const providedName = displayName?.trim();
+    const authName = user.displayName?.trim() || name.trim();
+    const resolvedName = providedName || existingData?.displayName || authName || 'Anonymous';
     const normalizedName = resolvedName.toLowerCase();
     const payload = {
       uid: user.uid,
-      displayName: resolvedName,
-      displayNameLower: normalizedName,
       email: user.email,
       photoURL: user.photoURL || null,
     };
+
+    if (reserveUsername || providedName || !existingData) {
+      payload.displayName = resolvedName;
+      payload.displayNameLower = normalizedName;
+    }
 
     if (reserveUsername) {
       await runTransaction(db, async (transaction) => {
@@ -48,9 +55,13 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
           throw new Error('This username is unavailable');
         }
 
-        const existingUserSnap = await transaction.get(userRef);
-        if (!existingUserSnap.exists()) {
+        const transactionUserSnap = await transaction.get(userRef);
+        if (!transactionUserSnap.exists()) {
           payload.createdAt = new Date();
+          if (!payload.displayName) {
+            payload.displayName = resolvedName;
+            payload.displayNameLower = normalizedName;
+          }
         }
 
         transaction.set(
@@ -68,9 +79,12 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
       return;
     }
 
-    const existingUserSnap = await getDoc(userRef);
     if (!existingUserSnap.exists()) {
       payload.createdAt = new Date();
+      if (!payload.displayName) {
+        payload.displayName = resolvedName;
+        payload.displayNameLower = normalizedName;
+      }
     }
     await setDoc(userRef, payload, { merge: true });
   };
