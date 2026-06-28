@@ -6214,7 +6214,7 @@ details[open] .debug-stderr-summary::before {
 
 
 /* Accent color (#844) */
-:root { accent-color: #569cd6; }
+:root { accent-color: var(--accent); }
 
 /* Reduced motion (#842) */
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
