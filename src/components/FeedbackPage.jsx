@@ -54,6 +54,7 @@ export default function FeedbackPage() {
               onClick={toggleTheme}
               className="feedback-theme-toggle"
               title="Toggle theme"
+              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
             >
               {theme === 'light' ? (
                 <svg
