@@ -1729,6 +1729,39 @@ body {
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* ============ ACCENT COLOR ============ */
+:root {
+  accent-color: var(--accent);
+}
+
+/* ============ PREFERS-REDUCED-MOTION ============ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============ GLOBAL FOCUS RING ============ */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 /* Animations */
 @keyframes slide-up {
   from {
@@ -6179,3 +6212,12 @@ details[open] .debug-stderr-summary::before {
 }
 
 
+
+/* Accent color (#844) */
+:root { accent-color: var(--accent); }
+
+/* Reduced motion (#842) */
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
+
+/* Scrollbar gutter (#843) */
+html { scrollbar-gutter: stable; }
