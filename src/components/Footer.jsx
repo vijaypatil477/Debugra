@@ -140,7 +140,7 @@ const Footer = () => {
               href="https://x.com"
               target="_blank"
               rel="noreferrer"
-              className="hover:text-[#000000] transition-colors inline-flex items-center justify-center"
+              className="hover:text-[#e5e7eb] transition-colors inline-flex items-center justify-center"
               style={{ minWidth: '44px', minHeight: '44px' }}
               aria-label="X (Twitter)"
             >
