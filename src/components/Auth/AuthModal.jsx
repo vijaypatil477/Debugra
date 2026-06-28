@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  deleteUser,
   updateProfile,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, runTransaction, setDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../../services/firebase';
 import { X, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -27,26 +28,60 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
   const [resetEmail, setResetEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [touched, setTouched] = useState({});
+  const saveUser = async (user, { reserveUsername = false, displayName } = {}) => {
+    const userRef = doc(db, 'users', user.uid);
+    const resolvedName = (displayName || user.displayName || name || 'Anonymous').trim();
+    const normalizedName = resolvedName.toLowerCase();
+    const payload = {
+      uid: user.uid,
+      displayName: resolvedName,
+      displayNameLower: normalizedName,
+      email: user.email,
+      photoURL: user.photoURL || null,
+    };
 
-  const saveUser = async (user) => {
-    await setDoc(
-      doc(db, 'users', user.uid),
-      {
-        uid: user.uid,
-        displayName: user.displayName || name || 'Anonymous',
-        displayNameLower: (user.displayName || name || 'Anonymous').toLowerCase(),
-        email: user.email,
-        photoURL: user.photoURL || null,
-        createdAt: new Date(),
-      },
-      { merge: true }
-    );
+    if (reserveUsername) {
+      await runTransaction(db, async (transaction) => {
+        const usernameRef = doc(db, 'usernames', normalizedName);
+        const usernameSnap = await transaction.get(usernameRef);
+        if (usernameSnap.exists() && usernameSnap.data()?.uid !== user.uid) {
+          throw new Error('This username is unavailable');
+        }
+
+        const existingUserSnap = await transaction.get(userRef);
+        if (!existingUserSnap.exists()) {
+          payload.createdAt = new Date();
+        }
+
+        transaction.set(
+          usernameRef,
+          {
+            uid: user.uid,
+            displayName: resolvedName,
+            displayNameLower: normalizedName,
+            updatedAt: new Date(),
+          },
+          { merge: true }
+        );
+        transaction.set(userRef, payload, { merge: true });
+      });
+      return;
+    }
+
+    const existingUserSnap = await getDoc(userRef);
+    if (!existingUserSnap.exists()) {
+      payload.createdAt = new Date();
+    }
+    await setDoc(userRef, payload, { merge: true });
   };
 
   const handleGoogle = async () => {
     try {
       setLoading(true);
+      if (!isLogin && !acceptTerms) {
+        toast.error('Please accept the Terms & Privacy Policy');
+        return;
+      }
       const result = await signInWithPopup(auth, googleProvider);
       await saveUser(result.user);
       toast.success('Welcome, ' + (result.user.displayName || 'Developer') + '!');
@@ -60,7 +95,6 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setTouched({ name: true, email: true, password: true });
     if (!email) {
       toast.error('Please enter your email');
       return;
@@ -83,17 +117,19 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
       if (isLogin) {
         result = await signInWithEmailAndPassword(auth, email, password);
       } else {
-        const { collection, query, where, getDocs } = await import('firebase/firestore');
-        const q = await getDocs(
-          query(collection(db, 'users'), where('displayNameLower', '==', name.trim().toLowerCase()))
-        );
-        if (q && !q.empty) {
-          toast.error('This username is unavailable');
-          setLoading(false);
-          return;
-        }
         result = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(result.user, { displayName: name });
+        try {
+          await saveUser(result.user, {
+            reserveUsername: true,
+            displayName: name.trim(),
+          });
+        } catch (error) {
+          if (error?.message === 'This username is unavailable') {
+            await deleteUser(result.user);
+          }
+          throw error;
+        }
       }
       await saveUser(result.user);
       toast.success('Welcome!');
@@ -216,7 +252,9 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
         `}</style>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-24px' }}>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close authentication dialog"
             style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', borderRadius: '6px', transition: 'color 0.2s' }}
             onMouseEnter={(e) => e.currentTarget.style.color = '#e2e8f0'}
             onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
@@ -339,7 +377,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '16px 0' }}>
               <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>or use email</span>
+              <span style={{ fontSize: '0.72rem', color: '#8897aa' }}>or use email</span>
               <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
             </div>
 
@@ -352,7 +390,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                   className="auth-input"
                   style={{ ...getInputStyle('name'), marginBottom: '10px' }}
                   onFocus={() => setFocusedField('name')}
-                  onBlur={() => { setFocusedField(null); setTouched(prev => ({ ...prev, name: true })); }}
+                  onBlur={() => { setFocusedField(null); }}
                   required
                 />
               )}
@@ -365,7 +403,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                 className="auth-input"
                 style={{ ...getInputStyle('email'), marginBottom: '10px' }}
                 onFocus={() => setFocusedField('email')}
-                onBlur={() => { setFocusedField(null); setTouched(prev => ({ ...prev, email: true })); }}
+                onBlur={() => { setFocusedField(null); }}
               />
               <div style={{ position: 'relative', marginBottom: isLogin ? '8px' : '12px' }}>
                 <input
@@ -381,7 +419,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                     paddingRight: '40px',
                   }}
                   onFocus={() => setFocusedField('password')}
-                  onBlur={() => { setFocusedField(null); setTouched(prev => ({ ...prev, password: true })); }}
+                  onBlur={() => { setFocusedField(null); }}
                 />
                 <button
                   type="button"
@@ -403,7 +441,6 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.color = '#e2e8f0'}
                   onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
-                  tabIndex={-1}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -458,11 +495,11 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                     }}
                   />
                   I accept the{' '}
-                  <a href="#" style={{ color: '#4ec9b0', textDecoration: 'underline' }}>
+                  <a href="https://debugra.tech/terms" target="_blank" rel="noreferrer" style={{ color: '#4ec9b0', textDecoration: 'underline' }}>
                     Terms
                   </a>{' '}
                   &{' '}
-                  <a href="#" style={{ color: '#4ec9b0', textDecoration: 'underline' }}>
+                  <a href="https://debugra.tech/privacy" target="_blank" rel="noreferrer" style={{ color: '#4ec9b0', textDecoration: 'underline' }}>
                     Privacy Policy
                   </a>
                 </label>

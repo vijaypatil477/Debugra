@@ -43,7 +43,11 @@ export default function VotePopup({ room, user }) {
   const getFocusableElements = useCallback(() => {
     if (!containerRef.current) return [];
     const selectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-    return Array.from(containerRef.current.querySelectorAll(selectors));
+    return Array.from(containerRef.current.querySelectorAll(selectors)).filter((element) => {
+      if (element.disabled) return false;
+      if (element.getAttribute('aria-hidden') === 'true') return false;
+      return element.getClientRects().length > 0;
+    });
   }, []);
 
   // Save previous focus and trap focus inside modal

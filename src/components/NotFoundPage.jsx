@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 export default function NotFoundPage() {
   return (
     <div
-      className="flex flex-col items-center justify-center min-h-screen"
+      className="flex flex-col items-center justify-center"
       style={{
         background: 'var(--bg-0)',
         color: 'var(--text-0)',
@@ -20,7 +20,7 @@ export default function NotFoundPage() {
         className="text-lg mb-8"
         style={{ color: 'var(--text-1)' }}
       >
-        The page you're looking for doesn't exist.
+        The page you&apos;re looking for doesn&apos;t exist.
       </p>
       <Link
         to="/"

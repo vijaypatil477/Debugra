@@ -6273,4 +6273,12 @@ details[open] .debug-stderr-summary::before {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .editor-skeleton-toolbar-item,
+  .editor-skeleton-line,
+  .editor-skeleton-status-item,
+  .page-enter {
+    animation: none !important;
+  }
+}
 
