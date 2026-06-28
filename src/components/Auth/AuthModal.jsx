@@ -28,10 +28,9 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
   const [forgotMode, setForgotMode] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
 
-  const saveUser = async (user, { displayName } = {}) => {
+  const saveUser = async (user, { displayName, reserveUsername = false } = {}) => {
     const userRef = doc(db, 'users', user.uid);
-    const existingSnap = await getDoc(userRef);
-    const existingUser = existingSnap.exists() ? existingSnap.data() : null;
+    const existingUserSnap = await getDoc(userRef);
     const providedName = displayName || user.displayName || name;
     const hasProvidedName = Boolean(providedName?.trim());
     const resolvedDisplayName = hasProvidedName ? providedName.trim() : 'Anonymous';
@@ -42,13 +41,13 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
       photoURL: user.photoURL || null,
     };
 
-    if (hasProvidedName) {
+    if (hasProvidedName || reserveUsername) {
       // store a lowercase copy to support case-insensitive checks
       payload.displayName = resolvedDisplayName || 'Anonymous';
       payload.displayNameLower = (resolvedDisplayName || 'Anonymous').toLowerCase();
     }
 
-    if (!existingUser) {
+    if (!existingUserSnap.exists()) {
       payload.createdAt = new Date();
       if (!payload.displayName) {
         payload.displayName = 'Anonymous';
@@ -99,7 +98,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
         result = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(result.user, { displayName: name });
       }
-      await saveUser(result.user, { displayName: name });
+      await saveUser(result.user, { displayName: name, reserveUsername: true });
       toast.success('Welcome!');
       onClose();
     } catch (err) {
