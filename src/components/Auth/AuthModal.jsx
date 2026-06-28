@@ -6,7 +6,7 @@ import {
   updateProfile,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../../services/firebase';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -28,20 +28,34 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
   const [forgotMode, setForgotMode] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
 
-  const saveUser = async (user) => {
-    await setDoc(
-      doc(db, 'users', user.uid),
-      {
-        uid: user.uid,
-        displayName: user.displayName || name || 'Anonymous',
-        // store a lowercase copy to support case-insensitive checks
-        displayNameLower: (user.displayName || name || 'Anonymous').toLowerCase(),
-        email: user.email,
-        photoURL: user.photoURL || null,
-        createdAt: new Date(),
-      },
-      { merge: true }
-    );
+  const saveUser = async (user, { displayName, reserveUsername = false } = {}) => {
+    const userRef = doc(db, 'users', user.uid);
+    const existingUserSnap = await getDoc(userRef);
+    const providedName = displayName || user.displayName || name;
+    const hasProvidedName = Boolean(providedName?.trim());
+    const resolvedDisplayName = hasProvidedName ? providedName.trim() : 'Anonymous';
+
+    const payload = {
+      uid: user.uid,
+      email: user.email,
+      photoURL: user.photoURL || null,
+    };
+
+    if (hasProvidedName || reserveUsername) {
+      // store a lowercase copy to support case-insensitive checks
+      payload.displayName = resolvedDisplayName || 'Anonymous';
+      payload.displayNameLower = (resolvedDisplayName || 'Anonymous').toLowerCase();
+    }
+
+    if (!existingUserSnap.exists()) {
+      payload.createdAt = new Date();
+      if (!payload.displayName) {
+        payload.displayName = 'Anonymous';
+        payload.displayNameLower = 'anonymous';
+      }
+    }
+
+    await setDoc(userRef, payload, { merge: true });
   };
 
   const handleGoogle = async () => {
@@ -84,7 +98,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
         result = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(result.user, { displayName: name });
       }
-      await saveUser(result.user);
+      await saveUser(result.user, { displayName: name, reserveUsername: true });
       toast.success('Welcome!');
       onClose();
     } catch (err) {
@@ -168,6 +182,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
           <button
             onClick={onClose}
             style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+            aria-label="Close authentication modal"
           >
             <X size={20} />
           </button>
@@ -295,7 +310,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '16px 0' }}>
               <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-              <span style={{ fontSize: '0.72rem', color: '#475569' }}>or use email</span>
+              <span style={{ fontSize: '0.72rem', color: '#8897aa' }}>or use email</span>
               <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
             </div>
 

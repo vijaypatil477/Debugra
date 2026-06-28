@@ -489,6 +489,7 @@ export default function LandingPage() {
             onClick={toggleTheme}
             className="landing-btn-outline p-0 d-flex align-items-center justify-content-center"
             title="Toggle theme"
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
             style={{ width: '36px', height: '36px', borderRadius: '8px' }}
           >
             {theme === 'light' ? (
@@ -530,6 +531,7 @@ export default function LandingPage() {
             onClick={toggleTheme}
             className="landing-btn-outline p-0 d-flex align-items-center justify-content-center"
             title="Toggle theme"
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
             style={{ width: '36px', height: '36px', borderRadius: '8px' }}
           >
             {theme === 'light' ? (
