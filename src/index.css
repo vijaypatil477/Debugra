@@ -187,6 +187,7 @@
   --text-2: #888888;
   --accent: #0078d4;
   --warning: #7f6000;
+
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.1);
 }
 
@@ -2330,6 +2331,10 @@ body {
   height: 12px;
   border-radius: 50%;
 }
+
+.editor-preview .preview-dot:nth-child(1) { background: #ff5f57; }
+.editor-preview .preview-dot:nth-child(2) { background: #febc2e; }
+.editor-preview .preview-dot:nth-child(3) { background: #28c840; }
 
 .preview-toolbar {
   display: flex;
@@ -6247,5 +6252,4 @@ details[open] .debug-stderr-summary::before {
   width: auto !important;
   max-width: none !important;
 }
-
 
