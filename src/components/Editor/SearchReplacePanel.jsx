@@ -197,7 +197,7 @@ export default function SearchReplacePanel({ editorRef, onClose }) {
             aria-label="Search"
             spellCheck={false}
           />
-          {searchValue && (
+          {searchValue.trim() && (
             <span className="sr-match-count" aria-live="polite">
               {`${currentMatchIdx + 1} of ${matchCount}`}
             </span>
@@ -288,9 +288,17 @@ export default function SearchReplacePanel({ editorRef, onClose }) {
       </div>
 
       {/* Empty state */}
-      {searchValue && matchCount === 0 && !regexError && (
+      {searchValue.trim() && matchCount === 0 && !regexError && (
         <div className="sr-empty-state">
-          <svg className="sr-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <svg
+            className="sr-empty-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            aria-hidden="true"
+            focusable="false"
+          >
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
             <path d="M8 11h6" />
