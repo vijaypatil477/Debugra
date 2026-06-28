@@ -32,22 +32,31 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
     const userRef = doc(db, 'users', user.uid);
     const existingSnap = await getDoc(userRef);
     const existingUser = existingSnap.exists() ? existingSnap.data() : null;
-    const resolvedDisplayName =
-      displayName?.trim() || existingUser?.displayName || user.displayName || name?.trim() || 'Anonymous';
+    const providedName = displayName || user.displayName || name;
+    const hasProvidedName = Boolean(providedName?.trim());
+    const resolvedDisplayName = hasProvidedName ? providedName.trim() : 'Anonymous';
 
-    await setDoc(
-      userRef,
-      {
-        uid: user.uid,
-        displayName: resolvedDisplayName,
-        // store a lowercase copy to support case-insensitive checks
-        displayNameLower: resolvedDisplayName.toLowerCase(),
-        email: user.email,
-        photoURL: user.photoURL || null,
-        createdAt: existingUser?.createdAt || new Date(),
-      },
-      { merge: true }
-    );
+    const payload = {
+      uid: user.uid,
+      email: user.email,
+      photoURL: user.photoURL || null,
+    };
+
+    if (hasProvidedName) {
+      // store a lowercase copy to support case-insensitive checks
+      payload.displayName = resolvedDisplayName || 'Anonymous';
+      payload.displayNameLower = (resolvedDisplayName || 'Anonymous').toLowerCase();
+    }
+
+    if (!existingUser) {
+      payload.createdAt = new Date();
+      if (!payload.displayName) {
+        payload.displayName = 'Anonymous';
+        payload.displayNameLower = 'anonymous';
+      }
+    }
+
+    await setDoc(userRef, payload, { merge: true });
   };
 
   const handleGoogle = async () => {
