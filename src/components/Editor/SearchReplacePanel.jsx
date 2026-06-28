@@ -198,9 +198,30 @@ export default function SearchReplacePanel({ editorRef, onClose }) {
             spellCheck={false}
           />
           {searchValue && (
-            <span className="sr-match-count" aria-live="polite">
-              {matchCount === 0 ? 'No results' : `${currentMatchIdx + 1} of ${matchCount}`}
-            </span>
+            matchCount === 0 ? (
+              <div className="sr-empty-state" role="status" aria-live="polite">
+                <svg
+                  className="sr-empty-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path
+                    d="M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14Zm8.5 15.5-3.6-3.6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span>No matches found. Try a broader search or toggle options.</span>
+              </div>
+            ) : (
+              <span className="sr-match-count" aria-live="polite">
+                {currentMatchIdx + 1} of {matchCount}
+              </span>
+            )
           )}
           <div className="sr-toggles" role="group" aria-label="Search options">
             <button

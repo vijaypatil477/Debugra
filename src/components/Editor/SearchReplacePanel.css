@@ -70,6 +70,27 @@
   user-select: none;
 }
 
+.sr-empty-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  color: var(--text-1);
+  flex-shrink: 0;
+  min-width: 0;
+  user-select: none;
+}
+
+.sr-empty-state span {
+  white-space: nowrap;
+}
+
+.sr-empty-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
 /* ── Toggle buttons (Aa / \b / .*) ── */
 .sr-toggles {
   display: flex;

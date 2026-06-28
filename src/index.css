@@ -6179,3 +6179,6 @@ details[open] .debug-stderr-summary::before {
 }
 
 
+
+/* Global focus-visible styles (#839) */
+*:focus-visible { outline: 2px solid #569cd6; outline-offset: 2px; border-radius: 2px; }
