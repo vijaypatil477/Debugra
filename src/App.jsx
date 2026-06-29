@@ -33,7 +33,7 @@ function AppContent({ user }) {
       />
 
       {/* The main tag expands to fill all available empty space */}
-      <main className="flex-grow">
+      <main key={location.pathname} className="page-transition flex-grow">
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/feedback" element={<FeedbackPage />} />
