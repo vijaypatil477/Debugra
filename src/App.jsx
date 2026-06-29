@@ -10,6 +10,7 @@ import OfflineBanner from './components/Editor/OfflineBanner';
 import ContributorsPage from './components/Landing/ContributorsPage';
 import Footer from './components/Footer.jsx';
 import FeedbackPage from './components/FeedbackPage';
+import ContactPage from './components/ContactPage';
 import { ThemeProvider } from './context/ThemeContext';
 
 function AppContent({ user }) {
@@ -37,6 +38,7 @@ function AppContent({ user }) {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/feedback" element={<FeedbackPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/editor" element={<EditorPage user={user} />} />
 
           {/* Test route to render VideoCall directly for e2e tests */}
