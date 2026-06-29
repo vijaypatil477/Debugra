@@ -24,7 +24,10 @@
     "helmet": "^8.0.0",
     "node-cache": "^5.1.2",
     "node-cron": "^4.2.1",
+    "socket.io": "^4.8.3",
     "winston": "^3.19.0",
-    "winston-daily-rotate-file": "^5.0.0"
+    "winston-daily-rotate-file": "^5.0.0",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.31"
   }
 }

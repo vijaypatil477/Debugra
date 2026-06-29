@@ -1,10 +1,12 @@
 const logger = require('./utils/logger');
 require('dotenv').config();
 const crypto = require('crypto');
+const http = require('http');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
+const { initSocketServer } = require('./services/socketService');
 const { rateLimit } = require('express-rate-limit');
 const executeRoutes = require('./routes/execute');
 const aiRoutes = require('./routes/ai');
@@ -330,8 +332,11 @@ app.use('/api/rooms', roomsRoutes);
 // ──────────────────────────────────────────────
 app.use(errorHandler);
 
+const server = http.createServer(app);
+initSocketServer(server, allowedOrigins);
+
 if (require.main === module) {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     logger.info(`🚀 Debugra server running on port ${PORT}`);
     logger.info(`🔒 Security headers: HSTS=${isProd}, CSP=on, Permissions-Policy=on`);
     memoryProfiler.start();
@@ -339,4 +344,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, buildCspDirectives };
+module.exports = { app, server, buildCspDirectives };

@@ -44,6 +44,10 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.14.2",
     "simple-peer": "^9.11.1",
-    "tailwindcss": "^4.2.4"
+    "socket.io-client": "^4.8.3",
+    "tailwindcss": "^4.2.4",
+    "y-monaco": "^0.1.6",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.31"
   }
 }
