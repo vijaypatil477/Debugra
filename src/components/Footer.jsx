@@ -100,7 +100,7 @@ const Footer = () => {
             </li>
             <li>
               <Link
-                to="/feedback"
+                to="/contact"
                 className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
               >
                 Contact Team
@@ -115,7 +115,7 @@ const Footer = () => {
           <div className="flex space-x-3 text-[#a1a1aa]">
             {/* GitHub SVG */}
             <a
-              href="https://github.com"
+              href="https://github.com/omkhandare55/Debugra"
               target="_blank"
               rel="noreferrer"
               className="hover:text-white transition-colors inline-flex items-center justify-center"

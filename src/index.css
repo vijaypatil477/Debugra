@@ -6179,3 +6179,7 @@ details[open] .debug-stderr-summary::before {
 }
 
 
+
+/* Page transitions */
+.page-transition { animation: fade-in 0.3s ease-in; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
