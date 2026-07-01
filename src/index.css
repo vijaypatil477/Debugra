@@ -253,9 +253,8 @@
 html,
 body,
 #root {
-  height: 100%;
   overflow-x: hidden;
-  overflow-y: auto;
+  /* Remove height: 100% and overflow-y: auto */
 }
 
 body {
@@ -1759,11 +1758,10 @@ body {
 /* ============ LANDING PAGE ============ */
 .landing-root {
   background: #0a0a0f;
-  height: 100vh;
   font-family: 'Inter', system-ui, sans-serif;
   color: #e2e8f0;
-  overflow-y: auto;
   overflow-x: hidden;
+  /* Remove height: 100vh and overflow-y: auto */
 }
 
 /* Nav */
@@ -2488,14 +2486,11 @@ input[type='password']::-ms-clear {
 
 /* ============ FEEDBACK PAGE (FIX FOR GSSOC 2026) ============ */
 .feedback-page {
-  /* FIX: Changed to height 100% to ensure the container uses all available space 
-     and doesn't clip the submit button or other controls when interacting with the form */
-  height: 100%;
-  overflow-y: auto;
   background: var(--bg-0);
   color: var(--text-0);
   padding: 72px 24px;
   box-sizing: border-box;
+  /* Removed height: 100% and overflow-y: auto */
 }
 
 .feedback-shell {
@@ -4677,6 +4672,7 @@ details[open] .debug-stderr-summary::before {
 .contributors-title span {
   background: linear-gradient(to right, #22c55e, #3b82f6);
   -webkit-background-clip: text;
+  background-clip: text; /* <-- Add this line right here */
   -webkit-text-fill-color: transparent;
 }
 
