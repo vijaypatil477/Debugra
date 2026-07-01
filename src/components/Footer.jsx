@@ -4,7 +4,7 @@ const Footer = () => {
   return (
     <footer className="bg-[#09090b] font-sans border-t border-[#27272a]">
       {/* Padding moved to this inner container so it cannot be overridden by global CSS */}
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-12 lg:gap-24 py-16 px-6">
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 lg:gap-20 py-12 px-6 items-start">
         
         {/* Left Section: Branding & Socials */}
         <div className="flex flex-col space-y-6 lg:w-1/3">
@@ -21,7 +21,7 @@ const Footer = () => {
           </div>
           
           {/* Description */}
-          <p className="text-sm leading-relaxed !text-[#a1a1aa] pr-4 m-0">
+          <p className="text-sm leading-relaxed text-[#a1a1aa] m-0 max-w-[42ch]">
             A modern, browser-based developer experience designed to streamline debugging and accelerate your workflow.
           </p>
 
@@ -43,12 +43,12 @@ const Footer = () => {
         </div>
 
         {/* Right Section: Links Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-8 lg:w-2/3 lg:pl-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6 lg:w-2/3 lg:pl-8 text-left">
           
           {/* Product */}
-          <div className="space-y-4">
+            <div className="space-y-3">
             <h4 className="text-white font-semibold text-sm m-0">Product</h4>
-            <ul className="space-y-3 text-sm m-0 p-0 list-none">
+            <ul className="space-y-2 text-sm m-0 p-0 list-none">
               <li><Link to="/dashboard" className="!text-[#a1a1aa] !no-underline hover:!text-white transition-colors block">Dashboard</Link></li>
               <li><Link to="/features" className="!text-[#a1a1aa] !no-underline hover:!text-white transition-colors block">Features</Link></li>
               <li><Link to="/demo" className="!text-[#a1a1aa] !no-underline hover:!text-white transition-colors block">Demo</Link></li>
@@ -57,9 +57,9 @@ const Footer = () => {
           </div>
 
           {/* Support */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <h4 className="text-white font-semibold text-sm m-0">Support</h4>
-            <ul className="space-y-3 text-sm m-0 p-0 list-none">
+            <ul className="space-y-2 text-sm m-0 p-0 list-none">
               <li><Link to="/report-issue" className="!text-[#a1a1aa] !no-underline hover:!text-white transition-colors block">Report Issue</Link></li>
               <li><Link to="/community" className="!text-[#a1a1aa] !no-underline hover:!text-white transition-colors block">Community</Link></li>
               <li><Link to="/docs" className="!text-[#a1a1aa] !no-underline hover:!text-white transition-colors block">Documentation</Link></li>
@@ -68,9 +68,9 @@ const Footer = () => {
           </div>
 
           {/* Company */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <h4 className="text-white font-semibold text-sm m-0">Company</h4>
-            <ul className="space-y-3 text-sm m-0 p-0 list-none">
+            <ul className="space-y-2 text-sm m-0 p-0 list-none">
               <li><Link to="/about" className="!text-[#a1a1aa] !no-underline hover:!text-white transition-colors block">About</Link></li>
               <li><Link to="/privacy" className="!text-[#a1a1aa] !no-underline hover:!text-white transition-colors block">Privacy Policy</Link></li>
               <li><Link to="/terms" className="!text-[#a1a1aa] !no-underline hover:!text-white transition-colors block">Terms of Service</Link></li>
