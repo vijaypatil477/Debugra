@@ -750,6 +750,11 @@ body {
   background: var(--accent);
 }
 
+.minimap-side-ctrl button.active:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
 .run-btn {
   display: flex;
   align-items: center;
@@ -3570,6 +3575,11 @@ input[type='password']::-ms-clear {
   background: var(--accent);
   color: white;
   border-color: var(--accent);
+}
+
+.drawer-toggle-btn.active:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
 }
 
 /* Slider Label */
