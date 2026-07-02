@@ -265,6 +265,33 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ============ FOCUS RINGS (Issue #839) ============ */
+/* Keyboard-only focus indicator using :focus-visible so mouse clicks
+   are unaffected. Pattern matches the existing .editor-tab-close rule.  */
+.run-btn:focus-visible,
+.ai-btn:focus-visible,
+.toolbar-icon-btn:focus-visible,
+.topbar-link:focus-visible,
+.clear-btn:focus-visible,
+.output-tab:focus-visible,
+.room-id-chip:focus-visible,
+.minimap-side-ctrl button:focus-visible,
+.mobile-nav-btn:focus-visible,
+.mobile-drawer-toggle:focus-visible,
+.drawer-close-btn:focus-visible,
+.drawer-auth-btn:focus-visible,
+.drawer-size-btn:focus-visible,
+.drawer-toggle-btn:focus-visible,
+.chat-fab:focus-visible,
+.modal-close-btn:focus-visible,
+.modal-toggle-btn:focus-visible,
+.tour-nav-btn:focus-visible,
+.debug-footer-fix-btn:focus-visible,
+.debug-footer-close-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* ============ SCROLLBAR ============ */
 ::-webkit-scrollbar {
   width: 6px;
