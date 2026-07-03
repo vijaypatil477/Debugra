@@ -80,7 +80,7 @@ export default function NotFoundPage() {
           </h1>
 
           <p className="feedback-subtitle">
-            The page you're trying to reach doesn't exist, may have been moved,
+            The page you&apos;re trying to reach doesn&apos;t exist, may have been moved,
             or the URL might be incorrect.
           </p>
 
