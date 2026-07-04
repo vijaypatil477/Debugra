@@ -34,6 +34,7 @@
   --warning: #dcdcaa;
   --error: #f44747;
   --info: #0078d4;
+  accent-color: var(--accent);
 }
 
 /* ============ LIGHT THEME OVERRIDES ============ */
@@ -256,6 +257,7 @@ body,
   height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -485,6 +487,16 @@ body {
   50% {
     opacity: 0.45;
     transform: scale(0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
