@@ -298,3 +298,4 @@ Python, JavaScript, TypeScript, Java, C++, C, C#, Go, Rust, Ruby, PHP, Swift, Pe
 ## Team
 
 Built for **Coders** — Debugra Team
+# TODO: feat: groq ai "fix" feature applies the solution to the editor without a diff view — users cannot see what changed before accepting, making it impossible to learn from the ai's fix (#882)
