@@ -10,6 +10,7 @@ import OfflineBanner from './components/Editor/OfflineBanner';
 import ContributorsPage from './components/Landing/ContributorsPage';
 import Footer from './components/Footer.jsx';
 import FeedbackPage from './components/FeedbackPage';
+import NotFoundPage from './components/NotFoundPage';
 import { ThemeProvider } from './context/ThemeContext';
 
 function AppContent({ user }) {
@@ -54,6 +55,7 @@ function AppContent({ user }) {
           />
 
           <Route path="/contributors" element={<ContributorsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
 
