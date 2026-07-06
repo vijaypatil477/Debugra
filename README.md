@@ -298,3 +298,4 @@ Python, JavaScript, TypeScript, Java, C++, C, C#, Go, Rust, Ruby, PHP, Swift, Pe
 ## Team
 
 Built for **Coders** — Debugra Team
+# TODO: feat: `temurin21.zip` (java jdk binary) is committed to the repository root — a 100mb+ binary has no place in version control and causes every clone to download it unnecessarily (#881)
