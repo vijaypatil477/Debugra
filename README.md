@@ -298,3 +298,4 @@ Python, JavaScript, TypeScript, Java, C++, C, C#, Go, Rust, Ruby, PHP, Swift, Pe
 ## Team
 
 Built for **Coders** — Debugra Team
+# TODO: feat: ai "generate tests" output has no way to copy individual test cases — users must copy the entire ai panel text and manually extract the one test they need (#886)
