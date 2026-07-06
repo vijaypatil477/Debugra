@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\vansh\\OneDrive\\Desktop\\Debugra\\server\\logs\\.aaabfca31c35346ed064caf6195c7634b9f7b944-audit.json",
+    "files": [
+        {
+            "date": 1783355122070,
+            "name": "C:\\Users\\vansh\\OneDrive\\Desktop\\Debugra\\server\\logs\\application-2026-07-06.log",
+            "hash": "193ca78a7a909f78241843112c7e3d5ad63874dd67aa16815a3c547929b94f63"
+        }
+    ],
+    "hashType": "sha256"
+}
