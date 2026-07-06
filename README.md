@@ -298,3 +298,4 @@ Python, JavaScript, TypeScript, Java, C++, C, C#, Go, Rust, Ruby, PHP, Swift, Pe
 ## Team
 
 Built for **Coders** — Debugra Team
+# TODO: feat: groq api key is encrypted with aes-gcm but the encryption key is derived from a fixed salt — rotating the key requires the user to manually re-enter their groq key with no ui guidance (#885)
