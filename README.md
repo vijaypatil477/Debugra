@@ -298,3 +298,4 @@ Python, JavaScript, TypeScript, Java, C++, C, C#, Go, Rust, Ruby, PHP, Swift, Pe
 ## Team
 
 Built for **Coders** — Debugra Team
+# TODO: feat: `firestore.rules` allows any authenticated user to read/write to any room — a user who knows another room's id can read all code history and steal saved files from other rooms (#888)
