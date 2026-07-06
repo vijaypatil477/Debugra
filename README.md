@@ -298,3 +298,4 @@ Python, JavaScript, TypeScript, Java, C++, C, C#, Go, Rust, Ruby, PHP, Swift, Pe
 ## Team
 
 Built for **Coders** — Debugra Team
+# TODO: bug: real-time collaboration room sync via firebase has no conflict resolution — two users typing simultaneously in the same room can produce garbled/merged code that neither user intended (#883)
