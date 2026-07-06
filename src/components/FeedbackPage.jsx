@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useTheme } from '../context/ThemeContext';
 
@@ -46,9 +45,6 @@ export default function FeedbackPage() {
               marginBottom: '1rem',
             }}
           >
-            <Link to="/" className="feedback-back-link" style={{ marginBottom: 0 }}>
-              ← Back to home
-            </Link>
             <button
               type="button"
               onClick={toggleTheme}
