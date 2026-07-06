@@ -298,3 +298,4 @@ Python, JavaScript, TypeScript, Java, C++, C, C#, Go, Rust, Ruby, PHP, Swift, Pe
 ## Team
 
 Built for **Coders** — Debugra Team
+# TODO: bug: `server/server.js` uses `node-cache` with a fixed 10-minute ttl for all ai responses — identical prompts from different users with different code contexts get the same cached response (#887)
