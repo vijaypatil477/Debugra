@@ -10,6 +10,7 @@ import OfflineBanner from './components/Editor/OfflineBanner';
 import ContributorsPage from './components/Landing/ContributorsPage';
 import Footer from './components/Footer.jsx';
 import FeedbackPage from './components/FeedbackPage';
+import ScrollToTop from './components/ScrollToTop';
 import { ThemeProvider } from './context/ThemeContext';
 
 function AppContent({ user }) {
@@ -19,6 +20,7 @@ function AppContent({ user }) {
 
   return (
     <div className="flex flex-col min-h-screen bg-transparent">
+      <ScrollToTop />
       <OfflineBanner />
 
       <Toaster
