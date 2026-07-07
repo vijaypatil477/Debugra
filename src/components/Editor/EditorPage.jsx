@@ -130,13 +130,13 @@ export default function EditorPage({ user }) {
 
       setCopied(true);
 
-      toast.success('Output copied!');
+      toast.success('Output copied!', { id: 'copy-output' });
 
       setTimeout(() => {
         setCopied(false);
       }, 2000);
     } catch (err) {
-      toast.error('Failed to copy output');
+      toast.error('Failed to copy output', { id: 'copy-fail' });
     }
   };
 
@@ -145,7 +145,7 @@ export default function EditorPage({ user }) {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('File is too large (max 5MB)');
+      toast.error('File is too large (max 5MB)', { id: 'file-too-large' });
       return;
     }
 
@@ -168,7 +168,7 @@ export default function EditorPage({ user }) {
     };
 
     reader.onerror = () => {
-      toast.error('Failed to read file');
+      toast.error('Failed to read file', { id: 'read-file-fail' });
     };
 
     reader.readAsText(file);
@@ -481,11 +481,11 @@ export default function EditorPage({ user }) {
 
         model.setValue(formatted);
         editor.setCode(formatted);
-        toast.success('Formatted');
+        toast.success('Formatted', { id: 'formatted' });
         return formatted;
       } catch (err) {
         console.error('Formatting error', err);
-        toast.error('Formatting failed');
+        toast.error('Formatting failed', { id: 'format-fail' });
         return null;
       }
     };
@@ -735,7 +735,7 @@ export default function EditorPage({ user }) {
                   onClick={() => {
                     const link = `${window.location.origin}/editor?room=${room.roomId}`;
                     navigator.clipboard.writeText(link);
-                    toast.success('Room link copied!');
+                    toast.success('Room link copied!', { id: 'room-link' });
                     setLinkCopied(true);
                     setTimeout(() => setLinkCopied(false), 1500);
                   }}
@@ -950,7 +950,7 @@ export default function EditorPage({ user }) {
                 className="topbar-link"
                 onClick={() => {
                   signOut(auth);
-                  toast.success('Logged out');
+                  toast.success('Logged out', { id: 'logged-out' });
                 }}
               >
                 Log Out
@@ -1830,7 +1830,7 @@ export default function EditorPage({ user }) {
                     }}
                     onClick={() => {
                       navigator.clipboard.writeText(execution.stdout);
-                      toast.success('Output copied!');
+                      toast.success('Output copied!', { id: 'copy-output' });
                     }}
                     title="Copy output"
                   >
@@ -1888,7 +1888,7 @@ export default function EditorPage({ user }) {
                   } else {
                     editor.setCode(code);
                   }
-                  toast.success('Solution applied!');
+                  toast.success('Solution applied!', { id: 'solution-applied' });
                 }}
               />
             </div>
