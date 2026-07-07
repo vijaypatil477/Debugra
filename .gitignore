@@ -18,3 +18,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# feat: `temurin21.zip` (Java JDK binary) is committ (#881)
+*.zip
+*.log
+node_modules/
