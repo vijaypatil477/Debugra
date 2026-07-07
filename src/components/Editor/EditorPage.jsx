@@ -5,7 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen } from 'lucide-react';
+import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen, Copy, Check } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 import {
@@ -1259,6 +1259,17 @@ export default function EditorPage({ user }) {
                 </svg>
               </button>
             )}
+            <button
+              className="toolbar-icon-btn"
+              aria-label="Copy Code"
+              onClick={() => {
+                navigator.clipboard.writeText(editor.code);
+                toast.success('Code copied!');
+              }}
+              title="Copy code"
+            >
+              <Copy size={14} />
+            </button>
             <div className="audio-settings-wrap">
               <button
                 className="toolbar-icon-btn"
