@@ -6179,3 +6179,6 @@ details[open] .debug-stderr-summary::before {
 }
 
 
+
+/* fix: Accessibility: Keyboard focus escapes analysis overlay on Ta (#804) */
+
