@@ -6179,3 +6179,6 @@ details[open] .debug-stderr-summary::before {
 }
 
 
+
+/* fix: UI Issue: Duplicate close controls shown for analysis panel (#802) */
+
