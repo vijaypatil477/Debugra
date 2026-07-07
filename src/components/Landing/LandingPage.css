@@ -290,6 +290,9 @@
   margin-bottom: 8px;
   color: var(--text-hi);
   letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .feature-card-desc {
   font-size: 0.81rem;
