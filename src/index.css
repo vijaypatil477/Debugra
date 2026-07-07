@@ -6179,3 +6179,29 @@ details[open] .debug-stderr-summary::before {
 }
 
 
+
+/* #843: scrollbar-gutter to prevent layout shift */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* #839: visible focus ring on all interactive elements */
+*:focus-visible {
+  outline: 2px solid #8b5cf6;
+  outline-offset: 2px;
+}
+
+/* #842: prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* #844: accent-color for form elements */
+input, select, textarea {
+  accent-color: #8b5cf6;
+}
