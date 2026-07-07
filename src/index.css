@@ -6179,3 +6179,5 @@ details[open] .debug-stderr-summary::before {
 }
 
 
+
+# TODO: fix for #755: [BUG] ReDoS Vulnerability in Search & Replace Panel via Unguarded User-Supplied 
