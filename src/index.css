@@ -6179,3 +6179,5 @@ details[open] .debug-stderr-summary::before {
 }
 
 
+
+# TODO: fix for #647: [PERF] Groq AI response streams are not used — full response buffered before dis
