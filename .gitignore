@@ -18,3 +18,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# feat: `playwright-report/` and `test-results/` dir (#884)
+*.zip
+*.log
+node_modules/
