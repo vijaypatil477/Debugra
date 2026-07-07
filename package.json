@@ -47,3 +47,5 @@
     "tailwindcss": "^4.2.4"
   }
 }
+
+  // TODO: Module "util" is externalized in browser build causing WebRT (#794)
