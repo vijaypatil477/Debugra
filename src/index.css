@@ -6179,3 +6179,5 @@ details[open] .debug-stderr-summary::before {
 }
 
 
+
+# TODO: security - CORS bypass: Requests with no Origin header silently pass CO (#739)
