@@ -96,6 +96,7 @@ export default function EditorPage({ user }) {
   const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [apiKeyStatus, setApiKeyStatus] = useState(getApiKeyStatus);
   const [mobileTab, setMobileTab] = useState(MOBILE_TABS.CODE);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [joinId, setJoinId] = useState('');
   const [joinPassword, setJoinPassword] = useState('');
@@ -240,6 +241,12 @@ export default function EditorPage({ user }) {
   useEffect(() => {
     tabSizeRef.current = editor.tabSize;
   }, [editor.tabSize]);
+
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 400);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // ─── AI Logic ─────────────────────────────────────────────────────────────
   const ai = useAI({
@@ -2086,6 +2093,20 @@ export default function EditorPage({ user }) {
           onPrev={tour.prevStep}
           onSkip={tour.skipTour}
         />
+      )}
+
+      {/* Scroll to Top (#878) */}
+      {showScrollTop && (
+        <button
+          className="back-to-top-btn"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="Scroll to top"
+          title="Scroll to top"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <polyline points="18 15 12 9 6 15" />
+          </svg>
+        </button>
       )}
 
       {/* Mobile Drawer */}
