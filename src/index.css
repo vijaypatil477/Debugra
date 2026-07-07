@@ -6179,3 +6179,8 @@ details[open] .debug-stderr-summary::before {
 }
 
 
+
+/* fix: [BUG] 'Exit Room' button remains visible after the room is d (#648) */
+
+
+# TODO: security - [BUG] 'Exit Room' button remains visible after the room is d (#648)
