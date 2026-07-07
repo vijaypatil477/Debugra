@@ -219,7 +219,7 @@
   top: 8px;
   /* Adjust based on your header/tabs height */
   right: 12px;
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   border: none;
   color: #6a6a6a;
   /* Muted color from your design system */
@@ -272,7 +272,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -703,7 +703,7 @@ body {
   min-height: 24px;
   border: 0;
   border-radius: 3px;
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   color: var(--text-2);
   cursor: pointer;
   font-family: 'Inter', sans-serif;
@@ -768,7 +768,14 @@ body {
   gap: 5px;
   padding: 5px 12px;
   background: #ffffff;
-  border: 1px solid #ffffff;
+  border: 1px solid rgba(0, 120, 212, 0.5);
+}
+
+.ai-btn.fix:hover {
+  background: rgba(0, 120, 212, 0.3);
+  border-color: var(--accent);
+  color: #ffffff;
+}
   border-radius: 4px;
   color: #000000;
   font-size: 0.7rem;
@@ -797,9 +804,15 @@ body {
 }
 
 .ai-btn.fix {
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   color: #ffffff;
-  border: 1px solid #ffffff;
+  border: 1px solid rgba(0, 120, 212, 0.5);
+}
+
+.ai-btn.fix:hover {
+  background: rgba(0, 120, 212, 0.3);
+  border-color: var(--accent);
+  color: #ffffff;
 }
 
 .ai-btn.fix:hover {
@@ -835,7 +848,7 @@ body {
   width: 28px;
   height: 28px;
   border-radius: 4px;
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   border: 1px solid transparent;
   color: var(--text-2);
   cursor: pointer;
@@ -979,7 +992,7 @@ body {
 
 .clear-btn {
   padding: 5px 10px;
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--text-2);
@@ -1077,7 +1090,7 @@ body {
   justify-content: center;
   border: 1px solid transparent;
   border-radius: 3px;
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   color: var(--text-2);
   font-family: 'Inter', sans-serif;
   font-size: 0.88rem;
@@ -1138,7 +1151,7 @@ body {
 
 .output-collapse-btn {
   margin-left: auto;
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   border: none;
   cursor: pointer;
   color: var(--text-2);
@@ -1194,7 +1207,7 @@ body {
   font-size: 0.7rem;
   font-weight: 500;
   color: var(--text-2);
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   border: none;
   border-radius: 3px;
   cursor: pointer;
@@ -1324,7 +1337,7 @@ body {
   gap: 5px;
   padding: 4px 10px;
   border-radius: 5px;
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   border: 1px solid var(--border);
   color: var(--text-2);
   font-size: 0.68rem;
@@ -1390,7 +1403,7 @@ body {
   padding: 7px 10px;
   border: none;
   border-radius: 4px;
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   color: var(--text-1);
   font-size: 0.72rem;
   font-family: 'Inter', sans-serif;
@@ -1489,7 +1502,7 @@ body {
 .resize-handle {
   width: 4px;
   cursor: col-resize;
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   transition: background 0.15s;
   flex-shrink: 0;
   position: relative;
@@ -1717,7 +1730,7 @@ body {
 }
 
 .chat-panel ::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
 }
 
 .chat-panel ::-webkit-scrollbar-thumb {
@@ -1822,7 +1835,7 @@ body {
 }
 
 .nav-link-button {
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   border: 0;
   font-family: inherit;
   cursor: pointer;
@@ -1868,7 +1881,7 @@ body {
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   color: #e2e8f0;
   border: 1px solid rgba(255, 255, 255, 0.15);
   cursor: pointer;
@@ -2714,7 +2727,7 @@ input[type='password']::-ms-clear {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   border: none;
   color: var(--text-2);
   cursor: pointer;
@@ -2748,7 +2761,7 @@ input[type='password']::-ms-clear {
   border: 1px solid transparent;
   cursor: default;
   transition: all 0.15s;
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
 }
 
 .history-item:hover {
@@ -2827,7 +2840,7 @@ input[type='password']::-ms-clear {
 }
 
 .history-delete-btn {
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   color: var(--text-2);
 }
 
@@ -3892,7 +3905,7 @@ input[type='password']::-ms-clear {
   height: 24px;
   border-radius: 6px;
   border: 1px solid transparent;
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   color: var(--text-2);
   cursor: pointer;
   display: flex;
@@ -3973,7 +3986,7 @@ input[type='password']::-ms-clear {
   padding: 5px 10px;
   border-radius: 6px;
   border: none;
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   color: var(--text-2);
   font-size: 0.68rem;
   font-family: 'Inter', sans-serif;
@@ -3999,7 +4012,7 @@ input[type='password']::-ms-clear {
 }
 
 .tour-nav-btn--back {
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   color: var(--text-1);
 }
 
@@ -4197,7 +4210,7 @@ input[type='password']::-ms-clear {
   height: 28px;
   border-radius: 6px;
   border: 1px solid var(--border);
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   color: var(--text-2);
   font-size: 0.8rem;
   cursor: pointer;
@@ -4504,7 +4517,7 @@ details[open] .debug-stderr-summary::before {
   padding: 7px 16px;
   border-radius: 6px;
   border: 1px solid var(--border);
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   color: var(--text-2);
   font-size: 0.75rem;
   font-family: 'Inter', sans-serif;
@@ -5097,7 +5110,7 @@ details[open] .debug-stderr-summary::before {
   height: 30px;
   border-radius: 7px;
   border: 1px solid rgba(99, 102, 241, 0.25);
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
   color: #7c85a2;
   font-size: 0.78rem;
   cursor: pointer;
@@ -5128,7 +5141,7 @@ details[open] .debug-stderr-summary::before {
 }
 
 .complexity-overlay-body::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 120, 212, 0.15);
 }
 
 .complexity-overlay-body::-webkit-scrollbar-thumb {
@@ -5926,7 +5939,7 @@ details[open] .debug-stderr-summary::before {
 @keyframes terminal-blink {
   from,
   to {
-    background: transparent;
+    background: rgba(0, 120, 212, 0.15);
     box-shadow: none;
   }
   50% {
