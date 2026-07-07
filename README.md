@@ -298,3 +298,5 @@ Python, JavaScript, TypeScript, Java, C++, C, C#, Go, Rust, Ruby, PHP, Swift, Pe
 ## Team
 
 Built for **Coders** — Debugra Team
+
+<!-- fix: [BUG] README tech stack lists Wandbox API but the execute se (#781) -->
