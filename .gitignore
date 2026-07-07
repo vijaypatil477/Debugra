@@ -18,3 +18,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# [FEATURE] Add real-time collaborative cursor track (#711)
+*.zip
+*.log
+node_modules/
