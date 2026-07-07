@@ -6179,3 +6179,6 @@ details[open] .debug-stderr-summary::before {
 }
 
 
+
+/* fix: [Bug]: Long project titles break the card layout on smaller  (#874) */
+
