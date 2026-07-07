@@ -6179,3 +6179,5 @@ details[open] .debug-stderr-summary::before {
 }
 
 
+
+# TODO: security - Enforce Strong Server-Side RBAC for Room Permissions (#819)
