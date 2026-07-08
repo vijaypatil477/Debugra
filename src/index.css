@@ -2180,6 +2180,10 @@ body {
   .footer-tagline {
     max-width: none;
   }
+  .footer-link {
+    padding: 8px 0;
+    gap: 4px;
+  }
   .footer-bottom {
     padding: 14px 24px;
   }
