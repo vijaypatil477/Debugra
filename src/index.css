@@ -6178,6 +6178,11 @@ details[open] .debug-stderr-summary::before {
   max-width: none !important;
 }
 
+:focus-visible {
+  outline: 2px solid var(--accent, #0078d4);
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
