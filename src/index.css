@@ -2180,6 +2180,10 @@ body {
   .footer-tagline {
     max-width: none;
   }
+  .footer-link {
+    padding: 8px 0;
+    gap: 4px;
+  }
   .footer-bottom {
     padding: 14px 24px;
   }
@@ -6176,6 +6180,22 @@ details[open] .debug-stderr-summary::before {
   height: 20px !important;
   width: auto !important;
   max-width: none !important;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent, #0078d4);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 
