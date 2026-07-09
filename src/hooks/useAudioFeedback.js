@@ -205,7 +205,7 @@ export function useAudioFeedback() {
           });
       }
     },
-    [ensureAudioElements, playFallbackTone, settings.muted, settings.volume]
+    [ensureAudioElements, playFallbackTone, getAudioContext, settings.muted, settings.volume]
   );
 
   const setMuted = useCallback((muted) => {
