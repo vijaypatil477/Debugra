@@ -146,7 +146,7 @@ export function useAudioFeedback() {
         );
       }, 500);
     },
-    [getAudioContext, prepare, settings.muted, settings.volume, stopActiveNodes]
+    [getAudioContext, prepare, settings.volume, stopActiveNodes]
   );
 
   const playOutcome = useCallback(
@@ -205,7 +205,7 @@ export function useAudioFeedback() {
           });
       }
     },
-    [ensureAudioElements, playFallbackTone, settings.muted, settings.volume]
+    [ensureAudioElements, playFallbackTone, getAudioContext, settings.muted, settings.volume]
   );
 
   const setMuted = useCallback((muted) => {
