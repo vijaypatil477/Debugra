@@ -24,8 +24,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Unit tests
-        run: npm test
+      - name: Unit tests (Vitest)
+        run: npm test -- --config vitest.unit.config.js
+
 
       - name: Build
         run: npm run build
