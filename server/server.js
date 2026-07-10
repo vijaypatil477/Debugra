@@ -110,6 +110,7 @@ function unique(values) {
 // FIX 2: Parse CORS_ORIGINS and CLIENT_URL independently
 // and merge both — not OR — so neither is silently dropped
 const extraOrigins = unique([
+  ...(process.env.ALLOWED_ORIGINS || '').split(','),
   ...(process.env.CORS_ORIGINS || '').split(','),
   ...(process.env.CLIENT_URL   || '').split(','),
 ].map((o) => o.trim()));
@@ -243,8 +244,8 @@ app.use(
       // Reject missing Origin headers consistently to avoid loosening CORS
       // protections in development mode.
       if (!origin) {
-     return callback(null, true);
-    }
+        return callback(null, true);
+      }
 
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
