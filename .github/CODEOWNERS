@@ -1,0 +1,7 @@
+# Default code owners for branch protection / review requirements.
+#
+# Maintainters can enable GitHub branch protection rules to require
+# at least 1 approval before merges.
+
+* @omkhandare55
+
