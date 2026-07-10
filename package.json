@@ -46,6 +46,7 @@
     "simple-peer": "^9.11.1",
     "supertest": "^7.2.2",
     "tailwindcss": "^4.2.4",
+    "winston-daily-rotate-file": "^5.0.0",
     "winston": "^3.19.0"
   }
 }
