@@ -298,3 +298,20 @@ Python, JavaScript, TypeScript, Java, C++, C, C#, Go, Rust, Ruby, PHP, Swift, Pe
 ## Team
 
 Built for **Coders** — Debugra Team
+
+
+---
+
+### Final Result
+
+```md
+## CORS Configuration
+Set CORS_ORIGINS and CLIENT_URL in your .env file to restrict which domains can access the API.
+Example:
+CORS_ORIGINS=http://localhost:5173,https://debugra.tech
+CLIENT_URL=https://debugra.tech
+
+When a request comes from an unlisted origin, the server responds with:
+
+```json
+{ "error": "CORS policy: Origin not allowed" }

@@ -110,6 +110,7 @@ function unique(values) {
 // FIX 2: Parse CORS_ORIGINS and CLIENT_URL independently
 // and merge both — not OR — so neither is silently dropped
 const extraOrigins = unique([
+  ...(process.env.ALLOWED_ORIGINS || '').split(','),
   ...(process.env.CORS_ORIGINS || '').split(','),
   ...(process.env.CLIENT_URL   || '').split(','),
 ].map((o) => o.trim()));
@@ -234,18 +235,15 @@ app.post(
   }
 );
 
+// ──────────────────────────────────────────────
+// CORS
+// ──────────────────────────────────────────────
 app.use(
   cors({
     origin(origin, callback) {
-     
+      // Reject missing Origin headers consistently to avoid loosening CORS
+      // protections in development mode.
       if (!origin) {
-        if (isProd) {
-          logger.warn('[CORS] Missing Origin header');
-          const corsError = new Error('Origin header required');
-          corsError.status = 403;
-          return callback(corsError);
-        }
-  
         return callback(null, true);
       }
 
@@ -258,27 +256,12 @@ app.use(
       corsError.status = 403;
       return callback(corsError);
     },
-
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-Groq-Api-Key',
-      'x-admin-token',
-      'x-security-diagnostics-token',
-    ],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Groq-Api-Key', 'x-admin-token', 'x-security-diagnostics-token'],
     optionsSuccessStatus: 204,
   })
 );
-
-app.use((err, req, res, next) => {
-  if (err.status === 403) {
-    return res.status(403).json({ error: 'CORS policy: Origin not allowed' });
-  }
-  next(err);
-});
-
 
 // ──────────────────────────────────────────────
 // Cookie Security
