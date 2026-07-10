@@ -23,10 +23,14 @@ export default defineConfig({
       url: 'http://localhost:5173',
       reuseExistingServer: !process.env.CI,
     },
-    {
-      command: 'node server/server.js',
-      url: 'http://localhost:3001/api/health',
-      reuseExistingServer: !process.env.CI,
-    },
+    ...(process.env.PW_SKIP_BACKEND
+      ? []
+      : [
+          {
+            command: 'node server/server.js',
+            url: 'http://localhost:3001/api/health',
+            reuseExistingServer: !process.env.CI,
+          },
+        ]),
   ],
 });
