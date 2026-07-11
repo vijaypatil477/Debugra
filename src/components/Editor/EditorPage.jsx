@@ -188,18 +188,25 @@ export default function EditorPage({ user }) {
 
   const { theme: globalTheme, toggleTheme: toggleGlobalTheme } = useTheme();
 
-  // Synchronize Monaco editor theme with global light/dark theme toggle
+  // Synchronize Monaco editor theme only when user hasn't picked a custom theme.
+  // If the user selects a specific Monaco theme, keep it (so switching themes is instant).
   useEffect(() => {
+    const userTheme = editor.theme;
+
+    // When user theme is the default “light sync”, follow the global toggle.
     if (globalTheme === 'light') {
-      if (editor.theme !== 'vs') {
-        editor.setTheme('vs');
-      }
-    } else {
-      if (editor.theme === 'vs') {
-        editor.setTheme('debugra-dark');
-      }
+      if (userTheme === 'vs') return;
+      if (userTheme === 'debugra-dark') editor.setTheme('vs');
+      return;
+    }
+
+    // When user theme is the default “dark sync”, follow the global toggle.
+    if (globalTheme === 'dark') {
+      if (userTheme === 'debugra-dark') return;
+      if (userTheme === 'vs') editor.setTheme('debugra-dark');
     }
   }, [globalTheme, editor.theme, editor.setTheme]);
+
 
   const tabSizeRef = useRef(editor.tabSize);
   const vimControllerRef = useRef(null);
@@ -337,6 +344,7 @@ export default function EditorPage({ user }) {
       },
     });
 
+    // Monokai
     monaco.editor.defineTheme('monokai', {
       base: 'vs-dark',
       inherit: true,
@@ -370,7 +378,79 @@ export default function EditorPage({ user }) {
         'editorBracketMatch.border': '#a6e22e',
       },
     });
+
+
+    // Cobalt (approximate) — crisp “terminal” cyan/green accents
+    monaco.editor.defineTheme('cobalt', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '65737e', fontStyle: 'italic' },
+        { token: 'keyword', foreground: '4fc1ff' },
+        { token: 'string', foreground: 'a5e22c' },
+        { token: 'number', foreground: 'ffb86c' },
+        { token: 'type', foreground: '9cdcfe' },
+        { token: 'function', foreground: 'ffd866' },
+        { token: 'variable', foreground: 'c8d1d9' },
+        { token: 'operator', foreground: 'c8d1d9' },
+      ],
+      colors: {
+        'editor.background': '#0b1220',
+        'editor.foreground': '#c8d1d9',
+        'editor.lineHighlightBackground': '#162033',
+        'editor.selectionBackground': '#2a375366',
+        'editorCursor.foreground': '#c8d1d9',
+        'editorLineNumber.foreground': '#516173',
+        'editorLineNumber.activeForeground': '#c8d1d9',
+        'editorIndentGuide.background1': '#1a253a',
+        'editorIndentGuide.activeBackground1': '#4fc1ff',
+        'editorBracketHighlight.foreground1': '#4fc1ff',
+        'editorBracketHighlight.foreground2': '#ffd866',
+        'editorBracketHighlight.foreground3': '#a5e22c',
+        'editorBracketHighlight.foreground4': '#ffb86c',
+        'editorBracketHighlight.foreground5': '#9cdcfe',
+        'editorBracketHighlight.foreground6': '#c8d1d9',
+        'editorBracketMatch.background': '#4fc1ff33',
+        'editorBracketMatch.border': '#4fc1ff',
+      },
+    });
+
+    // Synthwave '84 (approximate) — magenta/purple + cyan glow
+    monaco.editor.defineTheme('synthwave84', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '708090', fontStyle: 'italic' },
+        { token: 'keyword', foreground: 'ff5fd7' },
+        { token: 'string', foreground: '7df9ff' },
+        { token: 'number', foreground: 'ffb86c' },
+        { token: 'type', foreground: '7aa2f7' },
+        { token: 'function', foreground: 'f2f2f2' },
+        { token: 'variable', foreground: 'c792ea' },
+        { token: 'operator', foreground: 'ff5fd7' },
+      ],
+      colors: {
+        'editor.background': '#1a102a',
+        'editor.foreground': '#f8f8f8',
+        'editor.lineHighlightBackground': '#2a1b44',
+        'editor.selectionBackground': '#8a2be280',
+        'editorCursor.foreground': '#f8f8f8',
+        'editorLineNumber.foreground': '#5f5f7a',
+        'editorLineNumber.activeForeground': '#c792ea',
+        'editorIndentGuide.background1': '#2a1b44',
+        'editorIndentGuide.activeBackground1': '#7df9ff',
+        'editorBracketHighlight.foreground1': '#7df9ff',
+        'editorBracketHighlight.foreground2': '#ff5fd7',
+        'editorBracketHighlight.foreground3': '#c792ea',
+        'editorBracketHighlight.foreground4': '#ffb86c',
+        'editorBracketHighlight.foreground5': '#7aa2f7',
+        'editorBracketHighlight.foreground6': '#f8f8f8',
+        'editorBracketMatch.background': '#ff5fd733',
+        'editorBracketMatch.border': '#ff5fd7',
+      },
+    });
   };
+
 
   const handleEditorMount = (editorInstance) => {
     editorRef.current = editorInstance;
