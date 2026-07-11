@@ -16,6 +16,7 @@ function getCursorFromEditor(editorInstance) {
 }
 
 function moveCursor(editorInstance, { lineDelta = 0, columnDelta = 0 }) {
+
   const model = editorInstance.getModel?.();
   if (!model) return;
 
@@ -28,11 +29,24 @@ function moveCursor(editorInstance, { lineDelta = 0, columnDelta = 0 }) {
   const targetColumn = clamp(cur.column + columnDelta, 1, maxCol);
 
   editorInstance.setPosition?.({ lineNumber: targetLine, column: targetColumn });
-  editorInstance.revealPositionInCenter?.({
-    lineNumber: targetLine,
-    column: targetColumn,
-  });
+
+  // Only scroll when the cursor is outside the visible viewport.
+  // This avoids unnecessary re-centering while still ensuring the cursor is visible.
+  if (
+    typeof editorInstance.revealPositionInCenterIfOutsideViewport === 'function'
+  ) {
+    editorInstance.revealPositionInCenterIfOutsideViewport({
+      lineNumber: targetLine,
+      column: targetColumn,
+    });
+  } else {
+    editorInstance.revealPositionInCenter?.({
+      lineNumber: targetLine,
+      column: targetColumn,
+    });
+  }
 }
+
 
 /**
  * @param {object} params
@@ -40,19 +54,23 @@ function moveCursor(editorInstance, { lineDelta = 0, columnDelta = 0 }) {
  * @param {*} params.editor - monaco editor instance
  * @param {(mode: string) => void} [params.onModeChange]
  */
-export async function createMonacoEmacsController({ monaco, editor, onModeChange }) {
+export async function createMonacoEmacsController({ editor, onModeChange }) {
   const editorDomNode = editor.getDomNode?.();
+
   if (!editorDomNode) {
     throw new Error('Emacs controller: editor DOM node not found');
   }
 
-  const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+  // const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+
 
   const isCtrlCmd = (event) => {
     // Emacs typically uses Ctrl keys. On macOS, users might expect Cmd as well,
     // but acceptance criteria specifies Ctrl+F/B/P.
-    return event.ctrlKey;
+    // Exclude Ctrl+Shift+<key> so Monaco shortcuts like Ctrl+Shift+F still work.
+    return event.ctrlKey && !event.shiftKey;
   };
+
 
   const handler = (event) => {
     if (!isCtrlCmd(event)) return;

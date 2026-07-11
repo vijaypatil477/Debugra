@@ -210,7 +210,9 @@ export default function EditorPage({ user }) {
   const tabSizeRef = useRef(editor.tabSize);
   const vimControllerRef = useRef(null);
   const emacsControllerRef = useRef(null);
+  const emacsControllerDomRef = useRef(null);
   const [vimMode, setVimMode] = useState('NORMAL');
+
 
 
   // ─── Room/Collaboration Logic ──────────────────────────────────────────────
@@ -531,16 +533,22 @@ export default function EditorPage({ user }) {
     }
 
     if (editor.emacsEnabled && !emacsControllerRef.current) {
-      void createMonacoEmacsController({
-        monaco,
-        editor: editorInstance,
-        onModeChange: () => {
-          // placeholder for future Emacs status indicator
-        },
-      }).then((controller) => {
+        const controllerPromise = createMonacoEmacsController({
+          editor: editorInstance,
+          onModeChange: () => {
+            // placeholder for future Emacs status indicator
+          },
+        });
+
+
+      // Track the DOM node so we can detach on disable.
+      emacsControllerDomRef.current = editorDomNode;
+
+      void controllerPromise.then((controller) => {
         emacsControllerRef.current = controller;
       });
     }
+
 
   };
 
@@ -559,7 +567,42 @@ export default function EditorPage({ user }) {
   useEffect(() => {
     if (!editorRef.current) return;
 
+    // (Re)initialize/unmount Emacs adapter based on the toggle.
+
+    // The adapter attaches keydown listeners to the editor DOM node.
+    // Without explicit dispose, changing settings can retain stale listeners.
+    if (!room.isReadOnly) {
+      if (!editor.emacsEnabled && emacsControllerRef.current) {
+        try {
+          emacsControllerRef.current.dispose?.();
+        } catch {
+          // ignore
+        }
+        emacsControllerRef.current = null;
+
+        // ensure we don't keep a stale DOM reference
+        emacsControllerDomRef.current = null;
+      }
+
+      if (editor.emacsEnabled && !emacsControllerRef.current) {
+        const editorInstance = editorRef.current;
+        const monaco = monacoRef.current;
+        const editorDomNode = editorInstance?.getDomNode?.();
+        if (monaco && editorInstance && editorDomNode) {
+          void createMonacoEmacsController({
+            editor: editorInstance,
+            onModeChange: () => {},
+          }).then((controller) => {
+
+            emacsControllerRef.current = controller;
+            emacsControllerDomRef.current = editorDomNode;
+          });
+        }
+      }
+    }
+
     editorRef.current.updateOptions({
+
       minimap: {
         enabled: showMinimap,
         side: minimapSide,
@@ -575,7 +618,8 @@ export default function EditorPage({ user }) {
     if (model) {
       model.updateOptions({ tabSize: editor.tabSize, insertSpaces: true });
     }
-  }, [editor.tabSize, showMinimap, editor.rulerColumn, minimapSide]);
+  }, [editor.tabSize, showMinimap, editor.rulerColumn, minimapSide, editor.emacsEnabled, room.isReadOnly]);
+
 
   // ─── Monaco layout refresh after console collapse/restore animation ──────
   useEffect(() => {
