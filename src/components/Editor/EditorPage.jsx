@@ -49,6 +49,8 @@ import DebugOverlay from './DebugOverlay';
 import SearchReplacePanel from './SearchReplacePanel';
 import Loader from '../Loader';
 import ComplexityOverlay from './ComplexityOverlay';
+import { useSpellcheckDecorations } from '../../hooks/useSpellcheckDecorations';
+
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -181,6 +183,15 @@ export default function EditorPage({ user }) {
       setShowAuth(true);
     },
   });
+
+  useSpellcheckDecorations({
+    editorRef,
+    monacoRef,
+    code: editor.code,
+    language: editor.language,
+    enabled: true,
+  });
+
   const showMinimap = editor.minimapEnabled;
 
   const vimEnabled = editor.vimEnabled;
