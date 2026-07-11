@@ -25,7 +25,10 @@ export const EDITOR_THEMES = [
   { id: 'vs', label: 'VS Light' },
   { id: 'dracula', label: 'Dracula' },
   { id: 'monokai', label: 'Monokai' },
+  { id: 'cobalt', label: 'Cobalt' },
+  { id: 'synthwave84', label: "Synthwave '84" },
 ];
+
 
 // ─── Output / Panel Widths ────────────────────────────────────────────────────
 export const DEFAULT_OUTPUT_WIDTH = 420;
