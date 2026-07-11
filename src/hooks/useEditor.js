@@ -176,6 +176,12 @@ export function useEditor({ user, onNeedAuth }) {
     setCode(LANGUAGES[newLang].template);
   }, []);
 
+  const resetEditorToTemplate = useCallback(() => {
+    hasUserChangesRef.current = true;
+    setCode(LANGUAGES[language]?.template ?? LANGUAGES.python.template);
+  }, [language]);
+
+
   const setVimEnabled = useCallback((value) => setVimEnabledState(Boolean(value)), []);
 
   const increaseFontSize = useCallback(() => setFontSize((f) => Math.min(f + 1, 28)), []);
@@ -383,7 +389,9 @@ export function useEditor({ user, onNeedAuth }) {
     isOffline,
     hasPendingChanges,
     changeLanguage,
+    resetEditorToTemplate,
     increaseFontSize,
+
     decreaseFontSize,
     downloadCode,
     saveToCloud,
