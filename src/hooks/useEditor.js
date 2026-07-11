@@ -84,7 +84,14 @@ export function useEditor({ user, onNeedAuth }) {
     getStoredBoolean('debugra-vim-enabled', false)
   );
 
+  const [emacsEnabled, setEmacsEnabledState] = useState(() =>
+    getStoredBoolean('debugra-emacs-enabled', false)
+  );
+
+
+
   const [needsInput, setNeedsInput] = useState(false);
+
   const [saveStatus, setSaveStatus] = useState('idle');
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [isOffline, setIsOffline] = useState(() => !navigator.onLine);
@@ -136,8 +143,17 @@ export function useEditor({ user, onNeedAuth }) {
   }, [vimEnabled]);
 
   useEffect(() => {
+    localStorage.setItem('debugra-emacs-enabled', String(emacsEnabled));
+  }, [emacsEnabled]);
+
+
+
+
+  useEffect(() => {
     autosaveSnapshotRef.current = { code, language, stdinValue };
   }, [code, language, stdinValue]);
+
+
 
   useEffect(() => {
     if (!autosaveInterval) return undefined;
@@ -176,7 +192,16 @@ export function useEditor({ user, onNeedAuth }) {
     setCode(LANGUAGES[newLang].template);
   }, []);
 
-  const setVimEnabled = useCallback((value) => setVimEnabledState(Boolean(value)), []);
+  const setVimEnabled = useCallback(
+    (value) => setVimEnabledState(Boolean(value)),
+    []
+  );
+  const setEmacsEnabled = useCallback(
+    (value) => setEmacsEnabledState(Boolean(value)),
+    []
+  );
+
+
 
   const increaseFontSize = useCallback(() => setFontSize((f) => Math.min(f + 1, 28)), []);
   const decreaseFontSize = useCallback(() => setFontSize((f) => Math.max(f - 1, 10)), []);
@@ -389,7 +414,11 @@ export function useEditor({ user, onNeedAuth }) {
     saveToCloud,
     loadCode,
 
+
     vimEnabled,
     setVimEnabled,
+
+    emacsEnabled,
+    setEmacsEnabled,
   };
 }
