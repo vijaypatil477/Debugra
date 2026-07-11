@@ -49,6 +49,11 @@ import DebugOverlay from './DebugOverlay';
 import SearchReplacePanel from './SearchReplacePanel';
 import Loader from '../Loader';
 import ComplexityOverlay from './ComplexityOverlay';
+import {
+  exportEditorAsPng,
+  exportEditorAsPdf,
+} from '../../utils/exportSnapshot';
+
 
 function getApiKeyStatus() {
   if (getSessionApiKey()) return 'unlocked';
@@ -112,6 +117,8 @@ export default function EditorPage({ user }) {
   const [consoleCollapsed, setConsoleCollapsed] = useState(false);
   const [showComplexityOverlay, setShowComplexityOverlay] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
   const resizingRef = useRef(false);
   const toggleConsoleCollapsed = () => {
     setConsoleCollapsed((prev) => !prev);
@@ -124,6 +131,9 @@ export default function EditorPage({ user }) {
   // ─── Editor Logic ──────────────────────────────────────────────────────────
   const handleCopyOutput = async () => {
     if (!execution.stdout) return;
+
+    if (isExporting) return;
+
 
     try {
       await navigator.clipboard.writeText(execution.stdout);
@@ -1199,10 +1209,124 @@ export default function EditorPage({ user }) {
             </button>
             <button
               className="toolbar-icon-btn"
+              aria-label="Export"
+              onClick={async () => {
+                if (isExporting) return;
+                setIsExporting(true);
+                try {
+                  const outputKind = execution.activeOutputTab || OUTPUT_TABS.STDOUT;
+                  const theme = globalTheme;
+
+                  // Prefer exporting the currently visible output tab.
+                  // For AI tab, include aiResponse.
+                  let kind = outputKind;
+                  if (outputKind === OUTPUT_TABS.STDOUT) kind = 'stdout';
+                  if (outputKind === OUTPUT_TABS.STDERR) kind = 'stderr';
+                  if (outputKind === OUTPUT_TABS.AI) kind = 'ai';
+
+                  await exportEditorAsPng({
+                    editor: {
+                      code: editor.code,
+                      language: editor.language,
+                      fontFamily: editor.fontFamily,
+                      fontSizePx: editor.fontSize,
+                    },
+                    execution: {
+                      stdout: execution.stdout,
+                      stderr: execution.stderr,
+                      aiResponse: ai.aiResponse,
+                    },
+                    theme,
+                    filenameBase: 'debugra-export',
+                    includeOutput: true,
+                    outputKind: kind,
+                    toast,
+                  });
+                } finally {
+                  setIsExporting(false);
+                }
+              }}
+              title={isExporting ? 'Exporting...' : 'Export as PNG'}
+              disabled={room.isReadOnly || isExporting}
+              style={{ opacity: isExporting ? 0.7 : 1 }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </button>
+            <button
+              className="toolbar-icon-btn"
+              aria-label="Export PDF"
+              onClick={async () => {
+                if (isExporting) return;
+                setIsExporting(true);
+                try {
+                  const outputKind = execution.activeOutputTab || OUTPUT_TABS.STDOUT;
+                  const theme = globalTheme;
+
+                  let kind = outputKind;
+                  if (outputKind === OUTPUT_TABS.STDOUT) kind = 'stdout';
+                  if (outputKind === OUTPUT_TABS.STDERR) kind = 'stderr';
+                  if (outputKind === OUTPUT_TABS.AI) kind = 'ai';
+
+                  await exportEditorAsPdf({
+                    editor: {
+                      code: editor.code,
+                      language: editor.language,
+                      fontFamily: editor.fontFamily,
+                      fontSizePx: editor.fontSize,
+                    },
+                    execution: {
+                      stdout: execution.stdout,
+                      stderr: execution.stderr,
+                      aiResponse: ai.aiResponse,
+                    },
+                    theme,
+                    filenameBase: 'debugra-export',
+                    includeOutput: true,
+                    outputKind: kind,
+                    toast,
+                  });
+                } finally {
+                  setIsExporting(false);
+                }
+              }}
+              title={isExporting ? 'Exporting...' : 'Export as PDF'}
+              disabled={room.isReadOnly || isExporting}
+              style={{ opacity: isExporting ? 0.7 : 1 }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <path d="M14 2v6h6" />
+                <path d="M12 18H8" />
+                <path d="M12 15H8" />
+                <path d="M12 12H8" />
+                <path d="M16 12h4" />
+              </svg>
+            </button>
+            <button
+              className="toolbar-icon-btn"
               aria-label="Download Code"
               onClick={editor.downloadCode}
               title="Download"
             >
+
               <svg
                 width="14"
                 height="14"
