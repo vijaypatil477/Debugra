@@ -25,7 +25,7 @@ services:
       - "3001:8080"
     volumes:
       - ./server:/app
-      - /app/node_modules
+
     env_file:
       - ./server/.env
     environment:

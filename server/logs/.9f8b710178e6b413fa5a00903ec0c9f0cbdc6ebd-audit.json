@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/Users/vanshjain/Desktop/DEV/opensource/Debugra/server/logs/.9f8b710178e6b413fa5a00903ec0c9f0cbdc6ebd-audit.json",
+    "files": [
+        {
+            "date": 1783713467339,
+            "name": "/Users/vanshjain/Desktop/DEV/opensource/Debugra/server/logs/application-2026-07-11.log",
+            "hash": "9e271a7a2bf4b2d704ecb32b798570b83f459710839717542a64e6ab012439c6"
+        }
+    ],
+    "hashType": "sha256"
+}

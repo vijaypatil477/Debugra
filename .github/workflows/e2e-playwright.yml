@@ -1,11 +1,11 @@
-name: CI
+name: Playwright E2E
 
 on:
   pull_request:
 
 jobs:
-  test-and-lint:
-    name: Lint + Unit Tests + Build
+  e2e:
+    name: E2E tests (Playwright)
     runs-on: ubuntu-latest
 
     steps:
@@ -21,12 +21,8 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
 
-      - name: Unit tests (Vitest)
-        run: npm test -- --config vitest.unit.config.js
-
-
-      - name: Build
-        run: npm run build
+      - name: Run Playwright
+        run: npx playwright test
