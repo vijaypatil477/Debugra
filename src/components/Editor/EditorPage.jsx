@@ -1,5 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { createMonacoVimController } from '../../utils/monacoVim';
+import { createMonacoEmacsController } from '../../utils/monacoEmacs';
+
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
@@ -186,6 +188,10 @@ export default function EditorPage({ user }) {
   const vimEnabled = editor.vimEnabled;
   const setVimEnabled = editor.setVimEnabled;
 
+  const emacsEnabled = editor.emacsEnabled;
+  const setEmacsEnabled = editor.setEmacsEnabled;
+
+
   const { theme: globalTheme, toggleTheme: toggleGlobalTheme } = useTheme();
 
   // Synchronize Monaco editor theme with global light/dark theme toggle
@@ -203,7 +209,9 @@ export default function EditorPage({ user }) {
 
   const tabSizeRef = useRef(editor.tabSize);
   const vimControllerRef = useRef(null);
+  const emacsControllerRef = useRef(null);
   const [vimMode, setVimMode] = useState('NORMAL');
+
 
   // ─── Room/Collaboration Logic ──────────────────────────────────────────────
   const room = useRoom({
@@ -506,18 +514,34 @@ export default function EditorPage({ user }) {
     });
 
     // Initialize Vim controller when enabled (after editorInstance exists).
+    // Initialize Emacs adapter when enabled.
+    // NOTE: if both are enabled, both adapters may conflict; UI defaults to enabling
+    // one at a time via user selection.
+
     if (editor.vimEnabled && !vimControllerRef.current) {
       void createMonacoVimController({
         monaco,
         editor: editorInstance,
         onModeChange: (mode) => {
-          // monaco-vim tends to pass strings like 'INSERT', 'NORMAL', 'COMMAND'
           setVimMode(mode);
         },
       }).then((controller) => {
         vimControllerRef.current = controller;
       });
     }
+
+    if (editor.emacsEnabled && !emacsControllerRef.current) {
+      void createMonacoEmacsController({
+        monaco,
+        editor: editorInstance,
+        onModeChange: () => {
+          // placeholder for future Emacs status indicator
+        },
+      }).then((controller) => {
+        emacsControllerRef.current = controller;
+      });
+    }
+
   };
 
   useEffect(
@@ -1413,12 +1437,39 @@ export default function EditorPage({ user }) {
                 aria-label="Vim mode"
                 className="lang-select"
                 value={editor.vimEnabled ? 'enabled' : 'disabled'}
-                onChange={(event) => editor.setVimEnabled(event.target.value === 'enabled')}
+                onChange={(event) => {
+                  const enabled = event.target.value === 'enabled';
+                  // avoid conflicts by disabling Emacs when Vim is enabled
+                  if (enabled) editor.setEmacsEnabled(false);
+                  editor.setVimEnabled(enabled);
+                }}
               >
                 <option value="disabled">disabled</option>
                 <option value="enabled">enabled</option>
               </select>
             </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="emacs-select">
+                <span>Emacs mode</span>
+              </label>
+              <select
+                id="emacs-select"
+                aria-label="Emacs mode"
+                className="lang-select"
+                value={editor.emacsEnabled ? 'enabled' : 'disabled'}
+                onChange={(event) => {
+                  const enabled = event.target.value === 'enabled';
+                  // avoid conflicts by disabling Vim when Emacs is enabled
+                  if (enabled) editor.setVimEnabled(false);
+                  editor.setEmacsEnabled(enabled);
+                }}
+              >
+                <option value="disabled">disabled</option>
+                <option value="enabled">enabled</option>
+              </select>
+            </div>
+
           </div>
         </div>
       )}
