@@ -418,8 +418,45 @@ export default function EditorPage({ user }) {
       editorDomNode?.removeEventListener('keydown', handleDomKeyDown, true);
     });
 
-    editorInstance.onDidChangeCursorPosition((e) => {
-      editor.setCursorPos({ line: e.position.lineNumber, col: e.position.column });
+    const updateCursorAndSelectionStats = () => {
+      try {
+        const sel = editorInstance.getSelection();
+        const model = editorInstance.getModel();
+        const pos = editorInstance.getPosition();
+
+        if (pos) {
+          editor.setCursorPos({ line: pos.lineNumber, col: pos.column });
+        }
+
+        if (!sel || sel.isEmpty() || !model) {
+          editor.setSelectedCharSize(0);
+          return;
+        }
+
+        const range = new monaco.Range(
+          sel.startLineNumber,
+          sel.startColumn,
+          sel.endLineNumber,
+          sel.endColumn
+        );
+        const text = model.getValueInRange(range);
+        // "size of selected text": use number of characters
+        editor.setSelectedCharSize(text?.length ?? 0);
+      } catch {
+        // no-op
+      }
+    };
+
+    editorInstance.onDidChangeCursorPosition(() => {
+      updateCursorAndSelectionStats();
+    });
+
+    editorInstance.onDidChangeModelContent(() => {
+      updateCursorAndSelectionStats();
+    });
+
+    editorInstance.onDidChangeCursorSelection(() => {
+      updateCursorAndSelectionStats();
     });
 
     // Prevent our custom Ctrl+S and Tab handlers from being blocked by Vim command-mode.
@@ -1928,6 +1965,7 @@ export default function EditorPage({ user }) {
         execStatus={execution.execStatus}
         langName={langConfig.name}
         cursorPos={editor.cursorPos}
+        selectedCharSize={editor.selectedCharSize}
         tabSize={editor.tabSize}
         room={room}
         user={user}
