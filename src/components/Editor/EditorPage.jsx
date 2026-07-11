@@ -251,15 +251,64 @@ export default function EditorPage({ user }) {
     model: selectedModel,
   });
 
+
   const aiFixRef = useRef(ai.fix);
   const aiExplainRef = useRef(ai.explain);
   const aiGenerateTestsRef = useRef(ai.generateTests);
+  const aiGenerateDocstringsRef = useRef(ai.generateDocstrings);
+
 
   useEffect(() => {
     aiFixRef.current = ai.fix;
     aiExplainRef.current = ai.explain;
     aiGenerateTestsRef.current = ai.generateTests;
-  }, [ai.fix, ai.explain, ai.generateTests]);
+    aiGenerateDocstringsRef.current = ai.generateDocstrings;
+  }, [ai.fix, ai.explain, ai.generateTests, ai.generateDocstrings]);
+
+  // Apply generated docBlock into Monaco when available
+  useEffect(() => {
+    if (!ai.aiResponse?.docBlock) return;
+    if (!editorRef.current) return;
+
+    const docBlock = String(ai.aiResponse.docBlock || '').trimEnd();
+    if (!docBlock) return;
+
+    const model = editorRef.current.getModel?.();
+    if (!model) return;
+
+    editorRef.current.pushUndoStop?.();
+
+    const selection = editorRef.current.getSelection?.();
+
+    // If user has a selection, insert above selection start.
+    // If not, insert above current cursor line.
+    const startLine =
+      selection && !selection.isEmpty()
+        ? selection.startLineNumber
+        : editorRef.current.getPosition().lineNumber;
+
+    const startCol =
+      selection && !selection.isEmpty() ? selection.startColumn : 1;
+
+
+    // Insert with a newline after the doc block for readability
+    const textToInsert =
+      (startCol === 1 ? '' : ' ') + `${docBlock}${docBlock.endsWith('\n') ? '' : '\n'}`;
+
+    editorRef.current.executeEdits('ai-docstrings', [
+      {
+        range: new monacoRef.current.Range(startLine, startCol, startLine, startCol),
+        text: textToInsert,
+        forceMoveMarkers: true,
+      },
+    ]);
+
+
+    editorRef.current.pushUndoStop?.();
+    toast.success('Docstrings inserted!');
+  }, [ai.aiResponse]);
+
+
 
   // ─── Monaco Setup ─────────────────────────────────────────────────────────
   const handleEditorWillMount = (monaco) => {
@@ -450,6 +499,15 @@ export default function EditorPage({ user }) {
         if (aiGenerateTestsRef.current) aiGenerateTestsRef.current();
       }
     );
+
+    // Generate docstrings/comments for the active function/snippet
+    editorInstance.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KEY_D,
+      () => {
+        if (aiGenerateDocstringsRef.current) aiGenerateDocstringsRef.current();
+      }
+    );
+
 
     const formatCurrentModel = async () => {
       const model = editorInstance.getModel();
@@ -1164,10 +1222,32 @@ export default function EditorPage({ user }) {
             </button>
           </div>
           <button
+            className="ai-btn"
+            onClick={ai.generateDocstrings}
+            disabled={ai.isAILoading || room.isReadOnly}
+            title="Generate docstrings/comments"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M21 15a4 4 0 0 1-4 4H7l-4 2V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+              <path d="M8 10h8" />
+              <path d="M8 14h5" />
+            </svg>
+            Docs
+          </button>
+
+          <button
             className="ai-btn fix"
             onClick={ai.fix}
             disabled={ai.isAILoading || room.isReadOnly}
           >
+
             <svg
               width="12"
               height="12"
