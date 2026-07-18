@@ -936,3 +936,47 @@
 .password-toggle:focus {
   outline: none;
 }
+
+/* ===== BACK TO TOP BUTTON ===== */
+.back-to-top-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 44px;
+  height: 44px;
+  background-color: var(--brand);
+  color: var(--btn-primary-text, #09090b);
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    opacity 0.2s ease;
+  opacity: 0.9;
+}
+
+.back-to-top-btn:hover {
+  background-color: #3ab89d;
+  transform: translateY(-4px);
+  opacity: 1;
+}
+
+.back-to-top-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+[data-theme='light'] .back-to-top-btn {
+  background-color: #0e705b;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme='light'] .back-to-top-btn:hover {
+  background-color: #005a9e;
+}
