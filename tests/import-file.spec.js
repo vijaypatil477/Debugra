@@ -31,8 +31,8 @@ test('imports a code file and sets the correct language and code content via the
   });
 
   // Verify editor language selection has changed to Python 3
-  const selectedLang = await page.locator('select.lang-select').first().inputValue();
-  expect(selectedLang).toBe('python');
+  const selectedLang = await page.locator('.lang-dropdown-trigger .lang-name').textContent();
+  expect(selectedLang.trim()).toBe('Python 3');
 
   // Verify editor content has changed to the uploaded content
   const text = await page.evaluate(() => window.__DEBUGRA_EDITOR__?.getValue() ?? '');
@@ -52,7 +52,8 @@ test('imports an unknown file type and sets content as text without changing lan
   await page.waitForSelector('.monaco-editor');
 
   // Set editor language to Javascript first
-  await page.selectOption('select.lang-select', 'javascript');
+  await page.click('.lang-dropdown-trigger');
+  await page.click('.lang-dropdown-item:has-text("JavaScript")');
   await page.waitForTimeout(200);
 
   // Trigger file chooser using the tab bar import button
