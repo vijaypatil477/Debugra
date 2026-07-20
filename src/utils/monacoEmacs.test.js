@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from 'vitest';
-import { createMonacoEmacsController } from '../src/utils/monacoEmacs';
+import { createMonacoEmacsController } from './monacoEmacs';
 
 describe('createMonacoEmacsController', () => {
   test('initializes and triggers onModeChange', () => {
@@ -73,7 +73,6 @@ describe('createMonacoEmacsController', () => {
     };
 
     const controller = createMonacoEmacsController({
-      monaco: {},
       editor: mockEditor,
     });
 
