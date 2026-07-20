@@ -5,7 +5,8 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen } from 'lucide-react';
+import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen, AlertTriangle } from 'lucide-react';
+
 import { useTheme } from '../../context/ThemeContext';
 
 import {
@@ -73,6 +74,8 @@ const REVIEWS = [
   },
 ];
 export default function EditorPage({ user }) {
+  // (Hook is created below; used for reset editor confirmation UX)
+
   const isTestRoom =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('testRoom') === '1';
@@ -104,7 +107,9 @@ export default function EditorPage({ user }) {
   const [outputWidth, setOutputWidth] = useState(420);
   const [minimapSide, setMinimapSide] = useState('right');
   const [showSettings, setShowSettings] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
+
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10);
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
@@ -1276,6 +1281,14 @@ export default function EditorPage({ user }) {
           </div>
           <span className="kbd-hint d-none d-lg-inline">Ctrl+Enter</span>
           <button
+            className="clear-btn d-none d-sm-block danger"
+            onClick={() => setShowResetConfirm(true)}
+            disabled={room.isReadOnly}
+            title="Reset editor to the default template"
+          >
+            Reset Code
+          </button>
+          <button
             className="clear-btn d-none d-sm-block"
             onClick={() => {
               execution.clear();
@@ -1285,6 +1298,7 @@ export default function EditorPage({ user }) {
           >
             Clear
           </button>
+
           <button
             className="run-btn d-none d-sm-flex align-items-center"
             onClick={execution.run}
@@ -2024,6 +2038,68 @@ export default function EditorPage({ user }) {
         />
       )}
 
+      {/* Reset Confirmation Modal */}
+      {showResetConfirm && (
+        <div
+          className="settings-modal-backdrop"
+          onClick={() => setShowResetConfirm(false)}
+        >
+          <div
+            className="settings-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Reset editor confirmation"
+          >
+            <div className="audio-settings-head">
+              <span style={{ color: 'var(--red)', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle size={14} />
+                Reset Editor
+              </span>
+
+              <button
+                className="history-action-btn"
+                aria-label="Close"
+                onClick={() => setShowResetConfirm(false)}
+              >
+                <i className="bi bi-x" />
+              </button>
+            </div>
+            <div style={{ color: 'var(--text-1)', fontSize: '0.8rem', lineHeight: 1.5 }}>
+              Are you sure you want to reset the editor? This will clear all current code.
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: 10,
+                marginTop: 16,
+              }}
+            >
+              <button
+                className="clear-btn"
+                onClick={() => setShowResetConfirm(false)}
+                style={{ borderColor: 'var(--border)' }}
+              >
+                Cancel
+              </button>
+              <button
+                className="clear-btn danger"
+                onClick={() => {
+                  execution.clear();
+                  ai.clearAI();
+                  editor.resetEditorToTemplate();
+                  toast.success('Editor reset! ✦');
+                  setShowResetConfirm(false);
+                }}
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Auth Modal */}
       {showAuth && <AuthModal initialMode={authMode} onClose={() => setShowAuth(false)} />}
       {showApiKey && (
@@ -2032,6 +2108,7 @@ export default function EditorPage({ user }) {
           onStatusChange={() => setApiKeyStatus(getApiKeyStatus())}
         />
       )}
+
       {showAccount && user && <AccountSettings onClose={() => setShowAccount(false)} user={user} />}
 
       {/* Debug Overlay */}
