@@ -9,7 +9,6 @@ describe('createMonacoEmacsController', () => {
     };
 
     const controller = createMonacoEmacsController({
-      monaco: {},
       editor: mockEditor,
       onModeChange,
     });
@@ -31,7 +30,6 @@ describe('createMonacoEmacsController', () => {
     };
 
     createMonacoEmacsController({
-      monaco: {},
       editor: mockEditor,
     });
 

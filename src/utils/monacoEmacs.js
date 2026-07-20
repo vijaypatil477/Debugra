@@ -3,7 +3,7 @@
  * Provides standard Emacs editing commands, cursor movements, and mark selection mode for Monaco editor.
  */
 
-export function createMonacoEmacsController({ monaco, editor, onModeChange }) {
+export function createMonacoEmacsController({ editor, onModeChange }) {
   if (!editor) {
     return { dispose: () => {} };
   }
