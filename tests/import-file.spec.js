@@ -74,8 +74,8 @@ test('imports an unknown file type and sets content as text without changing lan
   await expect(page.getByText('Imported data.xyz as text')).toBeVisible({ timeout: 6000 });
 
   // Verify editor language selection is still Javascript
-  const selectedLang = await page.locator('select.lang-select').first().inputValue();
-  expect(selectedLang).toBe('javascript');
+  const selectedLang = await page.locator('.lang-dropdown-trigger .lang-name').textContent();
+  expect(selectedLang.trim()).toBe('JavaScript');
 
   // Verify editor content has changed to the uploaded content
   const text = await page.evaluate(() => window.__DEBUGRA_EDITOR__?.getValue() ?? '');
