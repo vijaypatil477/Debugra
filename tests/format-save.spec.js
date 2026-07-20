@@ -5,7 +5,8 @@ test('format on save', async ({ page, browserName }) => {
   await page.waitForSelector('.monaco-editor');
 
   // Ensure language is JavaScript so Prettier uses the JS parser
-  await page.selectOption('select.lang-select', 'javascript');
+  await page.click('.lang-dropdown-trigger');
+  await page.click('.lang-dropdown-item:has-text("JavaScript")');
   await page.waitForTimeout(200);
 
   // Seed unformatted code.

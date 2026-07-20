@@ -652,6 +652,137 @@ body {
   color: var(--text-0);
 }
 
+/* Custom Language Dropdown Selector */
+.lang-dropdown {
+  position: relative;
+  display: inline-block;
+  font-family: 'Inter', sans-serif;
+  z-index: 50;
+}
+
+.lang-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text-0);
+  font-size: 0.75rem;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 130px;
+  height: 28px;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.lang-dropdown-trigger:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--bg-3);
+}
+
+.lang-dropdown-trigger:focus:not(:disabled) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.15);
+}
+
+.lang-dropdown-trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lang-dropdown-trigger-content,
+.lang-dropdown-item-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lang-name,
+.lang-item-name {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.lang-dropdown-chevron {
+  color: var(--text-2);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.lang-dropdown-chevron.open {
+  transform: rotate(180deg);
+}
+
+.lang-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 100;
+  min-width: 180px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: rgba(15, 12, 32, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  padding: 4px;
+  margin: 0;
+  list-style: none;
+}
+
+.lang-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 4px;
+  color: var(--text-1);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 0.72rem;
+  user-select: none;
+}
+
+.lang-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-0);
+}
+
+.lang-dropdown-item.active {
+  background: rgba(0, 120, 212, 0.15);
+  color: var(--text-0);
+  font-weight: 600;
+}
+
+.lang-item-check {
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* Scrollbar styling for the language dropdown */
+.lang-dropdown-menu::-webkit-scrollbar {
+  width: 4px;
+}
+
+.lang-dropdown-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lang-dropdown-menu::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+.lang-dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 .font-size-ctrl {
   display: flex;
   align-items: center;
