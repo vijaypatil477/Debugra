@@ -1,7 +1,7 @@
-const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
+const { rateLimit } = require('express-rate-limit');
 
 function getIpKey(req) {
-  return ipKeyGenerator ? ipKeyGenerator(req.ip) : req.ip;
+  return req.ip;
 }
 
 function getRoomIdKey(req) {
