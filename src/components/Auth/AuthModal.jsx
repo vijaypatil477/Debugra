@@ -243,7 +243,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                   padding: 0,
                 }}
               >
-                Back to Sign In
+                Back to Login
               </button>
             </p>
           </form>
@@ -364,7 +364,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                   boxSizing: 'border-box',
                 }}
               >
-                {loading ? 'Please wait...' : !isLogin ? 'Create Account' : 'Sign In'}
+                {loading ? 'Please wait...' : !isLogin ? 'Create Account' : 'Login'}
               </button>
             </form>
 
@@ -393,7 +393,7 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
                   padding: 0,
                 }}
               >
-                {!isLogin ? 'Sign In' : 'Sign Up'}
+                {!isLogin ? 'Login' : 'Sign Up'}
               </button>
             </p>
           </>
