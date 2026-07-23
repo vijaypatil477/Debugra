@@ -43,7 +43,7 @@ const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey
       });
       if (!res.ok) throw new Error('Failed to explain code');
       const data = await res.json();
-      setExplanation(data.content);
+      setExplanation(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -75,7 +75,7 @@ const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey
       });
       if (!res.ok) throw new Error('Failed to get answer');
       const data = await res.json();
-      setQaHistory((prev) => [...prev, { question, answer: data.content }]);
+      setQaHistory((prev) => [...prev, { question, answer: data }]);
     } catch (err) {
       setQaHistory((prev) => [
         ...prev,

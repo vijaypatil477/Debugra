@@ -30,7 +30,6 @@ export default function FeedbackPage() {
     setSubmitted(true);
     toast.success('Thanks for helping improve Debugra!');
     setForm(initialForm);
-    event.currentTarget.reset();
   };
 
   return (
