@@ -45,12 +45,11 @@ ${code.slice(0, 3000)}
 \`\`\``;
 
       try {
-        const response = await fetch(`${apiUrl}/api/ai`, {
+        const response = await fetch(`${apiUrl}/api/ai/explain-logic`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: 'summarize',
-            code: prompt,
+            code: code.slice(0, 3000),
             language,
           }),
         });
@@ -58,29 +57,17 @@ ${code.slice(0, 3000)}
         if (!response.ok) throw new Error(`Server error: ${response.status}`);
 
         const data = await response.json();
-        const rawText = data.result || data.explanation || data.message || '';
 
-        const cleaned = rawText
-          .replace(/```json\s*/gi, '')
-          .replace(/```\s*/g, '')
-          .trim();
-
-        const parsed = JSON.parse(cleaned);
-
-        if (!parsed.summary) throw new Error('Invalid AI response structure');
+        if (!data.summary) throw new Error('Invalid AI response structure');
 
         setResult({
-          summary: parsed.summary || 'No summary available.',
-          timeComplexity: parsed.timeComplexity || 'N/A',
-          spaceComplexity: parsed.spaceComplexity || 'N/A',
-          steps: Array.isArray(parsed.steps) ? parsed.steps : [],
+          summary: data.summary || 'No summary available.',
+          timeComplexity: data.timeComplexity || 'N/A',
+          spaceComplexity: data.spaceComplexity || 'N/A',
+          steps: Array.isArray(data.steps) ? data.steps : [],
         });
       } catch (err) {
-        if (err instanceof SyntaxError) {
-          setError('AI returned an unexpected format. Please try again.');
-        } else {
-          setError(err.message || 'Something went wrong. Please try again.');
-        }
+        setError(err.message || 'Something went wrong. Please try again.');
       } finally {
         setIsLoading(false);
       }

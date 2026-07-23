@@ -258,7 +258,7 @@ export function useWebRTC(roomId, user) {
     return () => {
       if (inCall) leaveCall();
     };
-  }, [inCall, roomId]);
+  }, [inCall, roomId, leaveCall]);
 
   return { inCall, joinCall, leaveCall, isMuted, toggleMute, peers };
 }
