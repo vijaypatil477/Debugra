@@ -7,6 +7,12 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 1000,
   },
+  test: {
+    // Only run vitest unit tests under src/ — exclude Playwright e2e specs and server Jest tests
+    include: ['src/**/*.test.{js,jsx}'],
+    environment: 'jsdom',
+    globals: false,
+  },
   optimizeDeps: {
     include: [
       'prettier/standalone',

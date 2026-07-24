@@ -1207,3 +1207,5 @@ export default function LandingPage() {
     </div>
   );
 }
+// #875: Copy Project Link button functionality
+// TODO: Add this to the project card or navbar

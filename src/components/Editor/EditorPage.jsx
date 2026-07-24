@@ -1,11 +1,13 @@
 import { useRef, useState, useEffect } from 'react';
 import { createMonacoVimController } from '../../utils/monacoVim';
+import { createMonacoEmacsController } from '../../utils/monacoEmacs';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen } from 'lucide-react';
+import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen, AlertTriangle } from 'lucide-react';
+
 import { useTheme } from '../../context/ThemeContext';
 
 import {
@@ -32,6 +34,7 @@ import AuthModal from '../Auth/AuthModal';
 import AccountSettings from '../Auth/AccountSettings';
 import ChatPanel from '../Chat/ChatPanel';
 import FileIcon from '../Icons/FileIcon';
+import LanguageDropdown from './LanguageDropdown';
 import HistoryPanel from './HistoryPanel';
 import AIResponsePanel from './AIResponsePanel';
 import ApiKeyModal from './ApiKeyModal';
@@ -73,6 +76,8 @@ const REVIEWS = [
   },
 ];
 export default function EditorPage({ user }) {
+  // (Hook is created below; used for reset editor confirmation UX)
+
   const isTestRoom =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('testRoom') === '1';
@@ -104,7 +109,9 @@ export default function EditorPage({ user }) {
   const [outputWidth, setOutputWidth] = useState(420);
   const [minimapSide, setMinimapSide] = useState('right');
   const [showSettings, setShowSettings] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
+
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [blurIntensity, setBlurIntensity] = useState(10);
   const [showDebugOverlay, setShowDebugOverlay] = useState(false);
@@ -204,6 +211,8 @@ export default function EditorPage({ user }) {
   const tabSizeRef = useRef(editor.tabSize);
   const vimControllerRef = useRef(null);
   const [vimMode, setVimMode] = useState('NORMAL');
+  const emacsControllerRef = useRef(null);
+  const [emacsMode, setEmacsMode] = useState('EMACS');
 
   // ─── Room/Collaboration Logic ──────────────────────────────────────────────
   const room = useRoom({
@@ -518,7 +527,17 @@ export default function EditorPage({ user }) {
         vimControllerRef.current = controller;
       });
     }
+
+    // Initialize Emacs controller when enabled.
+    if (editor.emacsEnabled && !emacsControllerRef.current) {
+      emacsControllerRef.current = createMonacoEmacsController({
+        monaco,
+        editor: editorInstance,
+        onModeChange: (mode) => setEmacsMode(mode),
+      });
+    }
   };
+
 
   useEffect(
     () => () => {
@@ -553,6 +572,37 @@ export default function EditorPage({ user }) {
     }
   }, [editor.tabSize, showMinimap, editor.rulerColumn, minimapSide]);
 
+  // ─── Dynamic Keymap Mode Effects (Vim & Emacs) ───────────────────────────
+  useEffect(() => {
+    if (!editorRef.current || !monacoRef.current) return;
+    if (editor.vimEnabled && !vimControllerRef.current) {
+      void createMonacoVimController({
+        monaco: monacoRef.current,
+        editor: editorRef.current,
+        onModeChange: (mode) => setVimMode(mode),
+      }).then((controller) => {
+        vimControllerRef.current = controller;
+      });
+    } else if (!editor.vimEnabled && vimControllerRef.current) {
+      vimControllerRef.current.dispose?.();
+      vimControllerRef.current = null;
+    }
+  }, [editor.vimEnabled]);
+
+  useEffect(() => {
+    if (!editorRef.current || !monacoRef.current) return;
+    if (editor.emacsEnabled && !emacsControllerRef.current) {
+      emacsControllerRef.current = createMonacoEmacsController({
+        monaco: monacoRef.current,
+        editor: editorRef.current,
+        onModeChange: (mode) => setEmacsMode(mode),
+      });
+    } else if (!editor.emacsEnabled && emacsControllerRef.current) {
+      emacsControllerRef.current.dispose?.();
+      emacsControllerRef.current = null;
+    }
+  }, [editor.emacsEnabled]);
+
   // ─── Monaco layout refresh after console collapse/restore animation ──────
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -560,6 +610,7 @@ export default function EditorPage({ user }) {
     }, 310);
     return () => clearTimeout(timer);
   }, [isOutputCollapsed]);
+
 
   // ─── Render Remote Cursors ────────────────────────────────────────────────
   const escapeForCssContent = (str) => {
@@ -1002,19 +1053,11 @@ export default function EditorPage({ user }) {
       {/* ===== TOOLBAR ===== */}
       <div className="toolbar px-2 py-1">
         <div className="toolbar-left d-flex align-items-center gap-2">
-          <select
-            className="lang-select"
-            aria-label="Programming language"
+          <LanguageDropdown
             value={editor.language}
-            onChange={(e) => editor.changeLanguage(e.target.value)}
+            onChange={(val) => editor.changeLanguage(val)}
             disabled={room.isReadOnly}
-          >
-            {Object.entries(LANGUAGES).map(([key, lang]) => (
-              <option key={key} value={key}>
-                {lang.name}
-              </option>
-            ))}
-          </select>
+          />
           <select
             className="lang-select d-none d-sm-block"
             value={editor.theme}
@@ -1064,6 +1107,20 @@ export default function EditorPage({ user }) {
               {showMinimap ? <EyeOff size={13} /> : <Eye size={13} />}
             </button>
           </div>
+          <button
+            className="toolbar-icon-btn d-none d-md-flex"
+            aria-label="Copy project link"
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              toast.success('Project link copied!');
+            }}
+            title="Copy project link"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+          </button>
         </div>
         <div className="toolbar-right d-flex align-items-center gap-2">
           <div className="d-none d-md-flex align-items-center gap-2">
@@ -1276,6 +1333,14 @@ export default function EditorPage({ user }) {
           </div>
           <span className="kbd-hint d-none d-lg-inline">Ctrl+Enter</span>
           <button
+            className="clear-btn d-none d-sm-block danger"
+            onClick={() => setShowResetConfirm(true)}
+            disabled={room.isReadOnly}
+            title="Reset editor to the default template"
+          >
+            Reset Code
+          </button>
+          <button
             className="clear-btn d-none d-sm-block"
             onClick={() => {
               execution.clear();
@@ -1285,6 +1350,7 @@ export default function EditorPage({ user }) {
           >
             Clear
           </button>
+
           <button
             className="run-btn d-none d-sm-flex align-items-center"
             onClick={execution.run}
@@ -1413,12 +1479,37 @@ export default function EditorPage({ user }) {
                 aria-label="Vim mode"
                 className="lang-select"
                 value={editor.vimEnabled ? 'enabled' : 'disabled'}
-                onChange={(event) => editor.setVimEnabled(event.target.value === 'enabled')}
+                onChange={(event) => {
+                  const enabled = event.target.value === 'enabled';
+                  if (enabled && editor.emacsEnabled) editor.setEmacsEnabled(false);
+                  editor.setVimEnabled(enabled);
+                }}
               >
                 <option value="disabled">disabled</option>
                 <option value="enabled">enabled</option>
               </select>
             </div>
+
+            <div className="audio-settings-row">
+              <label className="audio-settings-label" htmlFor="emacs-select">
+                <span>Emacs mode</span>
+              </label>
+              <select
+                id="emacs-select"
+                aria-label="Emacs mode"
+                className="lang-select"
+                value={editor.emacsEnabled ? 'enabled' : 'disabled'}
+                onChange={(event) => {
+                  const enabled = event.target.value === 'enabled';
+                  if (enabled && editor.vimEnabled) editor.setVimEnabled(false);
+                  editor.setEmacsEnabled(enabled);
+                }}
+              >
+                <option value="disabled">disabled</option>
+                <option value="enabled">enabled</option>
+              </select>
+            </div>
+
           </div>
         </div>
       )}
@@ -1937,7 +2028,10 @@ export default function EditorPage({ user }) {
         hasPendingChanges={editor.hasPendingChanges}
         vimEnabled={editor.vimEnabled}
         vimMode={vimMode}
+        emacsEnabled={editor.emacsEnabled}
+        emacsMode={emacsMode}
       />
+
 
       {/* Chat */}
       {isMobile && mobileTab === MOBILE_TABS.CHAT && room.roomId ? (
@@ -2024,6 +2118,68 @@ export default function EditorPage({ user }) {
         />
       )}
 
+      {/* Reset Confirmation Modal */}
+      {showResetConfirm && (
+        <div
+          className="settings-modal-backdrop"
+          onClick={() => setShowResetConfirm(false)}
+        >
+          <div
+            className="settings-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Reset editor confirmation"
+          >
+            <div className="audio-settings-head">
+              <span style={{ color: 'var(--red)', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle size={14} />
+                Reset Editor
+              </span>
+
+              <button
+                className="history-action-btn"
+                aria-label="Close"
+                onClick={() => setShowResetConfirm(false)}
+              >
+                <i className="bi bi-x" />
+              </button>
+            </div>
+            <div style={{ color: 'var(--text-1)', fontSize: '0.8rem', lineHeight: 1.5 }}>
+              Are you sure you want to reset the editor? This will clear all current code.
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: 10,
+                marginTop: 16,
+              }}
+            >
+              <button
+                className="clear-btn"
+                onClick={() => setShowResetConfirm(false)}
+                style={{ borderColor: 'var(--border)' }}
+              >
+                Cancel
+              </button>
+              <button
+                className="clear-btn danger"
+                onClick={() => {
+                  execution.clear();
+                  ai.clearAI();
+                  editor.resetEditorToTemplate();
+                  toast.success('Editor reset! ✦');
+                  setShowResetConfirm(false);
+                }}
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Auth Modal */}
       {showAuth && <AuthModal initialMode={authMode} onClose={() => setShowAuth(false)} />}
       {showApiKey && (
@@ -2032,6 +2188,7 @@ export default function EditorPage({ user }) {
           onStatusChange={() => setApiKeyStatus(getApiKeyStatus())}
         />
       )}
+
       {showAccount && user && <AccountSettings onClose={() => setShowAccount(false)} user={user} />}
 
       {/* Debug Overlay */}
