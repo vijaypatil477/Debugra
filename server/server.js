@@ -92,6 +92,9 @@ function requireSecurityDiagnosticsAccess(req, res, next) {
 
 // ──────────────────────────────────────────────
 // CORS Origin Configuration
+// GSSOC Issue #948: Secure CORS Configuration with Whitelisted Origins
+// Ensure backend requests are strictly validated against trusted domains
+// (e.g. debugra.tech for production and localhost:5173 for development).
 // ──────────────────────────────────────────────
 
 const defaultDevOrigins = [
@@ -107,11 +110,12 @@ function unique(values) {
   return [...new Set(values.filter(Boolean))];
 }
 
-// FIX 2: Parse CORS_ORIGINS and CLIENT_URL independently
-// and merge both — not OR — so neither is silently dropped
+// FIX 2: Parse ALLOWED_ORIGINS, CORS_ORIGINS, and CLIENT_URL independently
+// and merge all — not OR — so neither is silently dropped
 const extraOrigins = unique([
-  ...(process.env.CORS_ORIGINS || '').split(','),
-  ...(process.env.CLIENT_URL   || '').split(','),
+  ...(process.env.ALLOWED_ORIGINS || '').split(','),
+  ...(process.env.CORS_ORIGINS    || '').split(','),
+  ...(process.env.CLIENT_URL      || '').split(','),
 ].map((o) => o.trim()));
 
 // FIX 3: Merge defaults + extras so production domains
