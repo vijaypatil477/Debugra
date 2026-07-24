@@ -932,13 +932,20 @@ export default function LandingPage() {
           {FAQ_ITEMS.map((item, index) => {
             const isOpen = openFaq === index;
             return (
-              <div key={item.question} className={`faq-item ${isOpen ? 'is-open' : ''}`}>
+              <div
+                key={item.question}
+                className={`faq-item ${isOpen ? 'is-open' : ''}`}
+                onMouseEnter={() => setOpenFaq(index)}
+                onMouseLeave={() => setOpenFaq((current) => (current === index ? -1 : current))}
+              >
                 <button
                   type="button"
                   className="faq-question"
                   aria-expanded={isOpen}
                   aria-controls={`faq-answer-${index}`}
                   onClick={() => setOpenFaq(isOpen ? -1 : index)}
+                  onFocus={() => setOpenFaq(index)}
+                  onBlur={() => setOpenFaq(-1)}
                 >
                   <span>{item.question}</span>
                   <span className="faq-toggle" aria-hidden="true">
