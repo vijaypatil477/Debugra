@@ -11,4 +11,4 @@
 Please do not report security vulnerabilities through public GitHub issues.
 Instead, please contact the maintainers directly or use GitHub Security Advisories.
 
-# TODO: issue #122
+# TODO: issue #123
