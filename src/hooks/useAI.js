@@ -1,4 +1,4 @@
-﻿import { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
   aiFixCode,
@@ -16,6 +16,9 @@ import { OUTPUT_TABS } from '../config/constants';
 /**
  * useAI
  * Encapsulates all Groq AI feature logic: Fix, Explain, Visualize, Tests, Audit.
+ * 
+ * GSSOC Issue #885: Secure personal Groq key local storage with crypto.getRandomValues()
+ * random salt & support key removal flow for key rotation.
  *
  * @param {string} language - current language key
  * @param {string} code     - current editor code
