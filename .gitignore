@@ -18,3 +18,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# GSSOC Issue #884: Playwright Test Artifacts
+playwright-report/
+test-results/
