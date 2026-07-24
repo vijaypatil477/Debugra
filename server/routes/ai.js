@@ -95,17 +95,20 @@ function getApiKeyFingerprint(apiKey) {
 }
 
 // Helper middleware to handle cached AI requests
-const handleCachedRequest = (actionFn) => async (req, res, next) => {
+// GSSOC Issue #887: Include SHA-256 hash of user code in node-cache key
+// Prevents identical prompts across different code snippets from returning wrong cached AI explanations
+// Supports mode-specific TTL (e.g., 300s for code fixes/explanations, 600s for test generation)
+const handleCachedRequest = (actionFn, customTtl) => async (req, res, next) => {
   try {
     const apiKey = getUserGroqApiKey(req);
-    // Build a stable hash from the request body instead of embedding raw JSON
+    // Build a stable hash from the request body including user code, language, error & inputs
     const sanitizedBody = {
-      code: req.body.code,
-      error: req.body.error,
-      language: req.body.language,
-      question: req.body.question,
-      previousExplanation: req.body.previousExplanation,
-      input: req.body.input
+      code: req.body.code || '',
+      error: req.body.error || '',
+      language: req.body.language || '',
+      question: req.body.question || '',
+      previousExplanation: req.body.previousExplanation || '',
+      input: req.body.input || ''
     };
     const bodyHash = crypto.createHash('sha256').update(JSON.stringify(sanitizedBody)).digest('hex');
     const cacheKey = `${req.path}_${getApiKeyFingerprint(apiKey)}_${bodyHash}`;
@@ -125,7 +128,11 @@ const handleCachedRequest = (actionFn) => async (req, res, next) => {
       console.log(`[Cache] Evictions: ${stats.evictions}, Keys: ${Object.keys(aiCache.keys()).length}`);
     }
     pruneAiCacheForInsert(cacheKey);
-    aiCache.set(cacheKey, result);
+    if (customTtl) {
+      aiCache.set(cacheKey, result, customTtl);
+    } else {
+      aiCache.set(cacheKey, result);
+    }
     aiCacheInsertionOrder.set(cacheKey, Date.now());
     
     res.json(result);
