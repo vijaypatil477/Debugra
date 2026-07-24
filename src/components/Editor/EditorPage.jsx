@@ -1107,6 +1107,20 @@ export default function EditorPage({ user }) {
               {showMinimap ? <EyeOff size={13} /> : <Eye size={13} />}
             </button>
           </div>
+          <button
+            className="toolbar-icon-btn d-none d-md-flex"
+            aria-label="Copy project link"
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              toast.success('Project link copied!');
+            }}
+            title="Copy project link"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+          </button>
         </div>
         <div className="toolbar-right d-flex align-items-center gap-2">
           <div className="d-none d-md-flex align-items-center gap-2">
