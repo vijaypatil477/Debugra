@@ -6,10 +6,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { Moon, Settings, Sun, Volume2, VolumeX } from 'lucide-react';
-import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen } from 'lucide-react';
-import { Settings, Volume2, VolumeX, Eye, EyeOff, Menu, FolderOpen, AlertTriangle } from 'lucide-react';
-
+import { Moon, Sun, Volume2, VolumeX, Settings, Eye, EyeOff, Menu, FolderOpen, AlertTriangle } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 import {
