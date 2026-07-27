@@ -47,7 +47,6 @@ import WelcomeTour from './WelcomeTour';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import MobileDrawer from './MobileDrawer';
 import { getSessionApiKey, isSecureApiKeyStored } from '../../services/secureApiKeyStore';
-import { useTheme } from '../../context/ThemeContext';
 import DebugOverlay from './DebugOverlay';
 import SearchReplacePanel from './SearchReplacePanel';
 import Loader from '../Loader';
