@@ -464,9 +464,10 @@ export default function LandingPage() {
           >
             v1.0
           </span>
+          </Link>
         </div>
           <span className="landing-version-badge">v1.0</span>
-        </Link>
+      
         <div className="landing-nav-right desktop-only">
           <a href="#features" className="landing-nav-link">
             Features
