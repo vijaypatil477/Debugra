@@ -1,47 +1,21 @@
-﻿const express = require('express');
+const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const { verifyWebhookSignature } = require('../middleware/webhookAuth');
+const { rateLimit } = require('express-rate-limit');
 
-// ── Rate limiting (built-in — no extra package needed) ──────────────────────
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const RATE_LIMIT_MAX = 10; // max 10 requests per IP per window
-
-const ipRequestLog = new Map(); // { ip -> [timestamp, ...] }
-
-function webhookRateLimiter(req, res, next) {
-  const ip = req.ip || req.connection.remoteAddress || 'unknown';
-  const now = Date.now();
-
-  if (!ipRequestLog.has(ip)) {
-    ipRequestLog.set(ip, []);
-  }
-
-  // Prune timestamps outside the window
-  const timestamps = ipRequestLog
-    .get(ip)
-    .filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-
-  if (timestamps.length >= RATE_LIMIT_MAX) {
+// ── Rate limiting ─────────────────────────────────────────────────────────
+const webhookRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler: (req, res) => {
     return res.status(429).json({
       error: 'Too many webhook requests. Please try again later.',
     });
-  }
-
-  timestamps.push(now);
-  ipRequestLog.set(ip, timestamps);
-
-  // Cleanup old IPs every 5 minutes to prevent memory leaks
-  if (Math.random() < 0.01) {
-    for (const [key, ts] of ipRequestLog.entries()) {
-      if (ts.every((t) => now - t >= RATE_LIMIT_WINDOW_MS)) {
-        ipRequestLog.delete(key);
-      }
-    }
-  }
-
-  next();
-}
+  },
+});
 
 // ── Input validation ─────────────────────────────────────────────────────────
 const ALLOWED_EVENTS = new Set([
