@@ -38,7 +38,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#features"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-white hover:text-[#4fc1ff] no-underline transition-colors"
               >
                 Features
               </a>
@@ -46,7 +46,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#docs"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-white hover:text-[#4fc1ff] no-underline transition-colors"
               >
                 Documentation
               </a>
@@ -54,7 +54,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#playground"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-white hover:text-[#4fc1ff] no-underline transition-colors"
               >
                 Playground
               </a>
@@ -62,7 +62,7 @@ const Footer = () => {
             <li>
               <Link
                 to="/feedback"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-white hover:text-[#4fc1ff] no-underline transition-colors"
               >
                 Feedback
               </Link>
@@ -77,7 +77,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#changelog"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-white hover:text-[#4fc1ff] no-underline transition-colors"
               >
                 Changelog
               </a>
@@ -85,7 +85,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#contributing"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-white hover:text-[#4fc1ff] no-underline transition-colors"
               >
                 Contributing
               </a>
@@ -93,7 +93,7 @@ const Footer = () => {
             <li>
               <a
                 href="/#license"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-white hover:text-[#4fc1ff] no-underline transition-colors"
               >
                 MIT License
               </a>
@@ -101,7 +101,7 @@ const Footer = () => {
             <li>
               <Link
                 to="/feedback"
-                className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
+                className="text-white hover:text-[#4fc1ff] no-underline transition-colors"
               >
                 Contact Team
               </Link>
