@@ -169,12 +169,16 @@ export function useEditor({ user, onNeedAuth }) {
 
   const updateCode = useCallback((newCode) => {
     hasUserChangesRef.current = true;
-    setCode(newCode);
+    setCode((current) => (current === newCode ? current : newCode));
   }, []);
 
   const updateLanguage = useCallback((newLang) => {
     hasUserChangesRef.current = true;
-    setLanguage(newLang);
+    setLanguage((current) => (current === newLang ? current : newLang));
+  }, []);
+
+  const updateStdinValue = useCallback((newValue) => {
+    setStdinValue((current) => (current === newValue ? current : newValue));
   }, []);
 
   const changeLanguage = useCallback((newLang) => {
@@ -388,7 +392,7 @@ export function useEditor({ user, onNeedAuth }) {
     cursorPos,
     setCursorPos,
     stdinValue,
-    setStdinValue,
+    setStdinValue: updateStdinValue,
     stdinOpen,
     setStdinOpen,
     needsInput,

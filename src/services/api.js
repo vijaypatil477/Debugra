@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getSessionApiKey } from './secureApiKeyStore';
+import { consumeSessionApiKey } from './secureApiKeyStore';
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
@@ -20,13 +20,29 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+function clearGroqHeader(config) {
+  if (!config?.headers) return;
+  delete config.headers['X-Groq-Api-Key'];
+  delete config.headers['x-groq-api-key'];
+}
+
 // Request interceptor — attach a session-only user Groq key when unlocked
 api.interceptors.request.use(
   (config) => {
-    const apiKey = getSessionApiKey();
-    if (apiKey && config.url?.startsWith('/api/ai/')) {
-      config.headers['X-Groq-Api-Key'] = apiKey;
+    let apiKey = null;
+
+    try {
+      if (config.url?.startsWith('/api/ai/')) {
+        apiKey = consumeSessionApiKey();
+
+        if (apiKey) {
+          config.headers['X-Groq-Api-Key'] = apiKey;
+        }
+      }
+    } finally {
+      apiKey = null;
     }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -34,8 +50,13 @@ api.interceptors.request.use(
 
 // Response interceptor — normalize errors into a consistent shape
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    clearGroqHeader(response.config);
+    return response;
+  },
   (error) => {
+    clearGroqHeader(error.config);
+
     if (error.response?.status === 429) {
       const retryAfter = parseInt(
         error.response.headers['retry-after'] || error.response.data?.retryAfter || '60',
