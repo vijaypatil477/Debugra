@@ -23,10 +23,12 @@ service cloud.firestore {
                         // Editors can update code, language, stdin, etc. but cannot modify administrative fields
                         (resource.data.roles[request.auth.uid] == 'editor' || resource.data.roles[request.auth.uid] == 'host')
                         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdBy', 'passwordHash', 'passwordSalt', 'roles'])
+                        && (resource.data.passwordProtected != true || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['participantIds']))
                       )
                       || (
                         // Viewers can only join/leave/vote but cannot modify code, language, roles, or settings.
                         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['code', 'language', 'createdBy', 'passwordHash', 'passwordSalt'])
+                        && (resource.data.passwordProtected != true || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['participantIds']))
                         && (
                           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['roles'])
                           || (
