@@ -1193,6 +1193,9 @@ export default function LandingPage() {
                   </button>
                 </div>
               )}
+              <button type="submit" disabled={loading} className="modal-submit-btn">
+                {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
+              </button>
             </form>
 
             <p className="modal-toggle">
