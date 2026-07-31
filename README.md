@@ -204,7 +204,8 @@ CLIENT_URL=http://localhost:5173
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 CSP_REPORT_URI=/api/security/csp-report
 GROQ_API_KEY=your_groq_api_key
-DEBUGRA_ADMIN_TOKEN=choose_a_long_random_admin_token
+# DEBUGRA_ADMIN_TOKEN (Generate a secure token locally using terminal: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+DEBUGRA_ADMIN_TOKEN=your_generated_secure_admin_token_here
 ```
 
 `CORS_ORIGINS` accepts a comma-separated list of trusted frontend origins. `CSP_REPORT_URI` enables browser CSP violation reports through `/api/security/csp-report`.
