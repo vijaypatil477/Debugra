@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 export default function HistoryPanel({ user, onLoadCode, onClose }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
 
   useEffect(() => {
     if (!user) return;
