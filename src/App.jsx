@@ -1,16 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './services/firebase';
 import { Toaster } from 'react-hot-toast';
 import LandingPage from './components/Landing/LandingPage';
-import EditorPage from './components/Editor/EditorPage';
-import VideoCall from './components/Editor/VideoCall';
 import OfflineBanner from './components/Editor/OfflineBanner';
 import ContributorsPage from './components/Landing/ContributorsPage';
 import Footer from './components/Footer.jsx';
 import FeedbackPage from './components/FeedbackPage';
 import { ThemeProvider } from './context/ThemeContext';
+
+// Lazy-loaded routes — keeps the heavy Monaco editor and WebRTC bundles out of
+// the initial landing-page load so they download only when their route opens.
+const EditorPage = lazy(() => import('./components/Editor/EditorPage'));
+const VideoCall = lazy(() => import('./components/Editor/VideoCall'));
+
+function RouteFallback() {
+  return (
+    <div
+      style={{
+        height: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg-0, #1e1e1e)',
+        color: 'var(--text-1, #9d9d9d)',
+        fontSize: '0.85rem',
+      }}
+    >
+      <span className="spinner" style={{ marginRight: 8 }} />
+      Loading…
+    </div>
+  );
+}
 
 function AppContent({ user }) {
   const location = useLocation();
@@ -34,27 +56,29 @@ function AppContent({ user }) {
 
       {/* The main tag expands to fill all available empty space */}
       <main className="flex-grow">
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/feedback" element={<FeedbackPage />} />
-          <Route path="/editor" element={<EditorPage user={user} />} />
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/feedback" element={<FeedbackPage />} />
+            <Route path="/editor" element={<EditorPage user={user} />} />
 
-          {/* Test route to render VideoCall directly for e2e tests */}
-          <Route
-            path="/voice-test"
-            element={
-              <VideoCall roomId={'__playwright_test'} userName={'Playwright'} audioOnly />
-            }
-          />
+            {/* Test route to render VideoCall directly for e2e tests */}
+            <Route
+              path="/voice-test"
+              element={
+                <VideoCall roomId={'__playwright_test'} userName={'Playwright'} audioOnly />
+              }
+            />
 
-          {/* Local-only test route that does not use Firestore/room presence */}
-          <Route
-            path="/voice-test-local"
-            element={<VideoCall userName={'Playwright'} audioOnly />}
-          />
+            {/* Local-only test route that does not use Firestore/room presence */}
+            <Route
+              path="/voice-test-local"
+              element={<VideoCall userName={'Playwright'} audioOnly />}
+            />
 
-          <Route path="/contributors" element={<ContributorsPage />} />
-        </Routes>
+            <Route path="/contributors" element={<ContributorsPage />} />
+          </Routes>
+        </Suspense>
       </main>
 
       {/* Footer is safely placed inside the flex wrapper, outside <Routes> so it renders globally */}
