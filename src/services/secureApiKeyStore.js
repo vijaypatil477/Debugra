@@ -55,6 +55,13 @@ export function getSessionApiKey() {
   return sessionApiKey;
 }
 
+export function consumeSessionApiKey() {
+  const apiKey = sessionApiKey;
+  sessionApiKey = '';
+  notifyKeyChange();
+  return apiKey;
+}
+
 export function subscribeToSecureApiKey(listener) {
   const wrapped = (event) => listener(event.detail);
   window.addEventListener(SESSION_EVENT, wrapped);

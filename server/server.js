@@ -186,14 +186,12 @@ app.use(
       directives: buildCspDirectives(),
     },
 
-    // 3. X-Frame-Options — prevent clickjacking
-    frameguard: { action: 'deny' },
+    // 3-5. Applied explicitly below for a clearer security-header review surface.
+    frameguard: false,
 
-    // 4. X-Content-Type-Options — prevent MIME sniffing
-    noSniff: true,
+    noSniff: false,
 
-    // 5. Referrer-Policy — no referrer leakage from API
-    referrerPolicy: { policy: 'no-referrer' },
+    referrerPolicy: false,
 
     // Other useful helmet defaults kept on
     xssFilter: true,
@@ -205,7 +203,16 @@ app.use(
   })
 );
 
-// 6. Permissions-Policy — helmet doesn't set this natively; add manually
+// 3. X-Frame-Options: prevent clickjacking
+app.use(helmet.frameguard({ action: 'deny' }));
+
+// 4. X-Content-Type-Options: prevent MIME sniffing
+app.use(helmet.noSniff());
+
+// 5. Referrer-Policy: no referrer leakage from API
+app.use(helmet.referrerPolicy({ policy: 'no-referrer' }));
+
+// 6. Permissions-Policy: helmet doesn't set this natively; add manually
 app.use((req, res, next) => {
   res.setHeader(
     'Permissions-Policy',
