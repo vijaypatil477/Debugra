@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   doc,
   setDoc,
@@ -94,6 +94,8 @@ export function useRoom({
   setLanguage,
   setStdinValue,
   cursorPos,
+  applyRemoteCode,
+  lastLocalEditTimeRef,
 }) {
   const [roomId, setRoomId] = useState(null);
   const [roomData, setRoomData] = useState(null);
@@ -101,6 +103,10 @@ export function useRoom({
   const [showOnlineDropdown, setShowOnlineDropdown] = useState(false);
   const [showRequestsDropdown, setShowRequestsDropdown] = useState(false);
   const [remoteCursors, setRemoteCursors] = useState({});
+  const [activeConflict, setActiveConflict] = useState(null);
+  const lastRemoteApplyTimeRef = useRef(0);
+  const codeRef = useRef(code);
+  codeRef.current = code;
 
   // ─── Derived permissions ────────────────────────────────────────────────────
   const myRole = roomId
@@ -156,18 +162,34 @@ export function useRoom({
       if (!snap.exists()) return;
       const data = snap.data();
       setRoomData(data);
-      if (data.code !== undefined && data._lastEditor !== user?.uid) setCode(data.code);
+
+      if (data.code !== undefined && data._lastEditor !== user?.uid) {
+        if (lastLocalEditTimeRef?.current > lastRemoteApplyTimeRef.current) {
+          const remoteUser = (data.activeUsers || []).find((u) => u.uid === data._lastEditor);
+          setActiveConflict({
+            remoteCode: data.code,
+            remoteAuthor: remoteUser?.displayName || data._lastEditor?.slice(0, 8) || 'Another user',
+            remoteTimestamp: data.updatedAt,
+            localCode: codeRef.current,
+          });
+        } else {
+          applyRemoteCode?.(data.code);
+          lastRemoteApplyTimeRef.current = Date.now();
+        }
+      }
+
       if (data.language) setLanguage(data.language);
       if (data.stdin !== undefined && data._lastEditor !== user?.uid) setStdinValue(data.stdin);
       setActiveUsers(data.activeUsers || []);
     });
     return unsub;
-  }, [roomId, user, setCode, setLanguage, setStdinValue]);
+  }, [roomId, user, applyRemoteCode, setLanguage, setStdinValue, lastLocalEditTimeRef]);
 
   // ─── Push local changes (debounced, editor-gated) ──────────────────────────
   useEffect(() => {
     if (!roomId || !user || !roomData) return;
     if (!isEditor) return;
+    if (activeConflict) return;
     const timer = setTimeout(() => {
       updateDoc(doc(db, 'rooms', roomId), {
         code,
@@ -178,7 +200,7 @@ export function useRoom({
       }).catch(() => {});
     }, 300);
     return () => clearTimeout(timer);
-  }, [code, language, stdinValue, roomId, user, isEditor, roomData]);
+  }, [code, language, stdinValue, roomId, user, isEditor, roomData, activeConflict]);
 
   // ─── Sync active file (language) for presence ───────────────────────────────
   useEffect(() => {
@@ -360,6 +382,8 @@ export function useRoom({
     setRoomData(null);
     setActiveUsers([]);
     setRemoteCursors({});
+    setActiveConflict(null);
+    lastRemoteApplyTimeRef.current = 0;
     toast.success('Left the room');
   }, [roomId, user, roomData]);
 
@@ -501,6 +525,41 @@ export function useRoom({
     await updateDoc(doc(db, 'rooms', roomId), { executionResult: null });
   }, [roomId]);
 
+  // ─── Conflict Resolution ────────────────────────────────────────────────────
+  const resolveConflict = useCallback(
+    (resolution, mergedCode = null) => {
+      if (!activeConflict) return;
+
+      if (resolution === 'mine') {
+        lastRemoteApplyTimeRef.current = Date.now();
+        setActiveConflict(null);
+      } else if (resolution === 'theirs') {
+        applyRemoteCode?.(activeConflict.remoteCode);
+        lastRemoteApplyTimeRef.current = Date.now();
+        setActiveConflict(null);
+      } else if (resolution === 'merge' && mergedCode !== null) {
+        setCode(mergedCode);
+        lastRemoteApplyTimeRef.current = Date.now();
+        setActiveConflict(null);
+      }
+    },
+    [activeConflict, applyRemoteCode, setCode]
+  );
+
+  // Auto-resolve conflict after 60s with remote version (last-write-wins fallback)
+  useEffect(() => {
+    if (!activeConflict) return;
+    const timer = setTimeout(() => {
+      if (activeConflict) {
+        applyRemoteCode?.(activeConflict.remoteCode);
+        lastRemoteApplyTimeRef.current = Date.now();
+        setActiveConflict(null);
+        toast.info('Conflict auto-resolved with remote version (60s timeout)');
+      }
+    }, 60000);
+    return () => clearTimeout(timer);
+  }, [activeConflict, applyRemoteCode]);
+
   const fetchFullVotePayload = useCallback(
     async (voteId) => {
       if (!roomId) return null;
@@ -599,5 +658,7 @@ export function useRoom({
     fetchFullVotePayload,
     transitionVoteToExecuting,
     remoteCursors,
+    activeConflict,
+    resolveConflict,
   };
 }
