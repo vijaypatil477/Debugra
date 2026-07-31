@@ -12,6 +12,7 @@ const {
   explainCodeSnippetAI,
   askFollowUpAI,
   analyzeComplexityAI,
+  generateDocstringAI,
 } = require('../services/groqService');
 
 // Initialize cache with 1 hour TTL to reduce redundant LLM calls
@@ -188,5 +189,12 @@ router.post('/analyze-complexity', handleCachedRequest(async (body, apiKey) => {
   return await analyzeComplexityAI(code, language, apiKey);
 }));
 
+// Generate inline docstrings/comments for the active function/snippet
+router.post('/generate-docstrings', validateAiInput, handleCachedRequest(async (body, apiKey) => {
+  const { code, language, model } = body;
+  return await generateDocstringAI(code, language, apiKey, model);
+}));
+
 module.exports = router;
+
 

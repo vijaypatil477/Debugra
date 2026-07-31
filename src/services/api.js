@@ -103,4 +103,10 @@ export const aiAnalyzeComplexity = async (code, language) => {
   return data;
 };
 
+export const aiGenerateDocstrings = async (code, language, model = '') => {
+  const { data } = await api.post('/api/ai/generate-docstrings', { code, language, model });
+  return data;
+};
+
 export default api;
+

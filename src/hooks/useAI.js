@@ -8,7 +8,9 @@ import {
   aiAuditCode,
   aiExplainError,
   aiAnalyzeComplexity,
+  aiGenerateDocstrings,
 } from '../services/api';
+
 import { showRateLimitToast } from '../utils/rateLimitToast';
 import { LANGUAGES } from '../utils/languageConfig';
 import { OUTPUT_TABS } from '../config/constants';
@@ -127,6 +129,24 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, m
 
   const clearComplexity = useCallback(() => setComplexityResponse(null), []);
 
+  const generateDocstrings = useCallback(
+    () =>
+      withAI(async () => {
+        const editor = editorRef?.current;
+        const sel = editor?.getSelection?.();
+        const selectedCode =
+          sel && !sel.isEmpty() ? editor.getModel().getValueInRange(sel) : code;
+
+        return await aiGenerateDocstrings(
+          selectedCode,
+          LANGUAGES[language].name,
+          model
+        );
+      }),
+    [withAI, code, language, editorRef, model]
+  );
+
+
   return {
     aiResponse,
     isAILoading,
@@ -135,6 +155,7 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, m
     visualize,
     generateTests,
     audit,
+    generateDocstrings,
     clearAI,
     debugResponse,
     isDebugLoading,
@@ -146,3 +167,4 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, m
     clearComplexity,
   };
 }
+
