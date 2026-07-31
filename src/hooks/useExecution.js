@@ -110,6 +110,11 @@ export function useExecution({
   const run = useCallback(async () => {
     if (isRunning) return;
 
+    if (room?.isReadOnly) {
+      toast.error('Viewers are not allowed to execute code.');
+      return;
+    }
+
     // Check if we are inside collaborative room with active users
     if (room?.roomId && room.activeUsers?.length > 1) {
       if (room.roomData?.activeVote) {
