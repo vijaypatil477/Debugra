@@ -8,7 +8,7 @@ import EditorPage from './components/Editor/EditorPage';
 import VideoCall from './components/Editor/VideoCall';
 import OfflineBanner from './components/Editor/OfflineBanner';
 import ContributorsPage from './components/Landing/ContributorsPage';
-import Footer from './components/Footer.jsx';
+import Footer from './components/Landing/Footer';
 import FeedbackPage from './components/FeedbackPage';
 import { ThemeProvider } from './context/ThemeContext';
 
