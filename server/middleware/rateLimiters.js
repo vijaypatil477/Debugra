@@ -41,9 +41,28 @@ function createAiLimiter() {
   });
 }
 
+function createAuthLimiter() {
+  return rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5, // Strict limit for auth
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    handler(req, res) {
+      const retryAfter = retryAfterSeconds(req);
+      res.set('Retry-After', String(retryAfter));
+      res.status(429).json({
+        error: 'Too many authentication attempts. Please try again later.',
+        retryAfter,
+      });
+    },
+  });
+}
+
 module.exports = {
   executeLimiter: createExecuteLimiter(),
   aiLimiter: createAiLimiter(),
+  authLimiter: createAuthLimiter(),
   createExecuteLimiter,
   createAiLimiter,
+  createAuthLimiter,
 };
