@@ -84,8 +84,11 @@ function pruneAiCacheForInsert(cacheKey) {
 }
 
 function getUserGroqApiKey(req) {
-  const apiKey = String(req.get('x-groq-api-key') || '').trim();
-  return apiKey.length >= 20 ? apiKey : '';
+  const header = req.get('x-groq-api-key');
+  if (header === undefined) {
+    return undefined;
+  }
+  return String(header).trim();
 }
 
 function getApiKeyFingerprint(apiKey) {
