@@ -121,9 +121,13 @@ export function useRoom({
         displayName: user.displayName || user.email?.split('@')[0] || 'Guest',
         line: cursorPos.line,
         col: cursorPos.col,
+        selectionStartLine: cursorPos.selectionStartLine ?? null,
+        selectionStartCol: cursorPos.selectionStartCol ?? null,
+        selectionEndLine: cursorPos.selectionEndLine ?? null,
+        selectionEndCol: cursorPos.selectionEndCol ?? null,
         updatedAt: serverTimestamp(),
       }).catch(() => {});
-    }, 450);
+    }, 50);
     return () => clearTimeout(timer);
   }, [roomId, user, isEditor, cursorPos]);
 
