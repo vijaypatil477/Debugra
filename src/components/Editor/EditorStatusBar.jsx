@@ -13,6 +13,7 @@ export default function EditorStatusBar({
   execStatus,
   langName,
   cursorPos,
+  selectedCharSize,
   room,
   user,
   saveStatus = 'idle',
@@ -133,6 +134,8 @@ export default function EditorStatusBar({
         <span>
           Ln {cursorPos.line}, Col {cursorPos.col}
         </span>
+        {/* Selected character size */}
+        <span>Sel: {selectedCharSize}</span>
         <span>Spaces: {tabSize}</span>
         {/* Vim */}
         {vimEnabled && <span title="Vim mode">Vim: {vimMode || 'NORMAL'}</span>}
