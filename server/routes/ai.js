@@ -58,7 +58,7 @@ function validateAiInput(req, res, next) {
 }
 
 const MAX_AI_CACHE_KEYS = 500;
-const aiCache = new NodeCache({ stdTTL: 3600, maxKeys: MAX_AI_CACHE_KEYS, checkperiod: 600 });
+const aiCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
 const aiCacheInsertionOrder = new Map();
 
 aiCache.on('del', (key) => {
@@ -125,8 +125,12 @@ const handleCachedRequest = (actionFn) => async (req, res, next) => {
       console.log(`[Cache] Evictions: ${stats.evictions}, Keys: ${Object.keys(aiCache.keys()).length}`);
     }
     pruneAiCacheForInsert(cacheKey);
-    aiCache.set(cacheKey, result);
-    aiCacheInsertionOrder.set(cacheKey, Date.now());
+    try {
+      aiCache.set(cacheKey, result);
+      aiCacheInsertionOrder.set(cacheKey, Date.now());
+    } catch (cacheErr) {
+      console.warn('[Cache] Failed to set cache:', cacheErr.message);
+    }
     
     res.json(result);
   } catch (err) {
