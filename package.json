@@ -34,6 +34,7 @@
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
     "firebase": "^12.13.0",
+    "jszip": "^3.10.1",
     "lucide-react": "^1.17.0",
     "monaco-vim": "^0.4.4",
     "prettier": "^3.2.5",
