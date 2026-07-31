@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import './LandingPage.css';
+import { Navbar } from '../Navbar';
 import AuthModal from '../Auth/AuthModal';
 
 export default function ContributorsPage() {
@@ -10,8 +11,8 @@ export default function ContributorsPage() {
   const [contributors, setContributors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [repoStats, setRepoStats] = useState({});
-  const [showLogin, setShowLogin] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -47,53 +48,16 @@ export default function ContributorsPage() {
 
   return (
     <div className="landing-root contributors-page-root">
-      {/* ===== NAVBAR ===== */}
-      <nav className="landing-nav">
-        <Link to="/" className="landing-nav-left text-decoration-none">
-          <img src="/icon-dark.svg" height="26" alt="Debugra Logo" />
-          <span className="landing-logo">Debugra</span>
-          <span
-            style={{
-              fontSize: '0.6rem',
-              color: '#6a6a6a',
-              fontFamily: 'JetBrains Mono, monospace',
-              marginLeft: '4px',
-              paddingBottom: '1px',
-            }}
-          >
-            v1.0
-          </span>
-        </Link>
-        <div className="landing-nav-right desktop-only">
-          <Link to="/#features" className="landing-nav-link">
-            Features
-          </Link>
-          <Link to="/#languages" className="landing-nav-link">
-            Languages
-          </Link>
-          <Link to="/contributors" className="landing-nav-link">
-            Contributors
-          </Link>
-          <button
-            onClick={() => {
-              setIsSignUp(false);
-              setShowLogin(true);
-            }}
-            className="landing-btn-outline"
-          >
-            Log In
-          </button>
-          <button
-            onClick={() => {
-              setIsSignUp(true);
-              setShowLogin(true);
-            }}
-            className="landing-btn-primary"
-          >
-            Sign Up Free
-          </button>
-        </div>
-      </nav>
+      <Navbar
+        openLogin={() => {
+          setAuthMode('login');
+          setShowAuth(true);
+        }}
+        openSignup={() => {
+          setAuthMode('signup');
+          setShowAuth(true);
+        }}
+      />
 
       {/* ===== HERO ===== */}
       <section className="contributors-hero">
@@ -235,12 +199,12 @@ export default function ContributorsPage() {
           </div>
         </div>
       </section>
-      {showLogin && (
+      {showAuth && (
         <AuthModal
-          initialMode={isSignUp ? 'signup' : 'login'}
+          mode={authMode}
           onClose={() => {
-            setShowLogin(false);
-            setIsSignUp(false);
+            setShowAuth(false);
+            setAuthMode('login');
           }}
         />
       )}
