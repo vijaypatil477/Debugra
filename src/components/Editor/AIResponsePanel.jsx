@@ -1,6 +1,43 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { downloadAsMarkdown, downloadAsText } from '../../utils/downloadReport';
 import { LANGUAGES } from '../../utils/languageConfig';
+import toast from 'react-hot-toast';
+
+function CopyButton({ text }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      toast.success('Code copied successfully!');
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      toast.error('Failed to copy code');
+    });
+  }, [text]);
+  return (
+    <button
+      onClick={handleCopy}
+      style={{
+        position: 'absolute',
+        top: '4px',
+        right: '4px',
+        fontSize: '0.6rem',
+        padding: '2px 8px',
+        borderRadius: '4px',
+        border: '1px solid rgba(255,255,255,0.15)',
+        background: copied ? 'var(--green)' : 'rgba(255,255,255,0.08)',
+        color: copied ? '#fff' : 'var(--text-2)',
+        cursor: 'pointer',
+        opacity: 0.7,
+        transition: 'opacity 0.2s, background 0.2s',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
+      onMouseLeave={e => { e.currentTarget.style.opacity = '0.7'; }}
+    >
+      {copied ? '✓ Copied' : '📋 Copy'}
+    </button>
+  );
+}
 
 /**
  * AIResponsePanel
@@ -352,17 +389,20 @@ export default function AIResponsePanel({
               </button>
             )}
           </div>
-          <pre
-            style={{
-              fontSize: '0.75rem',
-              color: 'var(--text-0)',
-              whiteSpace: 'pre-wrap',
-              fontFamily: "'JetBrains Mono', monospace",
-              marginTop: '8px',
-            }}
-          >
-            {response.fixedCode}
-          </pre>
+          <div style={{ position: 'relative' }}>
+            <CopyButton text={response.fixedCode} />
+            <pre
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--text-0)',
+                whiteSpace: 'pre-wrap',
+                fontFamily: "'JetBrains Mono', monospace",
+                marginTop: '8px',
+              }}
+            >
+              {response.fixedCode}
+            </pre>
+          </div>
         </div>
       )}
       {Array.isArray(response.steps) && (
@@ -423,20 +463,23 @@ export default function AIResponsePanel({
                   )}
                 </div>
                 {stepCode && (
-                  <pre
-                    style={{
-                      fontSize: '0.72rem',
-                      color: 'var(--yellow)',
-                      fontFamily: "'JetBrains Mono', monospace",
-                      margin: '4px 0',
-                      padding: '4px 8px',
-                      background: 'var(--bg-0)',
-                      borderRadius: '3px',
-                      whiteSpace: 'pre-wrap',
-                    }}
-                  >
-                    {stepCode}
-                  </pre>
+                  <div style={{ position: 'relative' }}>
+                    <CopyButton text={stepCode} />
+                    <pre
+                      style={{
+                        fontSize: '0.72rem',
+                        color: 'var(--yellow)',
+                        fontFamily: "'JetBrains Mono', monospace",
+                        margin: '4px 0',
+                        padding: '4px 8px',
+                        background: 'var(--bg-0)',
+                        borderRadius: '3px',
+                        whiteSpace: 'pre-wrap',
+                      }}
+                    >
+                      {stepCode}
+                    </pre>
+                  </div>
                 )}
                 {desc && (
                   <div className="ai-card-content" style={{ fontSize: '0.72rem' }}>
