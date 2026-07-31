@@ -313,6 +313,7 @@ const REVIEWS = [
 export default function LandingPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const landingRootRef = useRef(null);
   const featuresCarouselRef = useRef(null);
   const { theme, toggleTheme } = useTheme();
 
@@ -370,11 +371,45 @@ export default function LandingPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const scrollRoot = landingRootRef.current;
+    if (!scrollRoot) return undefined;
+
+    const revealElements = scrollRoot.querySelectorAll('.js-scroll-reveal');
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+      revealElements.forEach((element) => element.classList.add('is-visible'));
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { root: scrollRoot, rootMargin: '0px 0px -12% 0px', threshold: 0.12 }
+    );
+
+    revealElements.forEach((element) => observer.observe(element));
+
+    return () => observer.disconnect();
+  }, []);
+
   // Back-to-top visibility — show after scrolling 400 px
   useEffect(() => {
-    const onScroll = () => setShowBackToTop(window.scrollY > 400);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    const scrollRoot = landingRootRef.current;
+    if (!scrollRoot) return undefined;
+
+    const onScroll = () => setShowBackToTop(scrollRoot.scrollTop > 400);
+    scrollRoot.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    return () => scrollRoot.removeEventListener('scroll', onScroll);
   }, []);
 
   // Reset confirm-password state whenever the user toggles login ↔ sign-up
@@ -442,7 +477,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="landing-root">
+    <div className="landing-root" ref={landingRootRef}>
       {/* ===== NAVBAR ===== */}
       <nav className="landing-nav">
         <Link to="/" className="landing-nav-left text-decoration-none">
@@ -647,7 +682,7 @@ export default function LandingPage() {
       )}
 
       {/* ===== HERO ===== */}
-      <section className="landing-hero">
+      <section className="landing-hero js-scroll-reveal landing-reveal">
         <div className="hero-glow" />
         <div className="container text-center" style={{ position: 'relative', zIndex: 1 }}>
           <div className="hero-eyebrow">
@@ -689,8 +724,12 @@ export default function LandingPage() {
 
           {/* Stats row */}
           <div className="hero-stats">
-            {STATS.map((s) => (
-              <div key={s.label} className="hero-stat">
+            {STATS.map((s, index) => (
+              <div
+                key={s.label}
+                className="hero-stat landing-stagger-item"
+                style={{ '--reveal-delay': `${index * 70}ms` }}
+              >
                 <span className="hero-stat-value">{s.value}</span>
                 <span className="hero-stat-label">{s.label}</span>
               </div>
@@ -700,7 +739,7 @@ export default function LandingPage() {
       </section>
 
       {/* ===== EDITOR PREVIEW ===== */}
-      <section className="landing-section container">
+      <section className="landing-section container js-scroll-reveal landing-reveal">
         <div className="row justify-content-center">
           <div className="col-12 col-xl-10">
             <div className="editor-preview">
@@ -805,7 +844,7 @@ export default function LandingPage() {
       </section>
 
       {/* ===== FEATURES BENTO GRID ===== */}
-      <section id="features" className="landing-section container">
+      <section id="features" className="landing-section container js-scroll-reveal landing-reveal">
         <div className="section-header">
           <p className="section-eyebrow">What&apos;s inside</p>
           <h2 className="section-title">
@@ -849,8 +888,10 @@ export default function LandingPage() {
                 return (
                   <div
                     key={i}
-                    className={`feature-card ${f.size === 'large' ? 'feature-card-wide' : ''}`}
-                    style={{ '--card-accent': f.accent }}
+                    className={`feature-card landing-stagger-item ${
+                      f.size === 'large' ? 'feature-card-wide' : ''
+                    }`}
+                    style={{ '--card-accent': f.accent, '--reveal-delay': `${i * 65}ms` }}
                   >
                     <div
                       className="feature-card-icon"
@@ -894,7 +935,10 @@ export default function LandingPage() {
       </section>
 
       {/* ===== LANGUAGES ===== */}
-      <section id="languages" className="landing-section container text-center">
+      <section
+        id="languages"
+        className="landing-section container text-center js-scroll-reveal landing-reveal"
+      >
         <div className="section-header">
           <p className="section-eyebrow">Engine</p>
           <h2 className="section-title">
@@ -907,15 +951,19 @@ export default function LandingPage() {
           </p>
         </div>
         <div className="lang-grid">
-          {LANGUAGES.map((lang) => (
-            <span key={lang} className="lang-chip">
+          {LANGUAGES.map((lang, index) => (
+            <span
+              key={lang}
+              className="lang-chip landing-stagger-item"
+              style={{ '--reveal-delay': `${Math.min(index, 10) * 35}ms` }}
+            >
               {lang}
             </span>
           ))}
         </div>
       </section>
       {/* ===== FAQ ===== */}
-      <section id="faq" className="landing-section container">
+      <section id="faq" className="landing-section container js-scroll-reveal landing-reveal">
         <div className="section-header">
           <p className="section-eyebrow">FAQ</p>
           <h2 className="section-title">
@@ -932,7 +980,11 @@ export default function LandingPage() {
           {FAQ_ITEMS.map((item, index) => {
             const isOpen = openFaq === index;
             return (
-              <div key={item.question} className={`faq-item ${isOpen ? 'is-open' : ''}`}>
+              <div
+                key={item.question}
+                className={`faq-item landing-stagger-item ${isOpen ? 'is-open' : ''}`}
+                style={{ '--reveal-delay': `${index * 55}ms` }}
+              >
                 <button
                   type="button"
                   className="faq-question"
@@ -955,7 +1007,10 @@ export default function LandingPage() {
       </section>
 
       {/* ===== REVIEWS & FEEDBACK ===== */}
-      <section id="reviews" className="landing-section container text-center">
+      <section
+        id="reviews"
+        className="landing-section container text-center js-scroll-reveal landing-reveal"
+      >
         <div className="section-header">
           <p className="section-eyebrow">Community</p>
           <h2 className="section-title">Feedback & Reviews</h2>
@@ -967,7 +1022,11 @@ export default function LandingPage() {
         <div className="reviews-carousel">
           <div className="reviews-track">
             {[...REVIEWS, ...REVIEWS].map((review, index) => (
-              <div key={index} className="review-card">
+              <div
+                key={index}
+                className="review-card landing-stagger-item"
+                style={{ '--reveal-delay': `${(index % REVIEWS.length) * 70}ms` }}
+              >
                 <div className="review-stars">{'★'.repeat(review.rating)}</div>
 
                 <p className="review-text">&quot;{review.review}&quot;</p>
@@ -978,7 +1037,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="feedback-form-card">
+        <div className="feedback-form-card js-scroll-reveal landing-reveal">
           <h3 style={{ marginBottom: '16px' }}>Share Your Feedback</h3>
 
           <form
@@ -1013,7 +1072,7 @@ export default function LandingPage() {
         </div>
       </section>
       {/* ===== CTA ===== */}
-      <section className="landing-cta-section">
+      <section className="landing-cta-section js-scroll-reveal landing-reveal">
         <div className="cta-glow" />
         <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
           <p className="section-eyebrow">Start now</p>
@@ -1060,7 +1119,7 @@ export default function LandingPage() {
       {showBackToTop && (
         <button
           className="back-to-top-btn"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          onClick={() => landingRootRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
           aria-label="Back to top"
           title="Scroll back to top"
         >
