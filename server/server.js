@@ -30,10 +30,6 @@ const securityDiagnosticsToken = (process.env.SECURITY_DIAGNOSTICS_TOKEN || '').
 const rateLimitEvents = [];
 
 function getClientIp(req) {
-  const forwardedFor = req.headers['x-forwarded-for'];
-  if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
-    return forwardedFor.split(',')[0].trim();
-  }
   return req.ip || req.socket?.remoteAddress || 'unknown';
 }
 
