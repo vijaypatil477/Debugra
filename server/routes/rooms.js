@@ -101,6 +101,20 @@ router.post('/verify-password', roomPasswordLimiter, async (req, res) => {
 
     const accessToken = `${Buffer.from(payload).toString('base64')}.${signature}`;
 
+    // ── Securely add user to participantIds to grant Firestore read access ──
+    const authHeader = req.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const idToken = authHeader.split('Bearer ')[1];
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        await db.collection('rooms').doc(roomId.trim()).update({
+          participantIds: admin.firestore.FieldValue.arrayUnion(decodedToken.uid)
+        });
+      } catch (authErr) {
+        console.warn(`[rooms] Failed to verify ID token for room join: ${authErr.message}`);
+      }
+    }
+
     return res.status(200).json({ accessToken, expiresAt });
   } catch (err) {
     console.error('[rooms] verify-password error:', err);
