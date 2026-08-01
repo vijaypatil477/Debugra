@@ -1,5 +1,5 @@
 const { Server } = require('socket.io');
-const admin = require('firebase-admin');
+const { db: firestoreDb } = require('./firebaseAdmin');
 const logger = require('../utils/logger');
 
 // In-memory cache for active rooms
@@ -39,13 +39,14 @@ function initSocketServer(server, allowedOrigins) {
         let initialStdin = '';
 
         try {
-          const db = admin.firestore();
-          const roomSnap = await db.collection('rooms').doc(roomId).get();
-          if (roomSnap.exists) {
-            const data = roomSnap.data();
-            initialCode = data.code || '';
-            initialLanguage = data.language || 'python';
-            initialStdin = data.stdinValue || '';
+          if (firestoreDb) {
+            const roomSnap = await firestoreDb.collection('rooms').doc(roomId).get();
+            if (roomSnap.exists) {
+              const data = roomSnap.data();
+              initialCode = data.code || '';
+              initialLanguage = data.language || 'python';
+              initialStdin = data.stdinValue || '';
+            }
           }
         } catch (err) {
           logger.error(`[Socket] Failed to fetch room state from Firestore for ${roomId}: ${err.message}`);
@@ -164,13 +165,14 @@ function initSocketServer(server, allowedOrigins) {
         if (room.activeUsers.length === 0) {
           logger.info(`[Socket] Room ${roomId} is empty. Persisting final state to Firestore...`);
           try {
-            const db = admin.firestore();
-            await db.collection('rooms').doc(roomId).update({
-              code: room.code,
-              language: room.language,
-              stdinValue: room.stdin,
-            });
-            logger.info(`[Socket] Room ${roomId} successfully saved to Firestore.`);
+            if (firestoreDb) {
+              await firestoreDb.collection('rooms').doc(roomId).update({
+                code: room.code,
+                language: room.language,
+                stdinValue: room.stdin,
+              });
+              logger.info(`[Socket] Room ${roomId} successfully saved to Firestore.`);
+            }
           } catch (err) {
             logger.error(`[Socket] Failed to save empty room ${roomId} to Firestore: ${err.message}`);
           }

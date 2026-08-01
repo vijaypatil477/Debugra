@@ -72,14 +72,18 @@ export default function AuthModal({ onClose, initialMode = 'login', mode }) {
           setLoading(false);
           return;
         }
-        const { collection, query, where, getDocs } = await import('firebase/firestore');
-        const q = await getDocs(
-          query(collection(db, 'users'), where('displayNameLower', '==', name.trim().toLowerCase()))
-        );
-        if (q && !q.empty) {
-          toast.error('This username is unavailable');
-          setLoading(false);
-          return;
+        try {
+          const { collection, query, where, getDocs } = await import('firebase/firestore');
+          const q = await getDocs(
+            query(collection(db, 'users'), where('displayNameLower', '==', name.trim().toLowerCase()))
+          );
+          if (q && !q.empty) {
+            toast.error('This username is unavailable');
+            setLoading(false);
+            return;
+          }
+        } catch (err) {
+          console.warn('[AuthModal] Username uniqueness check failed:', err.message);
         }
         result = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(result.user, { displayName: name });

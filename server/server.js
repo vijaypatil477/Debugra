@@ -1,5 +1,5 @@
 const logger = require('./utils/logger');
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const crypto = require('crypto');
 const http = require('http');
 const express = require('express');
@@ -198,9 +198,7 @@ app.use(
     referrerPolicy: { policy: 'no-referrer' },
 
     // Other useful helmet defaults kept on
-    xssFilter: true,
     hidePoweredBy: true,
-    ieNoOpen: true,
 
     // Allow Firebase Auth popup to communicate back via window.closed
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },

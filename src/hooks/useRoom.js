@@ -10,7 +10,7 @@ import {
   deleteDoc,
   collection,
 } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { db, auth } from '../services/firebase';
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
 
@@ -201,11 +201,17 @@ export function useRoom({
   // ─── Live sync from Firestore (Roles & Config Only) ──────────────────────────
   useEffect(() => {
     if (!roomId) return;
-    const unsub = onSnapshot(doc(db, 'rooms', roomId), (snap) => {
-      if (!snap.exists()) return;
-      const data = snap.data();
-      setRoomData(data);
-    });
+    const unsub = onSnapshot(
+      doc(db, 'rooms', roomId),
+      (snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        setRoomData(data);
+      },
+      (err) => {
+        console.warn('[useRoom] Room snapshot error:', err.message);
+      }
+    );
     return unsub;
   }, [roomId]);
 
@@ -239,31 +245,63 @@ export function useRoom({
   // ─── Create room ────────────────────────────────────────────────────────────
   const createRoom = useCallback(
     async (roomPassword = '') => {
-      if (!user) return false;
+      if (!user || !auth.currentUser) {
+        toast.error('Please sign in to create a collaborative room');
+        return false;
+      }
       const id = crypto.randomUUID().slice(0, 8);
-      const displayName = user.displayName || user.email?.split('@')[0] || 'Guest';
       const trimmedPassword = roomPassword.trim();
       const passwordProtected = Boolean(trimmedPassword);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const uid = user?.uid || 'guest-' + id;
+      const displayName = user?.displayName || user?.email?.split('@')[0] || 'Guest';
 
-      await setDoc(doc(db, 'rooms', id), {
-        name: `Room ${id}`,
-        createdBy: user.uid,
-        isPrivate: passwordProtected,
-        passwordProtected,
-        code,
-        language,
-        participantIds: [user.uid],
-        roles: { [user.uid]: 'host' },
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      try {
+        await setDoc(doc(db, 'rooms', id), {
+          name: `Room ${id}`,
+          createdBy: uid,
+          isPrivate: passwordProtected,
+          passwordProtected,
+          code: code || '',
+          language: language || 'python',
+          participantIds: [uid],
+          roles: { [uid]: 'host' },
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      } catch (clientErr) {
+        console.warn('[useRoom] Client setDoc failed, falling back to server API:', clientErr.message);
+        try {
+          const res = await fetch(`${apiUrl}/api/rooms/create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              roomId: id,
+              name: `Room ${id}`,
+              createdBy: uid,
+              isPrivate: passwordProtected,
+              passwordProtected,
+              code: code || '',
+              language: language || 'python',
+            }),
+          });
+          if (!res.ok) {
+            throw new Error('Server room creation returned ' + res.status);
+          }
+        } catch (serverErr) {
+          console.error('[useRoom] Room creation failed on both client and server:', serverErr);
+          toast.error('Failed to create room: ' + (serverErr.message || 'Network error'));
+          return false;
+        }
+      }
+
       setRoomId(id);
       localStorage.setItem('debugra_roomId', id);
-      toast.success(`Room created! ID: ${id}`);
-      navigator.clipboard.writeText(id);
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(id).catch(() => {});
+      }
 
-      // Trigger Webhook via Backend API
-      fetch(import.meta.env.VITE_API_URL + '/api/webhooks/room-event', {
+      fetch(`${apiUrl}/api/webhooks/room-event`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -325,8 +363,8 @@ export function useRoom({
         localStorage.setItem('debugra_roomId', newRoomId);
         toast.success(`Joined room: ${newRoomId}`);
 
-        // Trigger Webhook via Backend API
-        fetch(import.meta.env.VITE_API_URL + '/api/webhooks/room-event', {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        fetch(`${apiUrl}/api/webhooks/room-event`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

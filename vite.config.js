@@ -1,11 +1,29 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    // simple-peer relies on Node.js built-ins (events, stream, util, buffer, process)
+    // Polyfill Node globals and modules for browser compatibility.
+    nodePolyfills({
+      globals: {
+        Buffer: true,
+        global: true,
+        process: true,
+      },
+    }),
+  ],
   build: {
     chunkSizeWarningLimit: 1000,
+    rolldownOptions: {
+      // monaco-vim references monaco-editor as a peer dep in its UMD bundle;
+      // mark it external so Rolldown (Vite 8) doesn't try to bundle it.
+      external: ['monaco-editor/esm/vs/editor/editor.api'],
+    },
   },
   optimizeDeps: {
     include: [
@@ -18,7 +36,7 @@ export default defineConfig({
   },
   server: {
     headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      'Cross-Origin-Opener-Policy': 'unsafe-none',
     },
     proxy: {
       '/api': {
@@ -29,7 +47,7 @@ export default defineConfig({
   },
   preview: {
     headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      'Cross-Origin-Opener-Policy': 'unsafe-none',
     },
   },
 });

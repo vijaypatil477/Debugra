@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Peer from 'simple-peer';
 import {
   collection,
@@ -64,25 +64,29 @@ export function useWebRTC(roomId, user) {
       const participantsRef = collection(db, 'rooms', roomId, 'voice_participants');
       const staleThreshold = Timestamp.fromMillis(Date.now() - STALE_PARTICIPANT_SECONDS * 1000);
       const qParticipants = query(participantsRef, where('lastHeartbeat', '>', staleThreshold));
-      unsubscribeRef.current = onSnapshot(qParticipants, (snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === 'added') {
-            const data = change.doc.data();
-            if (data.uid !== user.uid && !peersRef.current[data.uid]) {
-              const peer = createPeer(data.uid, user.uid, mediaStream);
-              peersRef.current[data.uid] = peer;
+      unsubscribeRef.current = onSnapshot(
+        qParticipants,
+        (snapshot) => {
+          snapshot.docChanges().forEach((change) => {
+            if (change.type === 'added') {
+              const data = change.doc.data();
+              if (data.uid !== user.uid && !peersRef.current[data.uid]) {
+                const peer = createPeer(data.uid, user.uid, mediaStream);
+                peersRef.current[data.uid] = peer;
+              }
             }
-          }
-          if (change.type === 'removed') {
-            const data = change.doc.data();
-            if (peersRef.current[data.uid]) {
-              peersRef.current[data.uid].destroy();
-              delete peersRef.current[data.uid];
-              setPeers((prev) => prev.filter((p) => p.peerId !== data.uid));
+            if (change.type === 'removed') {
+              const data = change.doc.data();
+              if (peersRef.current[data.uid]) {
+                peersRef.current[data.uid].destroy();
+                delete peersRef.current[data.uid];
+                setPeers((prev) => prev.filter((p) => p.peerId !== data.uid));
+              }
             }
-          }
-        });
-      });
+          });
+        },
+        (err) => console.warn('[useWebRTC] Participants snapshot error:', err.message)
+      );
 
       // Listen for incoming signals — only recent ones
       const signalsRef = collection(db, 'rooms', roomId, 'signals');
@@ -93,21 +97,23 @@ export function useWebRTC(roomId, user) {
         where('createdAt', '>', signalCutoff),
         orderBy('createdAt', 'asc')
       );
-      signalsUnsubscribeRef.current = onSnapshot(q, (snapshot) => {
-        snapshot.docChanges().forEach(async (change) => {
-          if (change.type === 'added') {
-            const data = change.doc.data();
+      signalsUnsubscribeRef.current = onSnapshot(
+        q,
+        (snapshot) => {
+          snapshot.docChanges().forEach(async (change) => {
+            if (change.type === 'added') {
+              const data = change.doc.data();
             if (!peersRef.current[data.senderUid]) {
               const peer = addPeer(data, data.senderUid, mediaStream);
               peersRef.current[data.senderUid] = peer;
             } else {
               peersRef.current[data.senderUid].signal(JSON.parse(data.signal));
             }
-            // Clean up processed signals
-            await deleteDoc(change.doc.ref);
           }
         });
-      });
+      },
+      (err) => console.warn('[useWebRTC] Signals snapshot error:', err.message)
+    );
 
       // Periodic sweep for stale signals left by disconnected peers
       sweepIntervalRef.current = setInterval(

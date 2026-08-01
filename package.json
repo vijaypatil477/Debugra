@@ -8,20 +8,23 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "lint": "eslint src --ext .js,.jsx",
+    "lint": "eslint src",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css,json}\"",
     "format:fix": "prettier --write \"src/**/*.{js,jsx,css,json}\""
   },
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
     "@firebase/rules-unit-testing": "^5.0.1",
     "@playwright/test": "^1.60.0",
-    "eslint": "^8.57.0",
+    "eslint": "^9.39.5",
     "eslint-plugin-react": "^7.34.1",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.6",
-    "jsdom": "^27.2.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^16.0.0",
+    "jsdom": "^29.1.1",
     "prettier": "^3.2.5",
     "vite": "^8.0.10",
+    "vite-plugin-node-polyfills": "^0.28.0",
     "vitest": "^4.0.15"
   },
   "dependencies": {

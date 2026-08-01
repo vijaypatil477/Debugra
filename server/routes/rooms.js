@@ -1,6 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
-const admin = require('firebase-admin'); // already initialised in server/index.js
+const { db } = require('../services/firebaseAdmin'); // modular firebase-admin v14
 const { roomPasswordLimiter } = require('../middleware/rateLimiter');
 const router = express.Router();
 
@@ -58,7 +58,6 @@ router.post('/verify-password', roomPasswordLimiter, async (req, res) => {
 
   try {
     // ── Fetch room from Firestore (server-side — bypasses security rules) ──
-    const db = admin.firestore();
     const roomSnap = await db.collection('rooms').doc(roomId.trim()).get();
 
     if (!roomSnap.exists) {
@@ -162,6 +161,39 @@ router.post('/validate-token', async (req, res) => {
   } catch (err) {
     console.error('[rooms] validate-token error:', err);
     return res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// ── POST /api/rooms/create ───────────────────────────────────────────────────
+/**
+ * Creates a room server-side using Admin SDK (bypasses client security rules/ad-blockers).
+ */
+router.post('/create', async (req, res) => {
+  const { roomId, name, createdBy, isPrivate, passwordProtected, code, language } = req.body;
+  if (!roomId || !createdBy) {
+    return res.status(400).json({ error: 'roomId and createdBy are required.' });
+  }
+
+  try {
+    if (db) {
+      const now = new Date();
+      await db.collection('rooms').doc(roomId.trim()).set({
+        name: name || `Room ${roomId}`,
+        createdBy,
+        isPrivate: Boolean(isPrivate),
+        passwordProtected: Boolean(passwordProtected),
+        code: code || '',
+        language: language || 'python',
+        participantIds: [createdBy],
+        roles: { [createdBy]: 'host' },
+        createdAt: now,
+        updatedAt: now,
+      }, { merge: true });
+    }
+    return res.status(200).json({ success: true, roomId });
+  } catch (err) {
+    console.error('[rooms] create room error:', err);
+    return res.status(500).json({ error: 'Failed to create room server-side.' });
   }
 });
 
