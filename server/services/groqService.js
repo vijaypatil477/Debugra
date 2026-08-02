@@ -16,15 +16,26 @@ function getGroqClient(apiKey) {
   return new Groq({ apiKey: apiKey || process.env.GROQ_API_KEY || 'missing_key' });
 }
 async function chatCompletion(systemPrompt, userPrompt, apiKey = '', model = DEFAULT_MODEL) {
-  const response = await getGroqClient(apiKey).chat.completions.create({
-    model: MODELS[model] ? model : DEFAULT_MODEL,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
-    temperature: 0.2,
-    max_tokens: 2000,response_format: { type: 'json_object' },
-  });
+  let response;
+  try {
+    response = await getGroqClient(apiKey).chat.completions.create({
+      model: MODELS[model] ? model : DEFAULT_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.2,
+      max_tokens: 2000,
+      response_format: { type: 'json_object' },
+    });
+  } catch (err) {
+    if (err.status === 401 || err?.error?.code === 'expired_api_key' || err?.error?.code === 'invalid_api_key') {
+      const authErr = new Error('AI API key is invalid or expired. Please enter a valid Groq key at console.groq.com and update server/.env or AI Settings.');
+      authErr.status = 401;
+      throw authErr;
+    }
+    throw err;
+  }
 
   const rawContent = response.choices[0].message.content;
   const tokenUsage = response.usage;
