@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const logger = require('../utils/logger');
 const firebaseAdmin = require('./firebaseAdmin');
+const { Timestamp } = require('firebase-admin/firestore');
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -86,8 +87,8 @@ class RoomCleanupService {
     }
 
     this.running = true;
-    const { admin, db } = firebaseAdmin;
-    const cutoff = admin.firestore.Timestamp.fromMillis(
+    const { db } = firebaseAdmin;
+    const cutoff = Timestamp.fromMillis(
       Date.now() - this.settings.staleHours * HOUR_MS
     );
     const staleQuery = db.collection('rooms').where('updatedAt', '<', cutoff);

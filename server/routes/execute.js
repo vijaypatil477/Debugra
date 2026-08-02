@@ -111,8 +111,8 @@ router.post('/', executeLimiter, async (req, res, next) => {
 
     const result = await executeCode(source_code, parsedId, normalizedStdin);
 
-    // Only cache successful requests
-    if (result && result.status) {
+    // Only cache successful executions (status.id === 3: Accepted)
+    if (result && result.status?.id === 3 && !(result.stderr || '').includes('OCI runtime error')) {
       cacheExecutionResult(cacheKey, result);
     }
 

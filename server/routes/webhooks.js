@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const { verifyWebhookSignature } = require('../middleware/webhookAuth');
@@ -183,8 +183,10 @@ router.post(
     const slackUrl = process.env.SLACK_WEBHOOK_URL;
 
     if (!discordUrl && !slackUrl) {
-      return res.status(503).json({
-        error: 'No webhook destinations configured on this server.',
+      return res.status(200).json({
+        success: true,
+        dispatched: [],
+        message: 'No webhook destinations configured on this server.',
       });
     }
 

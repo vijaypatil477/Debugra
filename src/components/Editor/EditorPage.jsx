@@ -2041,6 +2041,7 @@ export default function EditorPage({ user }) {
             user={user}
             isOpen={true}
             onToggle={() => setMobileTab(MOBILE_TABS.CODE)}
+            socket={room.socket}
           />
         </div>
       ) : (
@@ -2049,6 +2050,7 @@ export default function EditorPage({ user }) {
           user={user}
           isOpen={chatOpen}
           onToggle={() => setChatOpen(!chatOpen)}
+          socket={room.socket}
         />
       )}
 

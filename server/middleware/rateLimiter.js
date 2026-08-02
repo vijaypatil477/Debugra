@@ -1,7 +1,8 @@
 const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 
 function getIpKey(req) {
-  return ipKeyGenerator ? ipKeyGenerator(req.ip) : req.ip;
+  // Use express-rate-limit's ipKeyGenerator to properly handle IPv6 masking (v8+)
+  return ipKeyGenerator(req);
 }
 
 function getRoomIdKey(req) {

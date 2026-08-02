@@ -10,8 +10,9 @@ import {
   deleteDoc,
   collection,
 } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { db, auth } from '../services/firebase';
 import toast from 'react-hot-toast';
+import { io } from 'socket.io-client';
 
 const ROOM_AUTH_PREFIX = 'debugra_roomAuth_';
 
@@ -111,116 +112,196 @@ export function useRoom({
   const isReadOnly = roomId ? !isEditor : false;
   const currentEditorName = isEditor ? user?.displayName || 'Editor' : 'Viewer';
 
-  // ─── Sync local cursor to Firestore ──────────────────────────────────────────
-  useEffect(() => {
-    if (!roomId || !user || !isEditor || !cursorPos) return;
-    const timer = setTimeout(() => {
-      const cursorRef = doc(db, 'rooms', roomId, 'cursors', user.uid);
-      setDoc(cursorRef, {
-        uid: user.uid,
-        displayName: user.displayName || user.email?.split('@')[0] || 'Guest',
-        line: cursorPos.line,
-        col: cursorPos.col,
-        updatedAt: serverTimestamp(),
-      }).catch(() => {});
-    }, 450);
-    return () => clearTimeout(timer);
-  }, [roomId, user, isEditor, cursorPos]);
+  const [socket, setSocket] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
 
-  // ─── Listen for remote cursors ──────────────────────────────────────────────
+  // ─── Socket.io Connection ──────────────────────────────────────────────────
   useEffect(() => {
-    if (!roomId) {
-      setRemoteCursors({});
+    if (!roomId || !user) {
+      if (socket) {
+        socket.disconnect();
+        setSocket(null);
+      }
+      setIsConnected(false);
       return;
     }
-    const cursorsRef = collection(db, 'rooms', roomId, 'cursors');
-    const unsub = onSnapshot(cursorsRef, (snapshot) => {
-      const cursors = {};
-      snapshot.forEach((cursorDoc) => {
-        const data = cursorDoc.data();
-        if (data.uid !== user?.uid) {
-          cursors[data.uid] = data;
-        }
-      });
-      setRemoteCursors(cursors);
+
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const newSocket = io(apiUrl, {
+      transports: ['websocket'],
     });
+
+    setSocket(newSocket);
+
+    newSocket.on('connect', () => {
+      setIsConnected(true);
+      newSocket.emit('join-room', {
+        roomId,
+        user: {
+          uid: user.uid,
+          displayName: user.displayName || user.email?.split('@')[0] || 'Guest',
+          email: user.email,
+        },
+        role: myRole,
+      });
+    });
+
+    newSocket.on('disconnect', () => {
+      setIsConnected(false);
+    });
+
+    newSocket.on('room-state', ({ code: rCode, language: rLang, stdin: rStdin, activeUsers: rUsers }) => {
+      if (rCode !== undefined) setCode(rCode);
+      if (rLang) setLanguage(rLang);
+      if (rStdin !== undefined) setStdinValue(rStdin);
+      setActiveUsers(rUsers);
+    });
+
+    newSocket.on('presence-update', (users) => {
+      setActiveUsers(users);
+    });
+
+    newSocket.on('code-update', ({ code: rCode, language: rLang }) => {
+      if (rCode !== undefined) setCode(rCode);
+      if (rLang) setLanguage(rLang);
+    });
+
+    newSocket.on('stdin-update', ({ stdin: rStdin }) => {
+      if (rStdin !== undefined) setStdinValue(rStdin);
+    });
+
+    newSocket.on('cursor-move', ({ userId, line, col }) => {
+      setRemoteCursors((prev) => ({
+        ...prev,
+        [userId]: { uid: userId, line, col },
+      }));
+    });
+
     return () => {
-      unsub();
+      newSocket.disconnect();
+      setSocket(null);
+      setIsConnected(false);
     };
   }, [roomId, user]);
 
-  // ─── Live sync from Firestore ───────────────────────────────────────────────
+  // ─── Sync local cursor to Socket.io ──────────────────────────────────────────
+  useEffect(() => {
+    if (!roomId || !user || !isEditor || !cursorPos || !socket || !isConnected) return;
+    const timer = setTimeout(() => {
+      socket.emit('cursor-move', {
+        roomId,
+        userId: user.uid,
+        line: cursorPos.line,
+        col: cursorPos.col,
+      });
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [roomId, user, isEditor, cursorPos, socket, isConnected]);
+
+  // ─── Live sync from Firestore (Roles & Config Only) ──────────────────────────
   useEffect(() => {
     if (!roomId) return;
-    const unsub = onSnapshot(doc(db, 'rooms', roomId), (snap) => {
-      if (!snap.exists()) return;
-      const data = snap.data();
-      setRoomData(data);
-      if (data.code !== undefined && data._lastEditor !== user?.uid) setCode(data.code);
-      if (data.language) setLanguage(data.language);
-      if (data.stdin !== undefined && data._lastEditor !== user?.uid) setStdinValue(data.stdin);
-      setActiveUsers(data.activeUsers || []);
-    });
+    const unsub = onSnapshot(
+      doc(db, 'rooms', roomId),
+      (snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        setRoomData(data);
+      },
+      (err) => {
+        console.warn('[useRoom] Room snapshot error:', err.message);
+      }
+    );
     return unsub;
-  }, [roomId, user, setCode, setLanguage, setStdinValue]);
+  }, [roomId]);
 
-  // ─── Push local changes (debounced, editor-gated) ──────────────────────────
+  // ─── Push local changes via Socket.io ────────────────────────────────────────
   useEffect(() => {
-    if (!roomId || !user || !roomData) return;
+    if (!roomId || !user || !socket || !isConnected) return;
     if (!isEditor) return;
     const timer = setTimeout(() => {
-      updateDoc(doc(db, 'rooms', roomId), {
+      socket.emit('code-update', {
+        roomId,
         code,
         language,
+      });
+      socket.emit('stdin-update', {
+        roomId,
         stdin: stdinValue,
-        _lastEditor: user.uid,
-        updatedAt: serverTimestamp(),
-      }).catch(() => {});
+      });
     }, 300);
     return () => clearTimeout(timer);
-  }, [code, language, stdinValue, roomId, user, isEditor, roomData]);
+  }, [code, language, stdinValue, roomId, user, isEditor, socket, isConnected]);
 
-  // ─── Sync active file (language) for presence ───────────────────────────────
+  // ─── Sync active file (language) for presence via Socket.io ─────────────────
   useEffect(() => {
-    if (!roomId || !user || !roomData) return;
-    const currentUsers = roomData.activeUsers || [];
-    const myIndex = currentUsers.findIndex((u) => u.uid === user.uid);
-    if (myIndex !== -1 && currentUsers[myIndex].activeFile !== language) {
-      const newUsers = [...currentUsers];
-      newUsers[myIndex] = { ...newUsers[myIndex], activeFile: language };
-      updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
-    }
-  }, [roomId, user, roomData, language]);
+    if (!roomId || !user || !socket || !isConnected) return;
+    socket.emit('active-file-change', {
+      roomId,
+      language,
+    });
+  }, [roomId, user, language, socket, isConnected]);
 
   // ─── Create room ────────────────────────────────────────────────────────────
   const createRoom = useCallback(
     async (roomPassword = '') => {
-      if (!user) return false; // let caller show auth modal
+      if (!user || !auth.currentUser) {
+        toast.error('Please sign in to create a collaborative room');
+        return false;
+      }
       const id = crypto.randomUUID().slice(0, 8);
-      const displayName = user.displayName || user.email?.split('@')[0] || 'Guest';
       const trimmedPassword = roomPassword.trim();
       const passwordProtected = Boolean(trimmedPassword);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const uid = user?.uid || 'guest-' + id;
+      const displayName = user?.displayName || user?.email?.split('@')[0] || 'Guest';
 
-      await setDoc(doc(db, 'rooms', id), {
-        name: `Room ${id}`,
-        createdBy: user.uid,
-        isPrivate: passwordProtected,
-        passwordProtected,
-        code,
-        language,
-        activeUsers: [{ uid: user.uid, displayName }],
-        participantIds: [user.uid],
-        roles: { [user.uid]: 'host' },
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      try {
+        await setDoc(doc(db, 'rooms', id), {
+          name: `Room ${id}`,
+          createdBy: uid,
+          isPrivate: passwordProtected,
+          passwordProtected,
+          code: code || '',
+          language: language || 'python',
+          participantIds: [uid],
+          roles: { [uid]: 'host' },
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      } catch (clientErr) {
+        console.warn('[useRoom] Client setDoc failed, falling back to server API:', clientErr.message);
+        try {
+          const res = await fetch(`${apiUrl}/api/rooms/create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              roomId: id,
+              name: `Room ${id}`,
+              createdBy: uid,
+              isPrivate: passwordProtected,
+              passwordProtected,
+              code: code || '',
+              language: language || 'python',
+            }),
+          });
+          if (!res.ok) {
+            throw new Error('Server room creation returned ' + res.status);
+          }
+        } catch (serverErr) {
+          console.error('[useRoom] Room creation failed on both client and server:', serverErr);
+          toast.error('Failed to create room: ' + (serverErr.message || 'Network error'));
+          return false;
+        }
+      }
+
       setRoomId(id);
       localStorage.setItem('debugra_roomId', id);
-      toast.success(`Room created! ID: ${id}`);
-      navigator.clipboard.writeText(id);
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(id).catch(() => {});
+      }
 
-      // Trigger Webhook via Backend API
-      fetch(import.meta.env.VITE_API_URL + '/api/webhooks/room-event', {
+      fetch(`${apiUrl}/api/webhooks/room-event`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -249,7 +330,6 @@ export function useRoom({
           return false;
         }
         const data = roomSnap.data();
-        const currentUsers = data.activeUsers || [];
         const isCreator = data.createdBy === user.uid;
         const isAllowed = data.allowedEditors?.includes(user.uid);
         const requiresPassword =
@@ -273,21 +353,18 @@ export function useRoom({
         if (!newRoles[user.uid]) newRoles[user.uid] = 'viewer';
 
         const currentParticipantIds = data.participantIds || [];
-        if (!currentUsers.some((u) => u.uid === user.uid)) {
+        if (!currentParticipantIds.includes(user.uid) || !data.roles || !data.roles[user.uid]) {
           await updateDoc(roomRef, {
-            activeUsers: [...currentUsers, { uid: user.uid, displayName }],
             participantIds: [...new Set([...currentParticipantIds, user.uid])],
             roles: newRoles,
           });
-        } else if (!data.roles || !data.roles[user.uid]) {
-          await updateDoc(roomRef, { roles: newRoles });
         }
         setRoomId(newRoomId);
         localStorage.setItem('debugra_roomId', newRoomId);
         toast.success(`Joined room: ${newRoomId}`);
 
-        // Trigger Webhook via Backend API
-        fetch(import.meta.env.VITE_API_URL + '/api/webhooks/room-event', {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        fetch(`${apiUrl}/api/webhooks/room-event`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -316,24 +393,6 @@ export function useRoom({
     }
   }, [user, roomId, joinRoom]);
 
-  // ─── Presence cleanup on browser tab/window close ──────────────────────────
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (roomId && user) {
-        if (roomData) {
-          const currentUsers = roomData.activeUsers || [];
-          const newUsers = currentUsers.filter((u) => u.uid !== user.uid);
-          updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
-        }
-        deleteDoc(doc(db, 'rooms', roomId, 'cursors', user.uid)).catch(() => {});
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [roomId, user, roomData]);
-
   // (Legacy access control methods removed for simpler role system)
   const requestAccess = useCallback(() => {}, []);
   const approveAccess = useCallback(() => {}, []);
@@ -346,12 +405,8 @@ export function useRoom({
     if (!roomId) return;
     try {
       localStorage.removeItem('debugra_roomId');
-      if (user) {
-        await deleteDoc(doc(db, 'rooms', roomId, 'cursors', user.uid)).catch(() => {});
-        if (roomData) {
-          const newUsers = (roomData.activeUsers || []).filter((u) => u.uid !== user.uid);
-          await updateDoc(doc(db, 'rooms', roomId), { activeUsers: newUsers }).catch(() => {});
-        }
+      if (socket) {
+        socket.disconnect();
       }
     } catch (e) {
       console.error(e);
@@ -361,7 +416,7 @@ export function useRoom({
     setActiveUsers([]);
     setRemoteCursors({});
     toast.success('Left the room');
-  }, [roomId, user, roomData]);
+  }, [roomId, socket]);
 
   // ─── Execution Voting & Results Sync ──────────────────────────────────────────
   const startExecutionVote = useCallback(
@@ -599,5 +654,6 @@ export function useRoom({
     fetchFullVotePayload,
     transitionVoteToExecuting,
     remoteCursors,
+    socket,
   };
 }

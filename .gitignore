@@ -16,5 +16,9 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Logs
+# Logs & Temporary Scratch Files
 *.log
+eslint_out.json
+create_cors_issue.cjs
+create_gssoc_labels.cjs
+server/logs/

@@ -1,4 +1,5 @@
-const admin = require('firebase-admin');
+const { initializeApp, getApps, cert, applicationDefault } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 const logger = require('../utils/logger');
 
 /**
@@ -23,6 +24,7 @@ const logger = require('../utils/logger');
 
 let db = null;
 let isConfigured = false;
+let _app = null;
 
 function loadServiceAccount() {
   const base64 = (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64 || '').trim();
@@ -36,9 +38,10 @@ function loadServiceAccount() {
 }
 
 function init() {
-  // Reuse an app initialized elsewhere (e.g. routes/rooms.js) if present.
-  if (admin.apps.length) {
-    db = admin.firestore();
+  // Reuse an app initialized elsewhere if present.
+  if (getApps().length) {
+    _app = getApps()[0];
+    db = getFirestore(_app);
     isConfigured = true;
     return;
   }
@@ -57,24 +60,25 @@ function init() {
 
   try {
     if (serviceAccount) {
-      admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+      _app = initializeApp({ credential: cert(serviceAccount) });
     } else if (usingEmulator) {
       // The emulator needs an app + projectId but no real credentials.
-      admin.initializeApp({ projectId: process.env.FIREBASE_PROJECT_ID || 'demo-project' });
+      _app = initializeApp({ projectId: process.env.FIREBASE_PROJECT_ID || 'demo-project' });
     } else {
-      admin.initializeApp(); // application default credentials
+      _app = initializeApp({ credential: applicationDefault() });
     }
-    db = admin.firestore();
+    db = getFirestore(_app);
     isConfigured = true;
     const mode = serviceAccount ? 'service account' : usingEmulator ? 'emulator' : 'application default credentials';
     logger.info(`[firebaseAdmin] Initialized (${mode}).`);
   } catch (err) {
     isConfigured = false;
     db = null;
+    _app = null;
     logger.error('[firebaseAdmin] Initialization failed: ' + err.message);
   }
 }
 
 init();
 
-module.exports = { admin, db, isConfigured };
+module.exports = { db, isConfigured, getApp: () => _app };

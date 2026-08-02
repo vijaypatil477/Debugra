@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   collection,
   addDoc,
@@ -31,13 +31,12 @@ const formatTime = (timestamp) => {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
+export default function ChatPanel({ roomId, user, isOpen, onToggle, socket }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
-  const prevCountRef = useRef(0);
 
   const isOpenRef = useRef(isOpen);
   useEffect(() => {
@@ -45,18 +44,26 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
   }, [isOpen]);
 
   useEffect(() => {
-    if (!roomId) return;
-    const q = query(collection(db, 'rooms', roomId, 'messages'), orderBy('createdAt', 'asc'));
-    return onSnapshot(q, (snap) => {
-      const msgs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setMessages(msgs);
-      if (!isOpenRef.current && msgs.length > prevCountRef.current) {
-        setUnreadCount((prev) => prev + (msgs.length - prevCountRef.current));
+    if (!socket || !roomId) return;
+
+    const handleIncomingMessage = (msg) => {
+      setMessages((prev) => {
+        // Prevent duplicate messages if any
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+      if (!isOpenRef.current) {
+        setUnreadCount((prev) => prev + 1);
       }
-      prevCountRef.current = msgs.length;
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-    });
-  }, [roomId]);
+    };
+
+    socket.on('chat-message', handleIncomingMessage);
+
+    return () => {
+      socket.off('chat-message', handleIncomingMessage);
+    };
+  }, [socket, roomId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -65,15 +72,27 @@ export default function ChatPanel({ roomId, user, isOpen, onToggle }) {
     }
   }, [isOpen]);
 
-  const handleSend = async () => {
-    if (!input.trim() || !roomId || !user) return;
+  const handleSend = () => {
+    if (!input.trim() || !roomId || !user || !socket) return;
     const msg = input.trim();
     setInput('');
-    await addDoc(collection(db, 'rooms', roomId, 'messages'), {
+
+    // Generate standard client-side UUID prefix
+    const msgId = Math.random().toString(36).substring(2, 9);
+    const newMessage = {
+      id: msgId,
       text: msg,
       uid: user.uid,
       displayName: user.displayName || user.email?.split('@')[0] || 'User',
-      createdAt: serverTimestamp(),
+      createdAt: { toDate: () => new Date() },
+    };
+
+    setMessages((prev) => [...prev, newMessage]);
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+
+    socket.emit('chat-message', {
+      roomId,
+      message: newMessage,
     });
   };
   const handleDownloadReport = () => {
