@@ -12,9 +12,9 @@ describe('CORS middleware', () => {
     expect(response.headers['access-control-allow-credentials']).toBe('true');
   });
 
-  it('allows requests without an Origin header', async () => {
+  it('rejects requests without an Origin header', async () => {
     const response = await request(app).options('/api/execute');
 
-    expect(response.status).toBe(204);
+    expect(response.status).toBe(403);
   });
 });
