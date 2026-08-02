@@ -22,6 +22,8 @@ export default function EditorStatusBar({
   tabSize,
   vimEnabled,
   vimMode,
+  emacsEnabled,
+  emacsMode,
 }) {
   const { roomId, activeUsers, showOnlineDropdown, setShowOnlineDropdown } = room;
   const lastSavedText = lastSavedAt
@@ -60,7 +62,7 @@ export default function EditorStatusBar({
                 <line x1="15" y1="9" x2="9" y2="15" />
                 <line x1="9" y1="9" x2="15" y2="15" />
               </svg>{' '}
-              1
+              <span>{execStatus.count || 1}</span>
             </>
           ) : execStatus.type === 'success' ? (
             <>
@@ -69,13 +71,13 @@ export default function EditorStatusBar({
                 height="12"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#3fb950"
+                stroke="#89d185"
                 strokeWidth="2"
               >
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="9 12 11 14 15 10" />
               </svg>{' '}
-              0
+              <span>0</span>
             </>
           ) : (
             <>
@@ -91,26 +93,24 @@ export default function EditorStatusBar({
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>{' '}
-              0
+              <span>0</span>
             </>
           )}
         </span>
-        {/* Language */}
-        <span>
-          <svg
-            width="11"
-            height="11"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M16 3h5v5" />
-            <path d="M4 20L21 3" />
-            <path d="M21 16v5h-5" />
-            <path d="M15 15l6 6" />
-            <path d="M4 4l5 5" />
-          </svg>
+        {/* Wandbox execution status */}
+        <span
+          className="statusbar-wandbox"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+        >
+          <span
+            style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: execStatus.type === 'error' ? '#f44747' : '#89d185',
+              display: 'inline-block',
+            }}
+          />
           {langName}
         </span>
         {/* Encoding */}
@@ -136,6 +136,8 @@ export default function EditorStatusBar({
         <span>Spaces: {tabSize}</span>
         {/* Vim */}
         {vimEnabled && <span title="Vim mode">Vim: {vimMode || 'NORMAL'}</span>}
+        {/* Emacs */}
+        {emacsEnabled && <span title="Emacs mode">Emacs: {emacsMode || 'EMACS'}</span>}
       </div>
 
       <div className="statusbar-right">

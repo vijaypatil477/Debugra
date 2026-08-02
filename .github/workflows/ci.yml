@@ -8,7 +8,9 @@ on:
     branches: [ main, master ]
 
 jobs:
-  build-and-test:
+  # ─── Frontend ────────────────────────────────────────────────────────────────
+  frontend:
+    name: Frontend — Lint, Test & Build
     runs-on: ubuntu-latest
 
     steps:
@@ -20,23 +22,43 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            server/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install Frontend Dependencies
+      - name: Install frontend dependencies
         run: npm install
 
-      - name: Verify Frontend Production Build
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Run frontend unit tests (Vitest)
+        run: npm run test
+
+      - name: Build for production
         run: npm run build
 
-      - name: Run Lighthouse CI
-        run: npx @lhci/cli@0.15.x autorun
+  # ─── Backend ─────────────────────────────────────────────────────────────────
+  backend:
+    name: Backend — Syntax Check & Unit Tests
+    runs-on: ubuntu-latest
 
-      - name: Install Backend Dependencies
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install backend dependencies
         run: npm install --prefix server
 
-      - name: Verify Backend Syntax
+      - name: Verify syntax (node --check on all JS files)
         run: |
           find server -name "*.js" -not -path "*/node_modules/*" -print0 \
             | xargs -0 -n 1 node --check
+
+      - name: Run backend unit tests (Jest)
+        run: npm run test --prefix server

@@ -245,7 +245,6 @@ app.use(
       if (!origin) {
         const corsError = new Error('Not allowed by CORS');
         corsError.status = 403;
-        logger.warn('[CORS] Blocked missing origin');
         return callback(corsError);
       }
 
