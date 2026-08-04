@@ -399,7 +399,7 @@ const VideoCall = ({ roomId, userId, userName, onClose, audioOnly = false }) => 
 
     // Cleanup on tab close
     const handleBeforeUnload = () => {
-      deleteDoc(myCallRef).catch(() => {});
+      deleteDoc(myCallRef).catch( => console.error());
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
 
