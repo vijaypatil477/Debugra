@@ -157,7 +157,7 @@ export default function MobileDrawer({
                     min="0"
                     max="100"
                     value={audioFeedback.volume * 100}
-                    onChange={(e) => audioFeedback.setVolume(parseInt(e.target.value) / 100)}
+                    onChange={(e) => audioFeedback.setVolume(parseInt(e.target.value, 10) / 100)}
                     className="drawer-slider"
                     aria-label="Volume level"
                   />
