@@ -652,7 +652,7 @@ export default function EditorPage({ user }) {
         document.head.appendChild(styleEl);
       }
       const escapedDisplayName = escapeForCssContent(c.displayName);
-      styleEl.innerHTML = `
+      styleEl.textContent = `
         .${className} {
           border-left: 2px solid ${userColor} !important;
           margin-left: -1px;
