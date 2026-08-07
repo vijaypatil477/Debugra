@@ -147,7 +147,7 @@ export function useEditor({ user, onNeedAuth }) {
   }, [code, language, stdinValue]);
 
   useEffect(() => {
-    if (!autosaveInterval) return undefined;
+    if (!autosaveInterval) return;
 
     const timer = window.setInterval(() => {
       localStorage.setItem(
