@@ -46,7 +46,7 @@ router.post('/verify-password', roomPasswordLimiter, async (req, res) => {
   const { roomId, password } = req.body;
 
   // ── Basic validation ─────────────────────────────────────────────────────
-  if (!roomId || typeof roomId !== 'string' || roomId.trim() === '') {
+  if (!roomId || typeof roomId !== 'string' || roomId.trim().length === 0) {
     return res.status(400).json({ error: 'roomId is required.' });
   }
   if (!password || typeof password !== 'string' || password.trim() === '') {
