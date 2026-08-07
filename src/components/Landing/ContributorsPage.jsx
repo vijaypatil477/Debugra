@@ -247,3 +247,5 @@ export default function ContributorsPage() {
     </div>
   );
 }
+
+.catch(err => console.error("Promise.all failed:", err));
