@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   clearSecureApiKey,
@@ -10,8 +10,10 @@ import {
 } from '../../services/secureApiKeyStore';
 
 export default function ApiKeyModal({ onClose, onStatusChange }) {
-  const [apiKey, setApiKey] = useState('');
-  const [passphrase, setPassphrase] = useState('');
+  const apiKeyRef = useRef(null);
+  const passphraseRef = useRef(null);
+  const [hasApiKeyInput, setHasApiKeyInput] = useState(false);
+  const [hasPassphraseInput, setHasPassphraseInput] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const stored = isSecureApiKeyStored();
   const cryptoAvailable = hasWebCrypto();
@@ -20,42 +22,55 @@ export default function ApiKeyModal({ onClose, onStatusChange }) {
     onStatusChange?.();
   };
 
+  const clearSecretInputs = () => {
+    if (apiKeyRef.current) apiKeyRef.current.value = '';
+    if (passphraseRef.current) passphraseRef.current.value = '';
+    setHasApiKeyInput(false);
+    setHasPassphraseInput(false);
+  };
+
   const handleSave = async (event) => {
     event.preventDefault();
     setIsSaving(true);
+    let apiKey = apiKeyRef.current?.value || '';
+    let passphrase = passphraseRef.current?.value || '';
+
     try {
       await encryptAndStoreApiKey(apiKey, passphrase);
-      setApiKey('');
-      setPassphrase('');
+      clearSecretInputs();
       refreshStatus();
       toast.success('API key saved and unlocked');
       onClose();
     } catch (error) {
       toast.error(error.message);
     } finally {
+      apiKey = null;
+      passphrase = null;
       setIsSaving(false);
     }
   };
 
   const handleUnlock = async () => {
     setIsSaving(true);
+    let passphrase = passphraseRef.current?.value || '';
+
     try {
       await unlockApiKey(passphrase);
-      setPassphrase('');
+      clearSecretInputs();
       refreshStatus();
       toast.success('API key unlocked for this session');
       onClose();
     } catch (error) {
       toast.error(error.message);
     } finally {
+      passphrase = null;
       setIsSaving(false);
     }
   };
 
   const handleClear = () => {
     clearSecureApiKey();
-    setApiKey('');
-    setPassphrase('');
+    clearSecretInputs();
     refreshStatus();
     toast.success('Saved API key removed');
   };
@@ -100,11 +115,11 @@ export default function ApiKeyModal({ onClose, onStatusChange }) {
           API key
         </label>
         <input
+          ref={apiKeyRef}
           id="groq-api-key"
           className="api-key-input"
           type="password"
-          value={apiKey}
-          onChange={(event) => setApiKey(event.target.value)}
+          onChange={(event) => setHasApiKeyInput(Boolean(event.target.value))}
           placeholder={stored ? 'Leave blank to unlock existing key' : 'gsk_...'}
           autoComplete="off"
           disabled={!cryptoAvailable || isSaving}
@@ -114,11 +129,11 @@ export default function ApiKeyModal({ onClose, onStatusChange }) {
           Passphrase
         </label>
         <input
+          ref={passphraseRef}
           id="groq-passphrase"
           className="api-key-input"
           type="password"
-          value={passphrase}
-          onChange={(event) => setPassphrase(event.target.value)}
+          onChange={(event) => setHasPassphraseInput(Boolean(event.target.value))}
           placeholder="Encryption passphrase"
           autoComplete="current-password"
           disabled={!cryptoAvailable || isSaving}
@@ -128,7 +143,7 @@ export default function ApiKeyModal({ onClose, onStatusChange }) {
           <button
             type="submit"
             className="run-btn"
-            disabled={!cryptoAvailable || isSaving || !apiKey || !passphrase}
+            disabled={!cryptoAvailable || isSaving || !hasApiKeyInput || !hasPassphraseInput}
           >
             Save
           </button>
@@ -136,7 +151,7 @@ export default function ApiKeyModal({ onClose, onStatusChange }) {
             type="button"
             className="clear-btn"
             onClick={handleUnlock}
-            disabled={!cryptoAvailable || isSaving || !stored || !passphrase}
+            disabled={!cryptoAvailable || isSaving || !stored || !hasPassphraseInput}
           >
             Unlock
           </button>

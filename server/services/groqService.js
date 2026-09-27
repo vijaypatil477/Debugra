@@ -28,7 +28,6 @@ async function chatCompletion(systemPrompt, userPrompt, apiKey = '', model = DEF
 
   const rawContent = response.choices[0].message.content;
   const tokenUsage = response.usage;
-  console.log("Metadata caught: ", tokenUsage);
 
   let aiMessage;
   try {
@@ -119,8 +118,6 @@ async function chatCompletionText(systemPrompt, userPrompt, apiKey = '', model =
 
   const aiMessage = response.choices[0].message.content;
   const tokenUsage = response.usage;
-
-  console.log("Metadata caught (Text): ", tokenUsage);
 
   return { content: aiMessage, usage: tokenUsage };
 }

@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
+import { consumeSessionApiKey } from '../../services/secureApiKeyStore';
 import './CodeExplainerBubble.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey }) => {
+const CodeExplainerBubble = ({ selectedCode, language, position, onClose }) => {
   const [explanation, setExplanation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -12,12 +13,6 @@ const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey
   const [askingFollowUp, setAskingFollowUp] = useState(false);
   const bubbleRef = useRef(null);
   const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (selectedCode && selectedCode.trim().length > 0) {
-      explainSnippet();
-    }
-  }, [selectedCode]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -29,11 +24,14 @@ const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
-  const explainSnippet = async () => {
+  const explainSnippet = useCallback(async () => {
     setLoading(true);
     setError(null);
+    let apiKey = null;
+
     try {
       const headers = { 'Content-Type': 'application/json' };
+      apiKey = consumeSessionApiKey();
       if (apiKey) headers['x-groq-api-key'] = apiKey;
 
       const res = await fetch(`${API_BASE}/api/ai/explain-snippet`, {
@@ -47,9 +45,16 @@ const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey
     } catch (err) {
       setError(err.message);
     } finally {
+      apiKey = null;
       setLoading(false);
     }
-  };
+  }, [language, selectedCode]);
+
+  useEffect(() => {
+    if (selectedCode && selectedCode.trim().length > 0) {
+      explainSnippet();
+    }
+  }, [explainSnippet, selectedCode]);
 
   const handleAskFollowUp = async (e) => {
     e.preventDefault();
@@ -58,9 +63,11 @@ const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey
     const question = followUpQuestion.trim();
     setFollowUpQuestion('');
     setAskingFollowUp(true);
+    let apiKey = null;
 
     try {
       const headers = { 'Content-Type': 'application/json' };
+      apiKey = consumeSessionApiKey();
       if (apiKey) headers['x-groq-api-key'] = apiKey;
 
       const res = await fetch(`${API_BASE}/api/ai/ask-followup`, {
@@ -85,6 +92,7 @@ const CodeExplainerBubble = ({ selectedCode, language, position, onClose, apiKey
         },
       ]);
     } finally {
+      apiKey = null;
       setAskingFollowUp(false);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
