@@ -151,6 +151,35 @@ const IconTerminal = () => (
   </svg>
 );
 
+// ─── Workflow Step Icons ──────────────────────────────────────────────────────
+const IconStepSession = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <line x1="19" y1="8" x2="19" y2="14" />
+    <line x1="16" y1="11" x2="22" y2="11" />
+  </svg>
+);
+const IconStepCode = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="16 18 22 12 16 6" />
+    <polyline points="8 6 2 12 8 18" />
+    <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" />
+  </svg>
+);
+const IconStepAI = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" fill="currentColor" />
+  </svg>
+);
+const IconStepShip = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4.5 16.5c-1.5 1.25-2.5 3.5-2.5 3.5s2.25-1 3.5-2.5L17.5 5.5 18.5 2l-3.5 1L4.5 16.5z" />
+    <path d="M12 15l-3-3m6 6l-3-3" />
+  </svg>
+);
+
 // ─── Feature Data ─────────────────────────────────────────────────────────────
 const FEATURES = [
   {
@@ -159,7 +188,7 @@ const FEATURES = [
     tag: 'AI',
     title: 'Error Explainer',
     desc: 'Paste an error — get the root cause and exact fix in plain language, instantly.',
-    size: 'large', // spans 2 cols on desktop
+    size: 'large',
   },
   {
     icon: <IconWrench />,
@@ -250,7 +279,7 @@ const LANGUAGES = [
 const STATS = [
   { value: '18+', label: 'Languages' },
   { value: '5', label: 'AI Features' },
-  { value: '∞', label: 'Free Forever' },
+  { value: '', label: 'Free Forever' },
   { value: '0', label: 'Setup Required' },
 ];
 const FAQ_ITEMS = [
@@ -286,7 +315,6 @@ const FAQ_ITEMS = [
   },
 ];
 
-// ─── Tag accent colors ─────────────────────────────────────────────────────────
 const TAG_COLORS = {
   AI: { bg: 'rgba(139,92,246,0.15)', color: '#a78bfa' },
   Collab: { bg: 'rgba(78,201,176,0.12)', color: '#4ec9b0' },
@@ -310,13 +338,13 @@ const REVIEWS = [
     review: 'Clean interface and smooth collaboration features.',
   },
 ];
+
 export default function LandingPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const featuresCarouselRef = useRef(null);
   const { theme, toggleTheme } = useTheme();
 
-  // Scroll to hash on page load/navigation change
   useEffect(() => {
     if (location.hash) {
       const id = location.hash.substring(1);
@@ -328,6 +356,7 @@ export default function LandingPage() {
       }
     }
   }, [location.hash]);
+
   const [showLogin, setShowLogin] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -338,26 +367,26 @@ export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(0);
   const [canScrollFeaturesLeft, setCanScrollFeaturesLeft] = useState(false);
   const [canScrollFeaturesRight, setCanScrollFeaturesRight] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   const updateFeaturesCarouselState = () => {
     const carousel = featuresCarouselRef.current;
-
     if (!carousel) {
       setCanScrollFeaturesLeft(false);
       setCanScrollFeaturesRight(false);
       return;
     }
-
     const { scrollLeft, scrollWidth, clientWidth } = carousel;
     const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
-
     setCanScrollFeaturesLeft(scrollLeft > 4);
     setCanScrollFeaturesRight(scrollLeft < maxScrollLeft - 4);
   };
 
   useEffect(() => {
     updateFeaturesCarouselState();
-
     const carousel = featuresCarouselRef.current;
     if (!carousel) return undefined;
 
@@ -370,14 +399,12 @@ export default function LandingPage() {
     };
   }, []);
 
-  // Back-to-top visibility — show after scrolling 400 px
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 400);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Reset confirm-password state whenever the user toggles login ↔ sign-up
   useEffect(() => {
     setConfirmPassword('');
     setShowConfirmPassword(false);
@@ -387,7 +414,6 @@ export default function LandingPage() {
   const scrollFeaturesCarousel = (direction) => {
     const carousel = featuresCarouselRef.current;
     if (!carousel) return;
-
     const scrollAmount = Math.max(280, Math.floor(carousel.clientWidth * 0.82));
     carousel.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
   };
@@ -397,16 +423,11 @@ export default function LandingPage() {
       event.preventDefault();
       scrollFeaturesCarousel(-1);
     }
-
     if (event.key === 'ArrowRight') {
       event.preventDefault();
       scrollFeaturesCarousel(1);
     }
   };
-  const [showPassword, setShowPassword] = useState(false);
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showBackToTop, setShowBackToTop] = useState(false);
 
   const handleGoogle = async () => {
     try {
@@ -455,27 +476,14 @@ export default function LandingPage() {
           <span className="landing-version-badge">v1.0</span>
         </Link>
         <div className="landing-nav-right desktop-only">
-          <a href="#features" className="landing-nav-link">
-            Features
-          </a>
-          <a href="#languages" className="landing-nav-link">
-            Languages
-          </a>
-          <Link to="/contributors" className="landing-nav-link">
-            Contributors
-          </Link>
-          <a href="#faq" className="landing-nav-link">
-            FAQ
-          </a>
-          <button
-            onClick={() => navigate('/feedback')}
-            className="landing-nav-link nav-link-button"
-          >
+          <a href="#features" className="landing-nav-link">Features</a>
+          <a href="#languages" className="landing-nav-link">Languages</a>
+          <Link to="/contributors" className="landing-nav-link">Contributors</Link>
+          <a href="#faq" className="landing-nav-link">FAQ</a>
+          <button onClick={() => navigate('/feedback')} className="landing-nav-link nav-link-button">
             Feedback
           </button>
-          <button onClick={() => setShowLogin(true)} className="landing-btn-outline">
-            Log In
-          </button>
+          <button onClick={() => setShowLogin(true)} className="landing-btn-outline">Log In</button>
           <button
             onClick={() => {
               setIsSignUp(true);
@@ -492,25 +500,11 @@ export default function LandingPage() {
             style={{ width: '36px', height: '36px', borderRadius: '8px' }}
           >
             {theme === 'light' ? (
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               </svg>
             ) : (
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="5" />
                 <line x1="12" y1="1" x2="12" y2="3" strokeLinecap="round" />
                 <line x1="12" y1="21" x2="12" y2="23" strokeLinecap="round" />
@@ -533,25 +527,11 @@ export default function LandingPage() {
             style={{ width: '36px', height: '36px', borderRadius: '8px' }}
           >
             {theme === 'light' ? (
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               </svg>
             ) : (
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="5" />
                 <line x1="12" y1="1" x2="12" y2="3" strokeLinecap="round" />
                 <line x1="12" y1="21" x2="12" y2="23" strokeLinecap="round" />
@@ -570,15 +550,7 @@ export default function LandingPage() {
             aria-expanded={mobileMenu}
             onClick={() => setMobileMenu(!mobileMenu)}
           >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               {mobileMenu ? (
                 <>
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -598,22 +570,10 @@ export default function LandingPage() {
 
       {mobileMenu && (
         <div className="mobile-dropdown">
-          <a href="#features" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>
-            Features
-          </a>
-          <a
-            href="#languages"
-            className="mobile-dropdown-link"
-            onClick={() => setMobileMenu(false)}
-          >
-            Languages
-          </a>
-          <Link to="/contributors" className="landing-nav-link">
-            Contributors
-          </Link>
-          <a href="#faq" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>
-            FAQ
-          </a>
+          <a href="#features" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>Features</a>
+          <a href="#languages" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>Languages</a>
+          <Link to="/contributors" className="landing-nav-link">Contributors</Link>
+          <a href="#faq" className="mobile-dropdown-link" onClick={() => setMobileMenu(false)}>FAQ</a>
           <button
             className="mobile-dropdown-link"
             onClick={() => {
@@ -656,8 +616,7 @@ export default function LandingPage() {
           </div>
 
           <h1 className="hero-title">
-            Write code.
-            <br />
+            Write code.<br />
             <span className="hero-gradient-text">Break it. Fix it fast.</span>
           </h1>
 
@@ -667,17 +626,8 @@ export default function LandingPage() {
           </p>
 
           <div className="hero-cta d-flex flex-column flex-sm-row gap-3 justify-content-center">
-            <button
-              onClick={() => navigate('/editor')}
-              className="landing-btn-primary landing-btn-lg"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                style={{ marginRight: '8px' }}
-              >
+            <button onClick={() => navigate('/editor')} className="landing-btn-primary landing-btn-lg">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '8px' }}>
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
               Open Editor — it&apos;s free
@@ -687,7 +637,6 @@ export default function LandingPage() {
             </button>
           </div>
 
-          {/* Stats row */}
           <div className="hero-stats">
             {STATS.map((s) => (
               <div key={s.label} className="hero-stat">
@@ -713,22 +662,12 @@ export default function LandingPage() {
               <div className="preview-toolbar flex-wrap gap-2">
                 <div className="d-flex gap-2 align-items-center">
                   <span className="preview-tag">Python 3</span>
-                  <span
-                    className="d-none d-sm-inline"
-                    style={{ fontSize: '0.65rem', color: '#9d9d9d' }}
-                  >
-                    14px
-                  </span>
+                  <span className="d-none d-sm-inline" style={{ fontSize: '0.65rem', color: '#9d9d9d' }}>14px</span>
                 </div>
                 <div className="d-flex gap-2 align-items-center ms-auto">
                   <span className="preview-tag d-none d-md-inline">Tests</span>
                   <span className="preview-tag">Explain</span>
-                  <span
-                    className="preview-tag"
-                    style={{ color: 'var(--warning)', borderColor: 'var(--border)' }}
-                  >
-                    Fix
-                  </span>
+                  <span className="preview-tag" style={{ color: 'var(--warning)', borderColor: 'var(--border)' }}>Fix</span>
                   <span className="preview-run-tag">▶ Run</span>
                 </div>
               </div>
@@ -740,11 +679,7 @@ export default function LandingPage() {
                     <span style={{ color: '#dcdcaa' }}>two_sum</span>
                     <span style={{ color: '#d4d4d4' }}>(nums, target):{'\n'}</span>
                     <span className="ln">2</span>
-                    <span style={{ color: '#d4d4d4' }}>
-                      {' '}
-                      seen = {'{}'}
-                      {'\n'}
-                    </span>
+                    <span style={{ color: '#d4d4d4' }}> seen = {'{}'}{'\n'}</span>
                     <span className="ln">3</span>
                     <span style={{ color: '#569cd6' }}> for</span>{' '}
                     <span style={{ color: '#9cdcfe' }}>i, num</span>{' '}
@@ -773,18 +708,10 @@ export default function LandingPage() {
                     <span className="preview-output-tab">Errors</span>
                     <span className="preview-output-tab">AI</span>
                   </div>
-                  <div
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: '0.78rem',
-                      lineHeight: 1.8,
-                    }}
-                  >
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.78rem', lineHeight: 1.8 }}>
                     <div className="preview-success-badge">✓ SUCCESS</div>
                     <div className="mt-2">[0, 1]</div>
-                    <div className="mt-2" style={{ color: '#9d9d9d', fontSize: '0.68rem' }}>
-                      Time: 0.03s
-                    </div>
+                    <div className="mt-2" style={{ color: '#9d9d9d', fontSize: '0.68rem' }}>Time: 0.03s</div>
                   </div>
                 </div>
               </div>
@@ -804,13 +731,104 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ===== HOW IT WORKS ===== */}
+      <section id="how-it-works" className="landing-section container">
+        <div className="section-header">
+          <p className="section-eyebrow">Onboarding</p>
+          <h2 className="section-title">
+            How Debugra Works
+            <br />
+            <span className="hero-gradient-text">In 4 Simple Steps.</span>
+          </h2>
+          <p className="section-subtitle">
+            From zero configuration to shared real-time debugging environments in under a minute.
+          </p>
+        </div>
+
+        <div className="row g-4 mt-2">
+          {/* Step 1 */}
+          <div className="col-12 col-md-6 col-lg-3">
+            <div className="feature-card h-100" style={{ '--card-accent': '#8b5cf6', padding: '24px' }}>
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <div className="feature-card-icon" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.12)' }}>
+                  <IconStepSession />
+                </div>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, opacity: 0.15, fontFamily: 'monospace' }}>01</span>
+              </div>
+              <h3 className="feature-card-title" style={{ fontSize: '1.1rem', marginBottom: '10px' }}>Create or Join</h3>
+              <p className="feature-card-desc" style={{ fontSize: '0.82rem', margin: 0 }}>
+                Start a clean coding workspace instantly or join an active room. Invite teammates using a secure, shareable session link.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div className="col-12 col-md-6 col-lg-3">
+            <div className="feature-card h-100" style={{ '--card-accent': '#10b981', padding: '24px' }}>
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <div className="feature-card-icon" style={{ color: '#10b981', background: 'rgba(16,185,129,0.12)' }}>
+                  <IconStepCode />
+                </div>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, opacity: 0.15, fontFamily: 'monospace' }}>02</span>
+              </div>
+              <h3 className="feature-card-title" style={{ fontSize: '1.1rem', marginBottom: '10px' }}>Write & Execute</h3>
+              <p className="feature-card-desc" style={{ fontSize: '0.82rem', margin: 0 }}>
+                Collaborate in real time using our core engine. Choose from over 18 languages to write and run code compiled instantly.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div className="col-12 col-md-6 col-lg-3">
+            <div className="feature-card h-100" style={{ '--card-accent': '#f97316', padding: '24px' }}>
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <div className="feature-card-icon" style={{ color: '#f97316', background: 'rgba(249,115,22,0.12)' }}>
+                  <IconStepAI />
+                </div>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, opacity: 0.15, fontFamily: 'monospace' }}>03</span>
+              </div>
+              <h3 className="feature-card-title" style={{ fontSize: '1.1rem', marginBottom: '10px' }}>AI Debugging</h3>
+              <p className="feature-card-desc" style={{ fontSize: '0.82rem', margin: 0 }}>
+                Get dynamic, smart error reviews instantly. Trace and visualize execution configurations to isolate breaking parameters faster.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 4 */}
+          <div className="col-12 col-md-6 col-lg-3">
+            <div className="feature-card h-100" style={{ '--card-accent': '#3b82f6', padding: '24px' }}>
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <div className="feature-card-icon" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}>
+                  <IconStepShip />
+                </div>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, opacity: 0.15, fontFamily: 'monospace' }}>04</span>
+              </div>
+              <h3 className="feature-card-title" style={{ fontSize: '1.1rem', marginBottom: '10px' }}>Iterate & Ship</h3>
+              <p className="feature-card-desc" style={{ fontSize: '0.82rem', margin: 0 }}>
+                Review runtime logic tracks together with live workspace persistence. Save, download, and iterate seamless code outputs.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Section Call To Action */}
+        <div className="text-center mt-5">
+          <button 
+            onClick={() => navigate('/editor')} 
+            className="landing-btn-primary landing-btn-lg"
+            style={{ padding: '12px 32px', fontSize: '0.9rem' }}
+          >
+            Try Debugra Now
+          </button>
+        </div>
+      </section>
+
       {/* ===== FEATURES BENTO GRID ===== */}
       <section id="features" className="landing-section container">
         <div className="section-header">
           <p className="section-eyebrow">What&apos;s inside</p>
           <h2 className="section-title">
-            Built for people who
-            <br />
+            Built for people who<br />
             <span style={{ color: 'var(--text-mid)' }}>actually write code.</span>
           </h2>
         </div>
@@ -824,13 +842,7 @@ export default function LandingPage() {
             aria-label="Scroll features left"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M15 6l-6 6 6 6"
-                stroke="currentColor"
-                strokeWidth="1.9"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+              <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
 
@@ -852,16 +864,10 @@ export default function LandingPage() {
                     className={`feature-card ${f.size === 'large' ? 'feature-card-wide' : ''}`}
                     style={{ '--card-accent': f.accent }}
                   >
-                    <div
-                      className="feature-card-icon"
-                      style={{ color: f.accent, background: `${f.accent}18` }}
-                    >
+                    <div className="feature-card-icon" style={{ color: f.accent, background: `${f.accent}18` }}>
                       {f.icon}
                     </div>
-                    <div
-                      className="feature-card-tag"
-                      style={{ background: tagStyle.bg, color: tagStyle.color }}
-                    >
+                    <div className="feature-card-tag" style={{ background: tagStyle.bg, color: tagStyle.color }}>
                       {f.tag}
                     </div>
                     <h3 className="feature-card-title">{f.title}</h3>
@@ -881,13 +887,7 @@ export default function LandingPage() {
             aria-label="Scroll features right"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M9 6l6 6-6 6"
-                stroke="currentColor"
-                strokeWidth="1.9"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+              <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         </div>
@@ -898,34 +898,27 @@ export default function LandingPage() {
         <div className="section-header">
           <p className="section-eyebrow">Engine</p>
           <h2 className="section-title">
-            18+ Languages.
-            <br />
+            18+ Languages.<br />
             <span style={{ color: 'var(--text-2)' }}>Powered by Wandbox.</span>
           </h2>
-          <p className="section-subtitle">
-            Permanent free API — no API key, no rate limits for learning.
-          </p>
+          <p className="section-subtitle">Permanent free API — no API key, no rate limits for learning.</p>
         </div>
         <div className="lang-grid">
           {LANGUAGES.map((lang) => (
-            <span key={lang} className="lang-chip">
-              {lang}
-            </span>
+            <span key={lang} className="lang-chip">{lang}</span>
           ))}
         </div>
       </section>
+
       {/* ===== FAQ ===== */}
       <section id="faq" className="landing-section container">
         <div className="section-header">
           <p className="section-eyebrow">FAQ</p>
           <h2 className="section-title">
-            Common questions,
-            <br />
+            Common questions,<br />
             <span style={{ color: 'var(--text-mid)' }}>answered in one place.</span>
           </h2>
-          <p className="section-subtitle">
-            Quick answers about the platform, accounts, collaboration, and privacy.
-          </p>
+          <p className="section-subtitle">Quick answers about the platform, accounts, collaboration, and privacy.</p>
         </div>
 
         <div className="faq-list">
@@ -941,9 +934,7 @@ export default function LandingPage() {
                   onClick={() => setOpenFaq(isOpen ? -1 : index)}
                 >
                   <span>{item.question}</span>
-                  <span className="faq-toggle" aria-hidden="true">
-                    {isOpen ? '−' : '+'}
-                  </span>
+                  <span className="faq-toggle" aria-hidden="true">{isOpen ? '−' : '+'}</span>
                 </button>
                 <div id={`faq-answer-${index}`} className="faq-answer" hidden={!isOpen}>
                   <p>{item.answer}</p>
@@ -959,9 +950,7 @@ export default function LandingPage() {
         <div className="section-header">
           <p className="section-eyebrow">Community</p>
           <h2 className="section-title">Feedback & Reviews</h2>
-          <p className="section-subtitle">
-            Hear what developers think about Debugra and share your own experience.
-          </p>
+          <p className="section-subtitle">Hear what developers think about Debugra and share your own experience.</p>
         </div>
 
         <div className="reviews-carousel">
@@ -969,9 +958,7 @@ export default function LandingPage() {
             {[...REVIEWS, ...REVIEWS].map((review, index) => (
               <div key={index} className="review-card">
                 <div className="review-stars">{'★'.repeat(review.rating)}</div>
-
                 <p className="review-text">&quot;{review.review}&quot;</p>
-
                 <span className="review-author">— {review.name}</span>
               </div>
             ))}
@@ -980,7 +967,6 @@ export default function LandingPage() {
 
         <div className="feedback-form-card">
           <h3 style={{ marginBottom: '16px' }}>Share Your Feedback</h3>
-
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -988,7 +974,6 @@ export default function LandingPage() {
             }}
           >
             <input type="text" placeholder="Your Name" aria-label="Your Name" className="modal-input" required />
-
             <select className="modal-input" aria-label="Select Rating" required>
               <option value="">Select Rating</option>
               <option value="5">★★★★★ (5)</option>
@@ -997,30 +982,21 @@ export default function LandingPage() {
               <option value="2">★★☆☆☆ (2)</option>
               <option value="1">★☆☆☆☆ (1)</option>
             </select>
-
-            <textarea
-              placeholder="Tell us about your experience..."
-              aria-label="Your feedback"
-              className="modal-input"
-              rows="4"
-              required
-            />
-
+            <textarea placeholder="Tell us about your experience..." aria-label="Your feedback" className="modal-input" rows="4" required />
             <button type="submit" className="landing-btn-primary" style={{ width: 'fit-content' }}>
               Submit Feedback
             </button>
           </form>
         </div>
       </section>
+
       {/* ===== CTA ===== */}
       <section className="landing-cta-section">
         <div className="cta-glow" />
         <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
           <p className="section-eyebrow">Start now</p>
           <h2 className="section-title" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>
-            Your next debugging session
-            <br />
-            starts here.
+            Your next debugging session<br />starts here.
           </h2>
           <p className="section-subtitle">No install. No signup required. Just open and write.</p>
           <div className="d-flex flex-column flex-sm-row gap-3 justify-content-center mt-4">
@@ -1029,13 +1005,7 @@ export default function LandingPage() {
               className="landing-btn-primary landing-btn-lg"
               style={{ boxShadow: '0 8px 40px rgba(139,92,246,0.35)' }}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                style={{ marginRight: '8px' }}
-              >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '8px' }}>
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
               Open Editor
@@ -1064,15 +1034,7 @@ export default function LandingPage() {
           aria-label="Back to top"
           title="Scroll back to top"
         >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <polyline points="18 15 12 9 6 15" />
           </svg>
         </button>
@@ -1082,10 +1044,7 @@ export default function LandingPage() {
       {showLogin && (
         <div className="modal-backdrop" onClick={() => setShowLogin(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            {/* CLOSE BUTTON - ADD HERE */}
-            <button className="modal-close-btn" aria-label="Close dialog" onClick={() => setShowLogin(false)}>
-              ✕
-            </button>
+            <button className="modal-close-btn" aria-label="Close dialog" onClick={() => setShowLogin(false)}>✕</button>
 
             <h2 className="modal-title">{isSignUp ? 'Create Account' : 'Welcome Back'}</h2>
             <p className="modal-subtitle">
@@ -1094,22 +1053,10 @@ export default function LandingPage() {
 
             <button onClick={handleGoogle} className="google-btn">
               <svg width="16" height="16" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
               </svg>
               Continue with Google
             </button>
@@ -1157,12 +1104,7 @@ export default function LandingPage() {
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {/* Icon shows current state: EyeOff = hidden, Eye = visible (#513) */}
-                  {showPassword ? (
-                    <Eye size={18} strokeWidth={2} />
-                  ) : (
-                    <EyeOff size={18} strokeWidth={2} />
-                  )}
+                  {showPassword ? <Eye size={18} strokeWidth={2} /> : <EyeOff size={18} strokeWidth={2} />}
                 </button>
               </div>
               {isSignUp && (
@@ -1180,19 +1122,21 @@ export default function LandingPage() {
                   <button
                     type="button"
                     className="password-toggle"
-                    aria-label={
-                      showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'
-                    }
+                    aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
-                    {showConfirmPassword ? (
-                      <Eye size={18} strokeWidth={2} />
-                    ) : (
-                      <EyeOff size={18} strokeWidth={2} />
-                    )}
+                    {showConfirmPassword ? <Eye size={18} strokeWidth={2} /> : <EyeOff size={18} strokeWidth={2} />}
                   </button>
                 </div>
               )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="landing-btn-primary"
+                style={{ width: '100%', marginTop: '16px' }}
+              >
+                {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Login'}
+              </button>
             </form>
 
             <p className="modal-toggle">
@@ -1206,6 +1150,7 @@ export default function LandingPage() {
       )}
     </div>
   );
+}
 }
 // #875: Copy Project Link button functionality
 // TODO: Add this to the project card or navbar
