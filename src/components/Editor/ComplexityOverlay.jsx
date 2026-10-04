@@ -18,7 +18,10 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
@@ -26,9 +29,43 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
 
   // Trap focus inside the overlay
   useEffect(() => {
-    if (isOpen && overlayRef.current) {
-      overlayRef.current.focus();
-    }
+    if (!isOpen || !overlayRef.current) return;
+    const modal = overlayRef.current;
+    modal.focus();
+    const handleTab = (e) => {
+      if (e.key !== 'Tab') return;
+      const focusable = modal.querySelectorAll(
+        'button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex]:not([tabindex="-1"])'
+      );
+
+      if (!focusable.length) {
+        e.preventDefault();
+        modal.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!modal.contains(document.activeElement)) {
+        e.preventDefault();
+        first.focus();
+        return;
+      }
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    modal.addEventListener('keydown', handleTab);
+    return () => {
+      modal.removeEventListener('keydown', handleTab);
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -282,15 +319,6 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
             </div>
           )}
         </div>
-
-        {/* ── Footer ───────────────────────────────────────────────────── */}
-        {!isLoading && (
-          <div className="complexity-overlay-footer">
-            <button className="complexity-footer-close-btn" onClick={onClose}>
-              Close
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
