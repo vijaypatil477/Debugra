@@ -12,9 +12,11 @@ function TestCard({ tc, i }) {
   const [copied, setCopied] = useState(false);
   const isEdge = tc.type === 'edge';
   const handleCopy = () => {
-    navigator.clipboard.writeText(`Input: ${tc.input}\nExpected: ${tc.expected}`);
+    const formatted = JSON.stringify({ input: tc.input, expected: tc.expected, description: tc.description }, null, 2);
+    navigator.clipboard.writeText(`// Test ${i + 1}\nconst result = run(${JSON.stringify(tc.input)});\nassert.deepStrictEqual(result, ${JSON.stringify(tc.expected)});`);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    toast.success('Test case copied!');
+    setTimeout(() => setCopied(false), 2000);
   };
   return (
     <div className="ai-card" style={{ marginBottom: '8px' }}>
