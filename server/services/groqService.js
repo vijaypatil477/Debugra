@@ -396,6 +396,72 @@ Rules:
   );
 }
 
+// 10. Generate standardized inline docstrings/comments for a function/snippet
+async function generateDocstringAI(code, language, apiKey = '', model = DEFAULT_MODEL) {
+  const languageKey = String(language || '').toLowerCase();
+
+  const styleHint = (() => {
+    switch (languageKey) {
+      case 'python':
+      case 'python 3':
+      case 'py':
+        return "Use a Python docstring style: triple double quotes immediately inside the function body (first statement). Include Args/Returns if applicable.";
+      case 'javascript':
+      case 'javascript (node)':
+      case 'js':
+        return "Use JSDoc style comments: /** ... */ with @param/@returns and a one-sentence summary.";
+      case 'typescript':
+      case 'ts':
+        return "Use JSDoc style comments: /** ... */ with @param/@returns and TypeScript types where available.";
+      case 'java':
+        return "Use JavaDoc style: /** ... */ with @param/@return and a clear summary.";
+      case 'c':
+      case 'cpp':
+      case 'c++':
+        return "Use C/C++ comment style for documentation: a block comment with a brief summary and param/returns notes.";
+      case 'csharp':
+      case 'c#':
+        return "Use XML documentation comments: /// <summary>...</summary> with <param> and <returns> where applicable.";
+      case 'go':
+        return "Use Go doc comment style: // Comment starting with the name of the function and a concise description; add parameter/return description if relevant.";
+      case 'rust':
+        return "Use Rust doc comments: /// ... (and for trait/impl items if needed) with clear summary and parameter/return notes.";
+      case 'ruby':
+        return "Use Ruby comment style; if applicable, use =begin/=end or YARD-style @param/@return tags.";
+      case 'php':
+        return "Use PHPDoc style: /** ... */ with @param/@return where applicable.";
+      case 'swift':
+        return "Use Swift documentation comments: /// ... with parameter/returns descriptions.";
+      default:
+        return "Use the most standard documentation comment style for the given language, including parameter and return documentation when the snippet exposes them.";
+    }
+  })();
+
+  return chatCompletion(
+    `You are a code documentation assistant. Generate standardized inline docstrings/comments for the provided function or snippet. Do NOT alter code logic. Return ONLY the comment/docstring block to be inserted.`,
+    `Language: ${language}
+
+${styleHint}
+
+Input code snippet (function or relevant block):
+<code>
+${code}
+</code>
+
+Rules:
+- Return only the documentation block (no surrounding markdown).
+- If the snippet is a function/method, the docstring/comment should be placed so it documents that function.
+- Keep it concise but complete: summary + params (if discoverable) + returns (if discoverable) + behavior notes (if relevant).
+
+Return JSON EXACTLY:
+{
+  "docBlock": "<the comment/docstring block as raw text>"
+}`,
+    apiKey,
+    model
+  );
+}
+
 module.exports = {
   explainError,
   fixCodeAI,
@@ -406,7 +472,9 @@ module.exports = {
   explainCodeSnippetAI,
   askFollowUpAI,
   analyzeComplexityAI,
+  generateDocstringAI,
 };
+
 
 
 
