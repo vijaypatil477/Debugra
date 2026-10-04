@@ -12,66 +12,43 @@ import Footer from './components/Footer.jsx';
 import FeedbackPage from './components/FeedbackPage';
 import { ThemeProvider } from './context/ThemeContext';
 
-function AppContent({ user }) {
-  const location = useLocation();
-  const hideFooterRoutes = ['/editor', '/voice-test', '/voice-test-local'];
-  const showFooter = !hideFooterRoutes.includes(location.pathname);
+const THEME_STORAGE_KEY = 'debugra-theme';
 
-  return (
-    <div className="flex flex-col min-h-screen bg-transparent">
-      <OfflineBanner />
+function getInitialAppTheme() {
+  try {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
 
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: 'var(--bg-card)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border)',
-          },
-        }}
-      />
+    const prefersLight = window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: light)').matches;
 
-      {/* The main tag expands to fill all available empty space */}
-      <main className="flex-grow">
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/feedback" element={<FeedbackPage />} />
-          <Route path="/editor" element={<EditorPage user={user} />} />
-
-          {/* Test route to render VideoCall directly for e2e tests */}
-          <Route
-            path="/voice-test"
-            element={
-              <VideoCall roomId={'__playwright_test'} userName={'Playwright'} audioOnly />
-            }
-          />
-
-          {/* Local-only test route that does not use Firestore/room presence */}
-          <Route
-            path="/voice-test-local"
-            element={<VideoCall userName={'Playwright'} audioOnly />}
-          />
-
-          <Route path="/contributors" element={<ContributorsPage />} />
-        </Routes>
-      </main>
-
-      {/* Footer is safely placed inside the flex wrapper, outside <Routes> so it renders globally */}
-      {showFooter && <Footer />}
-    </div>
-  );
+    return prefersLight ? 'light' : 'dark';
+  } catch {
+    return 'dark';
+  }
 }
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [appTheme, setAppTheme] = useState(getInitialAppTheme);
+
 
   useEffect(() => {
     return onAuthStateChanged(auth, (u) => setUser(u));
   }, []);
 
+  useEffect(() => {
+    try {
+      document.body.classList.toggle('light-theme', appTheme === 'light');
+      localStorage.setItem(THEME_STORAGE_KEY, appTheme);
+    } catch {
+      // ignore
+    }
+  }, [appTheme]);
+
   // Test helper: allow forcing a fake user via URL query param `?testUser=1`
   useEffect(() => {
+
     try {
       const params = new URLSearchParams(window.location.search);
       if (!user && params.get('testUser') === '1') {
@@ -83,10 +60,33 @@ export default function App() {
   }, [user]);
 
   return (
-    <ThemeProvider>
-      <BrowserRouter>
-        <AppContent user={user} />
-      </BrowserRouter>
-    </ThemeProvider>
+    <BrowserRouter>
+      <OfflineBanner />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border)',
+          },
+        }}
+      />
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route
+          path="/editor"
+          element={<EditorPage user={user} appTheme={appTheme} setAppTheme={setAppTheme} />}
+        />
+
+        {/* Test route to render VideoCall directly for e2e tests */}
+        <Route
+          path="/voice-test"
+          element={<VideoCall roomId={'__playwright_test'} userName={'Playwright'} audioOnly />}
+        />
+        {/* Local-only test route that does not use Firestore/room presence */}
+        <Route path="/voice-test-local" element={<VideoCall userName={'Playwright'} audioOnly />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
