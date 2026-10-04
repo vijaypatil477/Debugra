@@ -928,14 +928,15 @@ body {
 }
 
 .ai-btn.fix {
-  background: transparent;
+  background: #8b5cf6;
   color: #ffffff;
-  border: 1px solid #ffffff;
+  border: 1px solid #8b5cf6;
 }
 
 .ai-btn.fix:hover {
-  background: #ffffff;
-  color: #000000;
+  background: #a78bfa;
+  border-color: #a78bfa;
+  color: #ffffff;
 }
 
 .ai-btn.api-key-toggle.locked {
