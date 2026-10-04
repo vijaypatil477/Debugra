@@ -523,9 +523,7 @@
   line-height: 1;
 }
 
-.faq-answer {
-  padding: 0 22px 20px;
-}
+
 
 .faq-answer p {
   margin: 0;
@@ -557,6 +555,29 @@
   color: var(--text-hi);
   border-color: var(--border-hover);
 }
+
+.faq-answer {
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateY(-6px);
+  transition: all 0.25s ease;
+  padding: 0 22px;
+}
+
+.faq-item:hover .faq-answer,
+.faq-item.is-open .faq-answer {
+  height: auto;
+  opacity: 1;
+  transform: translateY(0);
+  padding: 0 22px 20px;
+}
+
+.faq-list {
+  position: relative;
+  z-index: 10;
+}
+
 /* ─── CTA ──────────────────────────────────────────────────────────── */
 .landing-cta-section {
   padding: 100px 24px;

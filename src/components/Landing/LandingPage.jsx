@@ -945,7 +945,7 @@ export default function LandingPage() {
                     {isOpen ? '−' : '+'}
                   </span>
                 </button>
-                <div id={`faq-answer-${index}`} className="faq-answer" hidden={!isOpen}>
+                <div id={`faq-answer-${index}`} className="faq-answer" >
                   <p>{item.answer}</p>
                 </div>
               </div>
