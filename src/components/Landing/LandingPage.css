@@ -936,3 +936,20 @@
 .password-toggle:focus {
   outline: none;
 }
+.forgot-password-wrapper {
+  text-align: right;
+  margin-top: 8px;
+}
+
+.forgot-password-btn {
+  background: none;
+  border: none;
+  color: var(--brand);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0;
+}
+
+.forgot-password-btn:hover {
+  text-decoration: underline;
+}
