@@ -18,7 +18,10 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
@@ -282,15 +285,6 @@ export default function ComplexityOverlay({ isOpen, isLoading, response, onClose
             </div>
           )}
         </div>
-
-        {/* ── Footer ───────────────────────────────────────────────────── */}
-        {!isLoading && (
-          <div className="complexity-overlay-footer">
-            <button className="complexity-footer-close-btn" onClick={onClose}>
-              Close
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
