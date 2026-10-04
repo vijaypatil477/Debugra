@@ -68,6 +68,35 @@ export const executeCode = async (sourceCode, languageId, stdin = '') => {
 };
 
 // ─── AI Features ──────────────────────────────────────────────────────────────
+
+export const aiExplainError = async (code, error, language, systemPrompt = '') => {
+  const { data } = await api.post('/api/ai/explain-error', { code, error, language, systemPrompt });
+  return data;
+};
+
+export const aiFixCode = async (code, error, language, systemPrompt = '') => {
+  const { data } = await api.post('/api/ai/fix-code', { code, error, language, systemPrompt });
+  return data;
+};
+
+export const aiExplainLogic = async (code, language, systemPrompt = '') => {
+  const { data } = await api.post('/api/ai/explain-logic', { code, language, systemPrompt });
+  return data;
+};
+
+export const aiGenerateTests = async (code, language, systemPrompt = '') => {
+  const { data } = await api.post('/api/ai/generate-tests', { code, language, systemPrompt });
+  return data;
+};
+
+export const aiAuditCode = async (code, language, systemPrompt = '') => {
+  const { data } = await api.post('/api/ai/audit-code', { code, language, systemPrompt });
+  return data;
+};
+
+export const aiVisualizeExecution = async (code, language, input = '', systemPrompt = '') => {
+  const { data } = await api.post('/api/ai/visualize', { code, language, input, systemPrompt });
+
 export const aiExplainError = async (code, error, language, model = '') => {
   const { data } = await api.post('/api/ai/explain-error', { code, error, language, model });
   return data;
@@ -100,6 +129,7 @@ export const aiVisualizeExecution = async (code, language, input = '', model = '
 
 export const aiAnalyzeComplexity = async (code, language) => {
   const { data } = await api.post('/api/ai/analyze-complexity', { code, language });
+
   return data;
 };
 

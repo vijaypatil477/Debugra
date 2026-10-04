@@ -5,6 +5,7 @@ import { auth } from './services/firebase';
 import { Toaster } from 'react-hot-toast';
 import LandingPage from './components/Landing/LandingPage';
 import EditorPage from './components/Editor/EditorPage';
+import PromptManager from './components/Editor/PromptManager';
 import VideoCall from './components/Editor/VideoCall';
 import OfflineBanner from './components/Editor/OfflineBanner';
 import ContributorsPage from './components/Landing/ContributorsPage';
@@ -83,10 +84,38 @@ export default function App() {
   }, [user]);
 
   return (
+
+    <BrowserRouter>
+      <OfflineBanner />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: '#1e1e3a',
+            color: '#e2e8f0',
+            border: '1px solid #2a2a4a',
+          },
+        }}
+      />
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/prompt-manager" element={<PromptManager />} />
+        <Route path="/editor" element={<EditorPage user={user} />} />
+        {/* Test route to render VideoCall directly for e2e tests */}
+        <Route
+          path="/voice-test"
+          element={<VideoCall roomId={'__playwright_test'} userName={'Playwright'} audioOnly />}
+        />
+        {/* Local-only test route that does not use Firestore/room presence */}
+        <Route path="/voice-test-local" element={<VideoCall userName={'Playwright'} audioOnly />} />
+      </Routes>
+    </BrowserRouter>
+
     <ThemeProvider>
       <BrowserRouter>
         <AppContent user={user} />
       </BrowserRouter>
     </ThemeProvider>
+
   );
 }

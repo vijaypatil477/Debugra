@@ -23,7 +23,11 @@ import { OUTPUT_TABS } from '../config/constants';
  * @param {Function} setActiveOutputTab - to auto-switch to AI tab
  * @param {React.RefObject} editorRef - Monaco editor ref (for selection)
  */
+
+export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, systemPrompt }) {
+
 export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, model }) {
+
   const [aiResponse, setAiResponse] = useState(null);
   const [isAILoading, setIsAILoading] = useState(false);
 
@@ -58,10 +62,17 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, m
   const fix = useCallback(
     () =>
       withAI(async () => {
+
+        const result = await aiFixCode(code, stderr, LANGUAGES[language].name, systemPrompt);
+        return result;
+      }),
+    [withAI, code, stderr, language, systemPrompt]
+
         const result = await aiFixCode(code, stderr, LANGUAGES[language].name, model);
         return result;
       }),
     [withAI, code, stderr, language, model]
+
   );
 
   const explain = useCallback(
@@ -70,6 +81,26 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, m
         const sel = editorRef?.current?.getSelection();
         const selectedCode =
           sel && !sel.isEmpty() ? editorRef.current.getModel().getValueInRange(sel) : code;
+
+        return await aiExplainLogic(selectedCode, LANGUAGES[language].name, systemPrompt);
+      }),
+    [withAI, code, language, editorRef, systemPrompt]
+  );
+
+  const visualize = useCallback(
+    () => withAI(() => aiVisualizeExecution(code, LANGUAGES[language].name, '', systemPrompt)),
+    [withAI, code, language, systemPrompt]
+  );
+
+  const generateTests = useCallback(
+    () => withAI(() => aiGenerateTests(code, LANGUAGES[language].name, systemPrompt)),
+    [withAI, code, language, systemPrompt]
+  );
+
+  const audit = useCallback(
+    () => withAI(() => aiAuditCode(code, LANGUAGES[language].name, systemPrompt)),
+    [withAI, code, language, systemPrompt]
+
         return await aiExplainLogic(selectedCode, LANGUAGES[language].name, model);
       }),
     [withAI, code, language, editorRef, model]
@@ -88,6 +119,7 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, m
   const audit = useCallback(
     () => withAI(() => aiAuditCode(code, LANGUAGES[language].name, model)),
     [withAI, code, language, model]
+
   );
 
   const clearAI = useCallback(() => setAiResponse(null), []);
@@ -97,14 +129,14 @@ export function useAI({ language, code, stderr, setActiveOutputTab, editorRef, m
     setIsDebugLoading(true);
     setDebugResponse(null);
     try {
-      const result = await aiExplainError(code, stderr, LANGUAGES[language].name);
+      const result = await aiExplainError(code, stderr, LANGUAGES[language].name, systemPrompt);
       setDebugResponse(result);
     } catch (err) {
       toast.error(err.message || 'AI debug request failed');
     } finally {
       setIsDebugLoading(false);
     }
-  }, [code, stderr, language]);
+  }, [code, stderr, language, systemPrompt]);
 
   const clearDebug = useCallback(() => setDebugResponse(null), []);
 
