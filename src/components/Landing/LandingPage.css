@@ -936,3 +936,102 @@
 .password-toggle:focus {
   outline: none;
 }
+
+/* =========================================================
+   DOCS PAGE
+======================================================= */
+
+/* ─── Resource cards ─────────────────────────────────────── */
+.docs-resource-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.docs-resource-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px 24px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface);
+  text-decoration: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.docs-resource-card:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-hover);
+}
+
+.docs-resource-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-hi);
+}
+
+.docs-resource-desc {
+  font-size: 0.82rem;
+  color: var(--text-mid);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ─── Getting started steps ─────────────────────────────── */
+.docs-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.docs-step {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 18px 20px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.docs-step-num {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--brand-dim);
+  border: 1px solid var(--brand-border);
+  color: var(--brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.docs-step-content h4 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-hi);
+  margin: 0 0 4px;
+}
+
+.docs-step-content p {
+  font-size: 0.82rem;
+  color: var(--text-mid);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.docs-step-content code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: var(--brand);
+}

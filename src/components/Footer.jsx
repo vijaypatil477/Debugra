@@ -44,12 +44,12 @@ const Footer = () => {
               </a>
             </li>
             <li>
-              <a
-                href="/#docs"
+              <Link
+                to="/docs"
                 className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
               >
                 Documentation
-              </a>
+              </Link>
             </li>
             <li>
               <a
