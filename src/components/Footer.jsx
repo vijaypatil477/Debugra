@@ -100,7 +100,7 @@ const Footer = () => {
             </li>
             <li>
               <Link
-                to="/feedback"
+                to="/contact"
                 className="text-[#a1a1aa] hover:text-[#4fc1ff] hover:underline transition-colors"
               >
                 Contact Team
