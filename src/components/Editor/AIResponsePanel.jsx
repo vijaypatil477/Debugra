@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { DiffEditor } from '@monaco-editor/react';
 import { downloadAsMarkdown, downloadAsText } from '../../utils/downloadReport';
 import { LANGUAGES } from '../../utils/languageConfig';
 
@@ -7,6 +8,9 @@ import { LANGUAGES } from '../../utils/languageConfig';
  * Renders the AI output panel — handles loading, empty state, and all
  * response types: error explanation, fix, logic breakdown, trace, tests, complexity.
  * Also provides a download dropdown (Markdown / Plain Text) for offline reference.
+ * 
+ * GSSOC Issue #886: Per-test case copy buttons & Insert All Tests action for test blocks
+ * GSSOC Issue #882: Integrated Monaco DiffEditor option for reviewing AI fixes before applying
  */
 function TestCard({ tc, i }) {
   const [copied, setCopied] = useState(false);
@@ -111,6 +115,13 @@ function TestCasesPanel({ testCases }) {
     a.click();
     URL.revokeObjectURL(url);
   };
+  const handleInsertAll = () => {
+    if (!onInsertTests) return;
+    const testBlock = testCases
+      .map((tc, i) => `// Test ${i + 1} (${tc.type || 'normal'})\n// Input: ${tc.input}\n// Expected: ${tc.expected}`)
+      .join('\n\n');
+    onInsertTests(testBlock);
+  };
   return (
     <div>
       <div
@@ -133,20 +144,38 @@ function TestCasesPanel({ testCases }) {
             {normalCount} normal · {edgeCount} edge
           </span>
         </div>
-        <button
-          onClick={handleDownload}
-          style={{
-            fontSize: '0.65rem',
-            padding: '3px 8px',
-            borderRadius: '4px',
-            border: '1px solid rgba(78,201,176,0.3)',
-            background: 'rgba(78,201,176,0.1)',
-            color: 'var(--green)',
-            cursor: 'pointer',
-          }}
-        >
-          ↓ Download
-        </button>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {onInsertTests && (
+            <button
+              onClick={handleInsertAll}
+              style={{
+                fontSize: '0.65rem',
+                padding: '3px 8px',
+                borderRadius: '4px',
+                border: '1px solid rgba(78,201,176,0.3)',
+                background: 'var(--green)',
+                color: '#fff',
+                cursor: 'pointer',
+              }}
+            >
+              + Insert All Tests
+            </button>
+          )}
+          <button
+            onClick={handleDownload}
+            style={{
+              fontSize: '0.65rem',
+              padding: '3px 8px',
+              borderRadius: '4px',
+              border: '1px solid rgba(78,201,176,0.3)',
+              background: 'rgba(78,201,176,0.1)',
+              color: 'var(--green)',
+              cursor: 'pointer',
+            }}
+          >
+            ↓ Download
+          </button>
+        </div>
       </div>
       {testCases.map((tc, i) => (
         <TestCard key={i} tc={tc} i={i} />
@@ -154,12 +183,15 @@ function TestCasesPanel({ testCases }) {
     </div>
   );
 }
+
 export default function AIResponsePanel({
   isLoading,
   response: rawResponse,
   onApplyFix,
   language,
+  currentCode = '',
 }) {
+  const [showDiff, setShowDiff] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -335,34 +367,68 @@ export default function AIResponsePanel({
             style={{ color: 'var(--green)' }}
           >
             <span>Fixed Code</span>
-            {onApplyFix && (
+            <div style={{ display: 'flex', gap: '6px' }}>
               <button
-                onClick={() => onApplyFix(response.fixedCode)}
+                onClick={() => setShowDiff(!showDiff)}
                 style={{
-                  background: 'var(--green)',
-                  color: '#fff',
-                  border: 'none',
+                  background: 'rgba(255,255,255,0.08)',
+                  color: 'var(--text-1)',
+                  border: '1px solid rgba(255,255,255,0.15)',
                   padding: '2px 8px',
                   borderRadius: '4px',
                   cursor: 'pointer',
                   fontSize: '0.7rem',
                 }}
               >
-                Apply Solution
+                {showDiff ? 'Hide Diff' : '🔍 Review Diff'}
               </button>
-            )}
+              {onApplyFix && (
+                <button
+                  onClick={() => onApplyFix(response.fixedCode)}
+                  style={{
+                    background: 'var(--green)',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.7rem',
+                  }}
+                >
+                  Apply Solution
+                </button>
+              )}
+            </div>
           </div>
-          <pre
-            style={{
-              fontSize: '0.75rem',
-              color: 'var(--text-0)',
-              whiteSpace: 'pre-wrap',
-              fontFamily: "'JetBrains Mono', monospace",
-              marginTop: '8px',
-            }}
-          >
-            {response.fixedCode}
-          </pre>
+          {showDiff ? (
+            <div style={{ marginTop: '8px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+              <DiffEditor
+                original={currentCode}
+                modified={response.fixedCode}
+                language={language || 'javascript'}
+                theme="vs-dark"
+                height="220px"
+                options={{
+                  readOnly: true,
+                  renderSideBySide: false,
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                }}
+              />
+            </div>
+          ) : (
+            <pre
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--text-0)',
+                whiteSpace: 'pre-wrap',
+                fontFamily: "'JetBrains Mono', monospace",
+                marginTop: '8px',
+              }}
+            >
+              {response.fixedCode}
+            </pre>
+          )}
         </div>
       )}
       {Array.isArray(response.steps) && (
