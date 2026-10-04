@@ -1056,28 +1056,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ===== BACK TO TOP ===== */}
-      {showBackToTop && (
-        <button
-          className="back-to-top-btn"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          aria-label="Back to top"
-          title="Scroll back to top"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          >
-            <polyline points="18 15 12 9 6 15" />
-          </svg>
-        </button>
-      )}
-
       {/* ===== LOGIN MODAL ===== */}
       {showLogin && (
         <div className="modal-backdrop" onClick={() => setShowLogin(false)}>
