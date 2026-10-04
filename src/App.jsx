@@ -67,7 +67,19 @@ export default function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, (u) => setUser(u));
+    const handleUnhandledRejection = (event) => {
+      console.error("Unhandled promise rejection:", event.reason);
+      // Prevent the default browser behavior (e.g. logging to console unnecessarily or crashing)
+      event.preventDefault();
+    };
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
   }, []);
 
   // Test helper: allow forcing a fake user via URL query param `?testUser=1`
